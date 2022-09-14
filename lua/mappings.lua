@@ -41,8 +41,8 @@ local telescope = require('telescope.builtin')
 
 nmap('<leader>f', function() telescope.find_files({ hidden = false }) end)
 nmap('<leader>F', function() telescope.find_files({ hidden = true }) end)
-
 nmap('<leader>g', telescope.live_grep)
+
 nmap('<localleader>r', telescope.lsp_references)
 nmap('<localleader>c', telescope.commands)
 nmap('<localleader>d', telescope.lsp_definitions)
@@ -63,8 +63,6 @@ nmap('<bslash><bslash>', ':NERDTreeToggle<CR>')
 nmap('<localleader>gl', function() 
     print(utils.get_github_link())
 end)
-
--- imap('.', '.<C-x><C-o>')
 
 require('lualine').setup({
     options = {
