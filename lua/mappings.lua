@@ -2,9 +2,6 @@ local utils = require('utils')
 
 local nmap = utils.nmap
 
-nmap('<F12>', ':tabnew ~/.config/nvim/lua/init.lua<CR>')
-nmap('<F10>', ':so ~/.config/nvim/lua/init.lua<CR>')
-
 nmap('<C-h>', '<C-w>h')
 nmap('<C-j>', '<C-w>j')
 nmap('<C-k>', '<C-w>k')
@@ -29,10 +26,6 @@ nmap('<leader>2', '2gt')
 nmap('<leader>3', '3gt')
 nmap('<leader>4', '4gt')
 nmap('<leader>5', '5gt')
-nmap('<leader>6', '6gt')
-nmap('<leader>7', '7gt')
-nmap('<leader>8', '8gt')
-nmap('<leader>9', '9gt')
 
 nmap('gh', ':GitGutterNextHunk<CR>')
 nmap('gH', ':GitGutterPrevHunk<CR>')
