@@ -5,9 +5,6 @@ vim.o.cursorcolumn = true
 vim.o.colorcolumn = 80
 vim.o.mouse = true
 
-vim.o.background = "dark"
-vim.cmd([[silent! colorscheme gruvbox]])
-
 vim.cmd([[
 highlight WinSeparator guibg=None
 hi Normal guibg=NONE ctermbg=NONE
@@ -15,12 +12,14 @@ hi EndOfBuffer guibg=NONE ctermbg=NONE
 ]])
 
 vim.o.expandtab = true
+vim.o.smarttab = true
 vim.o.tabstop = 4
 vim.o.shiftwidth = 4
 
 vim.api.nvim_create_autocmd("FileType", {
     pattern = { "dart" },
     callback = function()
+        vim.o.shiftwidth = 2
         vim.o.tabstop = 2
     end
 })
@@ -31,3 +30,6 @@ require('nvim-treesitter.configs').setup {
         enable = true,
     },
 }
+
+vim.o.background = "dark"
+vim.cmd([[colorscheme codedark]])

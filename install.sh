@@ -1,6 +1,6 @@
 #!/bin/bash
 
-HOME="/home/alan"
+HOME="/home/thomas"
 
 Install programs
 curl -fsSL https://deb.nodesource.com/setup_current.x | sudo -E bash -
@@ -19,7 +19,7 @@ curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
 # Setup node
 nvm install 16.15
 nvm use 16.15
-npm instlal -g yarn
+npm install -g yarn
 
 # Install packer
 TMUX_PLUGIN_MANAGER_INSTALL_DIR="$HOME/.tmux/plugins/tpm"

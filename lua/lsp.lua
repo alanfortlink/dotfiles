@@ -14,8 +14,10 @@ local on_attach = function(_, bufnr)
     nmap('gi', buf.implementation)
     nmap('ga', ':CodeActionMenu<CR>')
     nmap('gk', buf.hover)
-    imap('<C-k>', buf.hover)
     nmap('<leader><leader>', buf.formatting_sync)
+
+    imap('<C-k>', buf.hover);
+
     nmap('ge', vim.diagnostic.open_float)
     nmap('gn', vim.diagnostic.goto_next)
     nmap('gp', vim.diagnostic.goto_prev)
