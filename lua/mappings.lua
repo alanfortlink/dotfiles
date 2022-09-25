@@ -54,7 +54,6 @@ nmap('<localleader>U', ':UndotreeHide<CR>')
 -- Save / Restore a session.
 nmap('<localleader>s1', ':mks! .session1.vim<CR>')
 nmap('<localleader>s2', ':mks! .session2.vim<CR>')
-
 nmap('<localleader>l1', ':so .session1.vim<CR>')
 nmap('<localleader>l2', ':so .session2.vim<CR>')
 
