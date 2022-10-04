@@ -4,13 +4,11 @@ vim.g.maplocalleader = ' '
 vim.opt.undodir = os.getenv("HOME") .. "/.config/nvim/undo"
 vim.opt.undofile = true
 
-vim.opt.syntax = true
-
 vim.opt.wildignore = '**/cmake.bld/**,compile_commands.json'
 
 vim.opt.autoindent = true
 vim.opt.cmdheight = 1
-vim.opt.colorcolumn = 80
+vim.opt.colorcolumn = "80"
 vim.opt.completeopt = 'menuone,noinsert,noselect'
 vim.opt.errorbells = false
 vim.opt.exrc = true
