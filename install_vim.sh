@@ -13,4 +13,3 @@ PACKER_INSTALL_DIR="$HOME/.local/share/nvim/site/pack/packer/start/packer.nvim"
 COPILOT_INSTALL_DIR="$HOME/.config/nvim/pack/github/start/copilot.vim"
 
 [[ ! -d $PACKER_INSTALL_DIR ]] && git clone --depth 1 https://github.com/wbthomason/packer.nvim $PACKER_INSTALL_DIR
-[[ ! -d $COPILOT_INSTALL_DIR ]] && git clone https://github.com/github/copilot.vim.git $COPILOT_INSTALL_DIR
