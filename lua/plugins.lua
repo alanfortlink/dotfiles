@@ -21,6 +21,7 @@ require('packer').startup(function()
 
     -- NAVIGATION
     use 'scrooloose/nerdtree'
+    use 'justinmk/vim-sneak'
     use {
         'nvim-telescope/telescope.nvim',
         requires = { { 'nvim-lua/plenary.nvim' } }
