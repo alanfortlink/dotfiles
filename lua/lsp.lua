@@ -101,3 +101,8 @@ lspconfig.clangd.setup {
         "--resource-dir=/opt/bb/lib/llvm-14.0/lib64/clang/14.0.6/"
     }
 }
+
+lspconfig.tsserver.setup{
+    on_attach = on_attach,
+    capabilities = capabilities,
+}
