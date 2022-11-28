@@ -13,6 +13,7 @@ local on_attach = function(_, bufnr)
     nmap('gi', buf.implementation)
     nmap('ga', ':CodeActionMenu<CR>')
     nmap('gk', buf.hover)
+    nmap('gs', buf.signature_help)
     nmap('<leader><leader>', buf.formatting_sync)
 
     imap('<C-k>', buf.hover);
