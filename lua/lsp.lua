@@ -52,28 +52,15 @@ cmp.setup({
 })
 
 local capabilities = require('cmp_nvim_lsp').default_capabilities()
-
 local lspconfig = require('lspconfig')
+local lsps = {lspconfig.dartls, lspconfig.gopls, lspconfig.pyright, lspconfig.rust_analyzer, lspconfig.tsserver}
 
-lspconfig.gopls.setup {
-    on_attach = on_attach,
-    capabilities = capabilities,
-}
-
-lspconfig.pyright.setup {
-    on_attach = on_attach,
-    capabilities = capabilities,
-}
-
-lspconfig.rust_analyzer.setup {
-    on_attach = on_attach,
-    capabilities = capabilities,
-}
-
-lspconfig.dartls.setup {
-    on_attach = on_attach,
-    capabilities = capabilities,
-}
+for lsp in lsps do
+    lsp.setup {
+        on_attach = on_attach,
+        capabilities = capabilities
+    }
+end
 
 lspconfig.sumneko_lua.setup {
     on_attach = on_attach,
@@ -101,9 +88,4 @@ lspconfig.clangd.setup {
         "clangd",
         "--resource-dir=/opt/bb/lib/llvm-14.0/lib64/clang/14.0.6/"
     }
-}
-
-lspconfig.tsserver.setup{
-    on_attach = on_attach,
-    capabilities = capabilities,
 }
