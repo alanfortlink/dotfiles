@@ -45,6 +45,11 @@ vmap('<leader>y', '"Zy')
 nmap('gh', ':GitGutterNextHunk<CR>')
 nmap('gH', ':GitGutterPrevHunk<CR>')
 
+nmap('<C-d>', '<C-d>zz')
+nmap('<C-u>', '<C-u>zz')
+nmap('<C-f>', '<C-f>zz')
+nmap('<C-b>', '<C-b>zz')
+
 local telescope = require('telescope.builtin')
 
 nmap('<leader>f', function() telescope.find_files({ hidden = false }) end)
