@@ -17,85 +17,22 @@ local on_attach = function(_, bufnr)
     vim.keymap.set('n', 'gp', vim.diagnostic.goto_prev)
 end
 
-local cmp = require('cmp')
-cmp.setup({
-    snippet = {
-        expand = function(args)
-            require('luasnip').lsp_expand(args.body) -- For `luasnip` users.
-        end,
-    },
-    window = {
-        completion = cmp.config.window.bordered(),
-        documentation = cmp.config.window.bordered(),
-    },
-    mapping = cmp.mapping.preset.insert({
-        ['<C-b>'] = cmp.mapping.scroll_docs(-4),
-        ['<C-f>'] = cmp.mapping.scroll_docs(4),
-        ['<C-Space>'] = cmp.mapping.complete(),
-        ['<C-e>'] = cmp.mapping.abort(),
-        ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
-    }),
-    sources = cmp.config.sources({
-        { name = 'nvim_lsp' },
-        { name = 'luasnip' }, -- For luasnip users.
-    }, {
-        { name = 'buffer' },
-    })
+vim.opt.signcolumn = 'yes' -- Reserve space for diagnostic icons
+
+local lsp = require('lsp-zero')
+lsp.preset('recommended')
+
+lsp.ensure_installed({
+  'tsserver',
+  'eslint',
+  'sumneko_lua',
+  'clangd',
+  'rust_analyzer',
 })
 
-local capabilities = require('cmp_nvim_lsp').default_capabilities()
+lsp.configure('dartls', {force_setup = true, on_attach = on_attach})
 
-local lspconfig = require('lspconfig')
+lsp.nvim_workspace()
+lsp.on_attach(on_attach)
 
-lspconfig.gopls.setup {
-    on_attach = on_attach,
-    capabilities = capabilities,
-}
-
-lspconfig.pyright.setup {
-    on_attach = on_attach,
-    capabilities = capabilities,
-}
-
-lspconfig.rust_analyzer.setup {
-    on_attach = on_attach,
-    capabilities = capabilities,
-}
-
-lspconfig.dartls.setup {
-    on_attach = on_attach,
-    capabilities = capabilities,
-}
-
-lspconfig.sumneko_lua.setup {
-    on_attach = on_attach,
-    capabilities = capabilities,
-    settings = {
-        -- Get the language server to recognize the `vim` global
-        Lua = {
-            diagnostics = {
-                globals = { 'vim' },
-            },
-            workspace = {
-                library = vim.api.nvim_get_runtime_file("", true),
-            },
-            telemetry = {
-                enable = false,
-            },
-        },
-    },
-}
-
-lspconfig.clangd.setup {
-    on_attach = on_attach,
-    capabilities = capabilities,
-    cmd = {
-        "clangd",
-        "--resource-dir=/opt/bb/lib/llvm-14.0/lib64/clang/14.0.6/"
-    }
-}
-
-lspconfig.tsserver.setup{
-    on_attach = on_attach,
-    capabilities = capabilities,
-}
+lsp.setup()
