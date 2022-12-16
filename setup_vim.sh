@@ -1,10 +1,11 @@
 #!/bin/bash
 
 NVIM_HOME="$HOME/.config/nvim"
-NVIM_LUA_HOME="$NVIM_HOME/after"
+NVIM_LUA_HOME="$NVIM_HOME/lua"
 
 mkdir -p $NVIM_LUA_HOME
 
+cp init.lua $NVIM_HOME
 cp -R snippets $NVIM_HOME
 cp lua/* $NVIM_LUA_HOME
 

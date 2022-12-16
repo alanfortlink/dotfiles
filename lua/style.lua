@@ -2,8 +2,7 @@ vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.cursorline = true
 vim.opt.cursorcolumn = true
-vim.opt.colorcolumn = 80
-vim.opt.mouse = true
+vim.opt.colorcolumn = "80"
 
 -- vim.cmd([[
 -- highlight WinSeparator guibg=None
@@ -32,7 +31,7 @@ require('nvim-treesitter.configs').setup {
 }
 
 vim.opt.background = "dark"
-vim.optpt.colorscheme("codedark")
+vim.cmd.colorscheme("codedark")
 
 require('lualine').setup({
     options = {
