@@ -37,11 +37,10 @@ local function stop_jobs()
     jobs = {}
 end
 
-local nmap = require('utils').nmap
-nmap('<localleader>jb', function() run_make("build") end)
-nmap('<localleader>jr', function() run_make("run") end)
-nmap('<localleader>jt', function() run_make("test") end)
-nmap('<localleader>jq', function() stop_jobs() end)
+vim.keymap.set('n', '<localleader>jb', function() run_make("build") end)
+vim.keymap.set('n', '<localleader>jr', function() run_make("run") end)
+vim.keymap.set('n', '<localleader>jt', function() run_make("test") end)
+vim.keymap.set('n', '<localleader>jq', function() stop_jobs() end)
 
-nmap('<localleader>q', ':copen<CR>')
-nmap('<localleader>Q', ':cclose<CR>')
+vim.keymap.set('n', '<localleader>q', ':copen<CR>')
+vim.keymap.set('n', '<localleader>Q', ':cclose<CR>')

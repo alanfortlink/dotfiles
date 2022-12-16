@@ -1,16 +1,14 @@
 local augroup = vim.api.nvim_create_augroup("augroup", { clear = true })
-local utils = require('utils')
-local nmap = utils.nmap
 
 -- Flutter build / run shortcuts
 vim.api.nvim_create_autocmd("FileType", {
     pattern = { "dart" },
     callback = function()
-        nmap('<F4>', ':FlutterDevices<CR>')
-        nmap('<F5>', ':FlutterRun<CR>')
-        nmap('<F6>', ':FlutterVSplit<CR>')
-        nmap('<F7>', ':FlutterHotRestart<CR>')
-        nmap('<F8>', ':FlutterQuit<CR>')
+        vim.keymap.set('n', '<F4>', ':FlutterDevices<CR>')
+        vim.keymap.set('n', '<F5>', ':FlutterRun<CR>')
+        vim.keymap.set('n', '<F6>', ':FlutterVSplit<CR>')
+        vim.keymap.set('n', '<F7>', ':FlutterHotRestart<CR>')
+        vim.keymap.set('n', '<F8>', ':FlutterQuit<CR>')
     end,
     group = augroup
 })
@@ -28,11 +26,11 @@ vim.api.nvim_create_autocmd("BufWritePost", {
 vim.api.nvim_create_autocmd("FileType", {
     pattern = { "cpp", "h" },
     callback = function()
-        nmap('<leader>c', ':e %<.cpp<CR>')
-        nmap('<leader>C', ':vnew %<.cpp<CR>')
-        nmap('<leader>h', ':e %<.h<CR>')
-        nmap('<leader>H', ':vnew %<.h<CR>')
-        nmap('<leader>b', ':vnew %:p:h/CMakeLists.txt<CR>')
+        vim.keymap.set('n', '<leader>c', ':e %<.cpp<CR>')
+        vim.keymap.set('n', '<leader>C', ':vnew %<.cpp<CR>')
+        vim.keymap.set('n', '<leader>h', ':e %<.h<CR>')
+        vim.keymap.set('n', '<leader>H', ':vnew %<.h<CR>')
+        vim.keymap.set('n', '<leader>b', ':vnew %:p:h/CMakeLists.txt<CR>')
     end,
     group = augroup
 })

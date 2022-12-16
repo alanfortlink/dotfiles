@@ -1,101 +1,77 @@
 local utils = require('utils')
 
-local nmap = utils.nmap
-local vmap = utils.vmap
+-- Window movement
+vim.keymap.set('n', '<C-h>', '<C-w>h')
+vim.keymap.set('n', '<C-j>', '<C-w>j')
+vim.keymap.set('n', '<C-k>', '<C-w>k')
+vim.keymap.set('n', '<C-l>', '<C-w>l')
 
-nmap('<F12>', ':tabnew ~/.config/nvim/lua/init.lua<CR>')
-nmap('<F10>', ':so ~/.config/nvim/lua/init.lua<CR>')
+-- Window resizing
+vim.keymap.set('n', '<C-M-h>', '3<C-w><')
+vim.keymap.set('n', '<C-M-l>', '3<C-w>>')
+vim.keymap.set('n', '<C-M-k>', '1<C-w>-')
+vim.keymap.set('n', '<C-M-j>', '1<C-w>+')
+vim.keymap.set('n', '<leader>M', '<C-w>_<C-w><Bar> ')
+vim.keymap.set('n', '<leader>m', '<C-w>=')
 
-nmap('<C-h>', '<C-w>h')
-nmap('<C-j>', '<C-w>j')
-nmap('<C-k>', '<C-w>k')
-nmap('<C-l>', '<C-w>l')
+-- Tab / Panel creation
+vim.keymap.set('n', '<leader>t', ':tabnew<CR>')
+vim.keymap.set('n', '<leader>n', ':new<CR>')
+vim.keymap.set('n', '<leader>v', ':vnew<CR>')
+vim.keymap.set('n', '<leader>q', ':q<CR>')
+vim.keymap.set('n', '<leader>Q', ':q!<CR>')
 
-nmap('<C-M-h>', '3<C-w><')
-nmap('<C-M-l>', '3<C-w>>')
-nmap('<C-M-k>', '1<C-w>-')
-nmap('<C-M-j>', '1<C-w>+')
+-- Quickly go-to-tab
+for tab in 1,9 do vim.keymap.set('n', '<leader>'..tab, tab..'gt') end
 
-nmap('<leader>M', '<C-w>_<C-w><Bar> ')
-nmap('<leader>m', '<C-w>=')
+-- Copy / Paste from special register
+vim.keymap.set('n', '<leader>d', '"Zd')
+vim.keymap.set('v', '<leader>d', '"Zd')
+vim.keymap.set('n', '<leader>y', '"Zy')
+vim.keymap.set('n', '<leader>p', '"Zp')
+vim.keymap.set('n', '<leader>P', '"ZP')
+vim.keymap.set('v', '<leader>y', '"Zy')
 
-nmap('<leader>t', ':tabnew<CR>')
-nmap('<leader>n', ':new<CR>')
-nmap('<leader>v', ':vnew<CR>')
-nmap('<leader>q', ':q<CR>')
-nmap('<leader>Q', ':q!<CR>')
+-- Jump to next / previous git change
+vim.keymap.set('n', 'gh', ':GitGutterNextHunk<CR>')
+vim.keymap.set('n', 'gH', ':GitGutterPrevHunk<CR>')
 
-nmap('<leader>1', '1gt')
-nmap('<leader>2', '2gt')
-nmap('<leader>3', '3gt')
-nmap('<leader>4', '4gt')
-nmap('<leader>5', '5gt')
-nmap('<leader>6', '6gt')
-nmap('<leader>7', '7gt')
-nmap('<leader>8', '8gt')
-nmap('<leader>9', '9gt')
-
-nmap('<leader>d', '"Zd')
-vmap('<leader>d', '"Zd')
-nmap('<leader>y', '"Zy')
-nmap('<leader>p', '"Zp')
-nmap('<leader>P', '"ZP')
-vmap('<leader>y', '"Zy')
-
-nmap('gh', ':GitGutterNextHunk<CR>')
-nmap('gH', ':GitGutterPrevHunk<CR>')
-
-nmap('<C-d>', '<C-d>zz')
-nmap('<C-u>', '<C-u>zz')
-nmap('<C-f>', '<C-f>zz')
-nmap('<C-b>', '<C-b>zz')
+-- Re-center buffer when jumping up and down
+vim.keymap.set('n', '<C-d>', '<C-d>zz')
+vim.keymap.set('n', '<C-u>', '<C-u>zz')
+vim.keymap.set('n', '<C-f>', '<C-f>zz')
+vim.keymap.set('n', '<C-b>', '<C-b>zz')
 
 local telescope = require('telescope.builtin')
 
-nmap('<leader>f', function() telescope.find_files({ hidden = false }) end)
-nmap('<leader>F', function() telescope.find_files({ hidden = true }) end)
+-- Nice find files
+vim.keymap.set('n', '<leader>f', function() telescope.find_files({ hidden = false }) end)
+-- Messy find files
+vim.keymap.set('n', '<leader>F', function() telescope.find_files({ hidden = true }) end)
 
-nmap('<leader>g', telescope.live_grep)
-nmap('<localleader>r', telescope.lsp_references)
-nmap('<localleader>c', telescope.commands)
-nmap('<localleader>d', telescope.lsp_definitions)
-nmap('<localleader>t', telescope.lsp_type_definitions)
-nmap('<localleader>/', ':noh<CR>')
-nmap('<localleader>u', ':UndotreeShow<CR>:UndotreeFocus<CR>')
-nmap('<localleader>U', ':UndotreeHide<CR>')
+-- Almighty GREP
+vim.keymap.set('n', '<leader>g', telescope.live_grep)
+
+-- Other telescope stuff
+vim.keymap.set('n', '<localleader>d', telescope.lsp_definitions)
+vim.keymap.set('n', '<localleader>t', telescope.lsp_type_definitions)
+
+-- Undo tree
+vim.keymap.set('n', '<localleader>/', ':noh<CR>')
+vim.keymap.set('n', '<localleader>u', ':UndotreeShow<CR>:UndotreeFocus<CR>')
+vim.keymap.set('n', '<localleader>U', ':UndotreeHide<CR>')
 
 -- Save / Restore a session.
-nmap('<localleader>s1', ':mks! .session1.vim<CR>')
-nmap('<localleader>s2', ':mks! .session2.vim<CR>')
-nmap('<localleader>l1', ':so .session1.vim<CR>')
-nmap('<localleader>l2', ':so .session2.vim<CR>')
+vim.keymap.set('n', '<localleader>s1', ':mks! .session1.vim<CR>')
+vim.keymap.set('n', '<localleader>s2', ':mks! .session2.vim<CR>')
+vim.keymap.set('n', '<localleader>l1', ':so .session1.vim<CR>')
+vim.keymap.set('n', '<localleader>l2', ':so .session2.vim<CR>')
 
-nmap('<bslash><bslash>', ':NERDTreeToggle<CR>')
+-- NERDTree
+vim.keymap.set('n', '<bslash><bslash>', ':NERDTreeToggle<CR>')
 
-nmap('<localleader>gl', function() 
+-- Get git link for current line (BETA)
+vim.keymap.set('n', '<localleader>gl', function() 
     print(utils.get_github_link())
 end)
 
--- imap('.', '.<C-x><C-o>')
-
-require('lualine').setup({
-    options = {
-        icons_enabled = true,
-        theme = 'auto',
-        component_separators = { left = '', right = '' },
-        section_separators = { left = '', right = '' },
-        disabled_filetypes = {},
-        always_divide_middle = true,
-        globalstatus = false,
-    },
-    sections = {
-        lualine_a = { 'mode' },
-        lualine_b = { 'branch', 'diff', 'diagnostics' },
-        lualine_c = { 'filename' },
-        lualine_x = { 'filesize', 'encoding', 'filetype' },
-        lualine_y = { 'progress' },
-        lualine_z = { 'location' }
-    },
-    tabline = {},
-    extensions = {}
-})

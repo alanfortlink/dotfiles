@@ -1,7 +1,7 @@
 #!/bin/bash
 
 NVIM_HOME="$HOME/.config/nvim"
-NVIM_LUA_HOME="$NVIM_HOME/lua"
+NVIM_LUA_HOME="$NVIM_HOME/after"
 
 mkdir -p $NVIM_LUA_HOME
 
