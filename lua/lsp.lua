@@ -1,31 +1,23 @@
-local nmap = require('utils').nmap
-local imap = require('utils').imap
-
 local on_attach = function(_, bufnr)
     vim.api.nvim_buf_set_option(bufnr, 'omnifunc', 'v:lua.vim.lsp.omnifunc')
     local buf = vim.lsp.buf;
 
-    nmap('gd', buf.definition)
-    nmap('gD', buf.declaration)
-    nmap('gt', buf.type_definition)
-    nmap('gr', buf.references)
-    nmap('gR', buf.rename)
-    nmap('gi', buf.implementation)
-    nmap('ga', ':CodeActionMenu<CR>')
-    nmap('gk', buf.hover)
-    nmap('gs', buf.signature_help)
-    nmap('<leader><leader>', buf.formatting_sync)
+    vim.keymap.set('n', 'gd', buf.definition)
+    vim.keymap.set('n', 'gD', buf.declaration)
+    vim.keymap.set('n', 'gt', buf.type_definition)
+    vim.keymap.set('n', 'gr', buf.references)
+    vim.keymap.set('n', 'gR', buf.rename)
+    vim.keymap.set('n', 'ga', ':CodeActionMenu<CR>')
+    vim.keymap.set('n', 'gk', buf.hover)
+    vim.keymap.set('n', 'gs', buf.signature_help)
+    vim.keymap.set('n', '<leader><leader>', buf.formatting_sync)
 
-    imap('<C-k>', buf.hover);
-
-    nmap('ge', vim.diagnostic.open_float)
-    nmap('gn', vim.diagnostic.goto_next)
-    nmap('gp', vim.diagnostic.goto_prev)
-    nmap('<leader>d', vim.diagnostic.setloclist)
+    vim.keymap.set('n', 'ge', vim.diagnostic.open_float)
+    vim.keymap.set('n', 'gn', vim.diagnostic.goto_next)
+    vim.keymap.set('n', 'gp', vim.diagnostic.goto_prev)
 end
 
 local cmp = require('cmp')
-
 cmp.setup({
     snippet = {
         expand = function(args)
