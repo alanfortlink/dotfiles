@@ -4,11 +4,11 @@ vim.opt.cursorline = true
 vim.opt.cursorcolumn = true
 vim.opt.colorcolumn = "80"
 
--- vim.cmd([[
--- highlight WinSeparator guibg=None
--- hi Normal guibg=NONE ctermbg=NONE
--- hi EndOfBuffer guibg=NONE ctermbg=NONE
--- ]])
+vim.cmd([[
+highlight WinSeparator guibg=None
+hi Normal guibg=NONE ctermbg=NONE
+hi EndOfBuffer guibg=NONE ctermbg=NONE
+]])
 
 vim.opt.expandtab = true
 vim.opt.smarttab = true
