@@ -51,7 +51,6 @@ lsp.configure('dartls', { force_setup = true, on_attach = on_attach })
 
 lsp.nvim_workspace()
 lsp.on_attach(on_attach)
-
 lsp.setup()
 
 require("flutter-tools").setup {} -- use defaults
