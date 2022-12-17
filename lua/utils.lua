@@ -1,3 +1,7 @@
+P = function(v)
+    print(vim.inspect(v))
+end
+
 local M = {}
 
 local function set_keymap(mode, lhs, rhs)
