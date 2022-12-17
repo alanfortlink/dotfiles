@@ -36,3 +36,5 @@ lsp.nvim_workspace()
 lsp.on_attach(on_attach)
 
 lsp.setup()
+
+require("flutter-tools").setup{} -- use defaults

@@ -14,7 +14,8 @@ require('packer').startup(function()
     use { 'nvim-treesitter/nvim-treesitter' }
 
     -- FLUTTER
-    use { 'thosakwe/vim-flutter' }
+    -- use { 'thosakwe/vim-flutter' }
+    use {'akinsho/flutter-tools.nvim', requires = 'nvim-lua/plenary.nvim'}
 
     -- NAVIGATION
     use { 'scrooloose/nerdtree' }
