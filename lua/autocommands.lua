@@ -1,4 +1,5 @@
 local augroup = vim.api.nvim_create_augroup("augroup", { clear = true })
+local utils = require('utils')
 
 -- Flutter build / run shortcuts
 vim.api.nvim_create_autocmd("FileType", {
