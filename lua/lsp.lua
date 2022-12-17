@@ -19,22 +19,39 @@ end
 
 vim.opt.signcolumn = 'yes' -- Reserve space for diagnostic icons
 
+
 local lsp = require('lsp-zero')
 lsp.preset('recommended')
 
-lsp.ensure_installed({
-  'tsserver',
-  'eslint',
-  'sumneko_lua',
-  'clangd',
-  'rust_analyzer',
+local cmp = require("cmp")
+local cmp_mappings = lsp.defaults.cmp_mappings({
+    ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+    ['<C-f>'] = cmp.mapping.scroll_docs(4),
+    ['<C-Space>'] = cmp.mapping.complete(),
+    ['<C-e>'] = cmp.mapping.abort(),
+    ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
 })
 
-lsp.configure('dartls', {force_setup = true, on_attach = on_attach})
+cmp_mappings['<Tab>'] = nil
+cmp_mappings['<S-Tab>'] = nil
+
+lsp.setup_nvim_cmp({
+    mapping = cmp_mappings
+})
+
+lsp.ensure_installed({
+    'tsserver',
+    'eslint',
+    'sumneko_lua',
+    'clangd',
+    'rust_analyzer',
+})
+
+lsp.configure('dartls', { force_setup = true, on_attach = on_attach })
 
 lsp.nvim_workspace()
 lsp.on_attach(on_attach)
 
 lsp.setup()
 
-require("flutter-tools").setup{} -- use defaults
+require("flutter-tools").setup {} -- use defaults
