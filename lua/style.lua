@@ -31,7 +31,7 @@ require('nvim-treesitter.configs').setup {
 }
 
 vim.opt.background = "dark"
-vim.cmd.colorscheme("codedark")
+vim.cmd.colorscheme("gruvbox")
 
 require('lualine').setup({
     options = {
