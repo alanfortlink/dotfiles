@@ -17,9 +17,6 @@ local on_attach = function(_, bufnr)
     vim.keymap.set("n", "gp", vim.diagnostic.goto_prev)
 end
 
-vim.opt.signcolumn = "yes" -- Reserve space for diagnostic icons
-
-
 local lsp = require("lsp-zero")
 lsp.preset("recommended")
 
