@@ -42,13 +42,12 @@ lsp.setup_nvim_cmp({
 lsp.ensure_installed({
     "tsserver",
     "eslint",
-    "sumneko_lua",
     "clangd",
     "rust_analyzer",
 })
 
 lsp.configure("dartls", { force_setup = true, on_attach = on_attach })
 
-lsp.nvim_workspace()
 lsp.on_attach(on_attach)
+lsp.nvim_workspace()
 lsp.setup()
