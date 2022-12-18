@@ -25,14 +25,14 @@ vim.keymap.set("n", "<leader>Q", ":q!<CR>")
 for tab = 1, 9 do vim.keymap.set("n", "<leader>" .. tab, tab .. "gt") end
 
 -- Copy / Paste from special register
-vim.keymap.set("n", "<leader>d", "\"Zd")
-vim.keymap.set("v", "<leader>d", "\"Zd")
-vim.keymap.set("x", "<leader>d", "\"Zd")
-vim.keymap.set("n", "<leader>y", "\"Zy")
-vim.keymap.set("v", "<leader>y", "\"Zy")
-vim.keymap.set("x", "<leader>y", "\"Zy")
-vim.keymap.set("n", "<leader>p", "\"Zp")
-vim.keymap.set("n", "<leader>P", "\"ZP")
+vim.keymap.set("n", "<leader>d", '"Zd')
+vim.keymap.set("v", "<leader>d", '"Zd')
+vim.keymap.set("x", "<leader>d", '"Zd')
+vim.keymap.set("n", "<leader>y", '"Zy')
+vim.keymap.set("v", "<leader>y", '"Zy')
+vim.keymap.set("x", "<leader>y", '"Zy')
+vim.keymap.set("n", "<leader>p", '"Zp')
+vim.keymap.set("n", "<leader>P", '"ZP')
 
 -- Jump to next / previous git change
 vim.keymap.set("n", "gh", ":GitGutterNextHunk<CR>")
