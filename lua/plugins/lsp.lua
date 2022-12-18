@@ -44,7 +44,7 @@ lsp.ensure_installed({
 })
 
 lsp.configure("dartls", { force_setup = true, on_attach = on_attach })
-
 lsp.on_attach(on_attach)
+
 lsp.nvim_workspace()
 lsp.setup()
