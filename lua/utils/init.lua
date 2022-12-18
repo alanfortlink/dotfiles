@@ -39,7 +39,7 @@ end
 
 function M.get_github_link()
     -- github.com/<organization>/<repository>/blob/<branch_name>/<path_to_file>?plain=1
-    local url = exec("!git config --get remote.origin.url | sed \"s/\\.git$//\" | sed \"s/\\:/\\//\" | sed \"s/^git@/https:\\/\\//\"")
+    local url = exec("!git config --get remote.origin.url | sed \"s/\\.git$//\" | sed \"s/^git@/https:\\/\\//\"")
     local branch = exec("!git branch --show-current")
 
     local file_path = vim.api.nvim_buf_get_name(0)
