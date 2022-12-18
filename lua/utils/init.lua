@@ -9,15 +9,15 @@ local function set_keymap(mode, lhs, rhs)
 end
 
 function M.nmap(lhs, rhs)
-    set_keymap('n', lhs, rhs)
+    set_keymap("n", lhs, rhs)
 end
 
 function M.vmap(lhs, rhs)
-    set_keymap('v', lhs, rhs)
+    set_keymap("v", lhs, rhs)
 end
 
 function M.imap(lhs, rhs)
-    set_keymap('i', lhs, rhs)
+    set_keymap("i", lhs, rhs)
 end
 
 function M.get_quickfix_bufnr()
@@ -33,7 +33,7 @@ end
 
 local function exec(command)
     local output = vim.api.nvim_exec(command, true)
-    local table = vim.split(output, '\n')
+    local table = vim.split(output, "\n")
     return table[#table-1]
 end
 
@@ -41,12 +41,12 @@ function M.get_github_link()
     -- github.com/<organization>/<repository>/blob/<branch_name>/<path_to_file>?plain=1
     local url = exec("!git config --get remote.origin.url | sed \"s/\\.git$//\" | sed \"s/\\:/\\//\" | sed \"s/^git@/https:\\/\\//\"")
     local branch = exec("!git branch --show-current")
-    
+
     local file_path = vim.api.nvim_buf_get_name(0)
     local cwd = vim.fn.getcwd()
 
     local r_path = file_path:gsub(cwd .. "/", "")
-    local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+    local row, _ = unpack(vim.api.nvim_win_get_cursor(0))
 
     local link = url .. "/blob/" .. branch .. "/" .. r_path .. "#L" .. row
     return link

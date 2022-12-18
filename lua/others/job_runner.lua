@@ -10,7 +10,7 @@ end
 
 local function run_make(target)
     -- Empty the quickfix list
-    vim.fn.setqflist({}, 'r')
+    vim.fn.setqflist({}, "r")
 
     -- Print the command being executed
     local begin_message = "make " .. target
@@ -37,10 +37,10 @@ local function stop_jobs()
     jobs = {}
 end
 
-vim.keymap.set('n', '<localleader>jb', function() run_make("build") end)
-vim.keymap.set('n', '<localleader>jr', function() run_make("run") end)
-vim.keymap.set('n', '<localleader>jt', function() run_make("test") end)
-vim.keymap.set('n', '<localleader>jq', function() stop_jobs() end)
+vim.keymap.set("n", "<localleader>jb", function() run_make("build") end)
+vim.keymap.set("n", "<localleader>jr", function() run_make("run") end)
+vim.keymap.set("n", "<localleader>jt", function() run_make("test") end)
+vim.keymap.set("n", "<localleader>jq", function() stop_jobs() end)
 
-vim.keymap.set('n', '<localleader>q', ':copen<CR>')
-vim.keymap.set('n', '<localleader>Q', ':cclose<CR>')
+vim.keymap.set("n", "<localleader>q", ":copen<CR>")
+vim.keymap.set("n", "<localleader>Q", ":cclose<CR>")
