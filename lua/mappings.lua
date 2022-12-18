@@ -22,7 +22,7 @@ vim.keymap.set("n", "<leader>q", ":q<CR>")
 vim.keymap.set("n", "<leader>Q", ":q!<CR>")
 
 -- Quickly go-to-tab
-for tab = 1,9 do vim.keymap.set("n", "<leader>"..tab, tab.."gt") end
+for tab = 1, 9 do vim.keymap.set("n", "<leader>" .. tab, tab .. "gt") end
 
 -- Copy / Paste from special register
 vim.keymap.set("n", "<leader>d", "\"Zd")
@@ -83,4 +83,3 @@ vim.keymap.set("n", "<localleader>gl", function()
     print(gh_link)
     vim.fn.setreg("+", gh_link)
 end)
-
