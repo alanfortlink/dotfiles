@@ -14,7 +14,7 @@ vim.opt.errorbells = false
 vim.opt.exrc = true
 vim.opt.hidden = true
 vim.opt.hlsearch = true
-vim.opt.ignorecase = true
+vim.opt.smartcase = true
 vim.opt.incsearch = true
 vim.opt.scrolloff = 0
 vim.opt.shortmess:append("c")
