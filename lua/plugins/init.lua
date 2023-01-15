@@ -21,6 +21,7 @@ require("packer").startup(function()
     use { "scrooloose/nerdtree" }
     use { "justinmk/vim-sneak" }
     use { "nvim-telescope/telescope.nvim" }
+    use { "ThePrimeagen/harpoon" }
 
     -- AUTO-COMPLETE
     use { "weilbith/nvim-code-action-menu", cmd = "CodeActionMenu" }
