@@ -30,6 +30,15 @@ vim.keymap.set("n", "<C-u>", "<C-u>zz")
 vim.keymap.set("n", "<C-f>", "<C-f>zz")
 vim.keymap.set("n", "<C-b>", "<C-b>zz")
 
+vim.keymap.set("x", "<leader>d", "\"zd")
+vim.keymap.set("v", "<leader>d", "\"zd")
+vim.keymap.set("n", "<leader>d", "\"zd")
+vim.keymap.set("x", "<leader>y", "\"zy")
+vim.keymap.set("v", "<leader>y", "\"zy")
+vim.keymap.set("n", "<leader>y", "\"zy")
+vim.keymap.set("n", "<leader>p", "\"zp")
+vim.keymap.set("n", "<leader>P", "\"zP")
+
 vim.keymap.set("n", "<localleader>/", ":noh<CR>")
 
 -- Save / Restore a session.

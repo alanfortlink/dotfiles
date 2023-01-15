@@ -21,9 +21,9 @@ vim.opt.scrolloff = 0
 vim.opt.shortmess:append("c")
 vim.opt.isfname:append("@-@")
 vim.opt.signcolumn = "yes"
-vim.opt.smartindent = true
 vim.opt.guicursor = ""
 vim.opt.swapfile = false
+vim.opt.backup = false
 vim.opt.wrap = false
 vim.opt.splitright = true
 vim.opt.splitbelow = true
@@ -44,8 +44,10 @@ hi EndOfBuffer guibg=NONE ctermbg=NONE
 
 vim.opt.expandtab = true
 vim.opt.smarttab = true
+vim.opt.smartindent = true
 vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4
 
 vim.opt.background = "dark"
 vim.cmd.colorscheme("gruvbox")
+vim.opt.termguicolors = true
