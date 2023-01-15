@@ -48,4 +48,4 @@ vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4
 
 vim.opt.background = "dark"
--- vim.cmd.colorscheme("gruvbox")
+vim.cmd.colorscheme("gruvbox")
