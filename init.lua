@@ -1,5 +1,6 @@
 require("utils")
 require("sets")
+require("mappings")
 
 require("plugins")
 require("plugins.flutter")
@@ -16,7 +17,5 @@ require("utils")
 require("utils.autocommands")
 require("utils.cpp")
 require("utils.dart")
-
-require("mappings")
 
 require("others.job_runner")
