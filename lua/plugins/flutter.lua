@@ -1,14 +1,5 @@
 -- alternatively you can override the default configs
 require("flutter-tools").setup {
-  ui = {
-    -- the border type to use for all floating windows, the same options/formats
-    -- used for ":h nvim_open_win" e.g. "single" | "shadow" | {<table-of-eight-chars>}
-    border = "rounded",
-    -- This determines whether notifications are show with `vim.notify` or with the plugin's custom UI
-    -- please note that this option is eventually going to be deprecated and users will need to
-    -- depend on plugins like `nvim-notify` instead.
-    notification_style = 'native'
-  },
   decorations = {
     statusline = {
       -- set to true to be able use the 'flutter_tools_decorations.app_version' in your statusline
@@ -20,12 +11,9 @@ require("flutter-tools").setup {
       device = true,
     }
   },
-  widget_guides = {
-    enabled = true,
-  },
   closing_tags = {
-    highlight = "ErrorMsg", -- highlight for the closing tag
-    prefix = ">", -- character to use for close tag e.g. > Widget
+    highlight = "Comment", -- highlight for the closing tag
+    prefix = "// ", -- character to use for close tag e.g. > Widget
     enabled = true -- set to false to disable
   },
   dev_log = {
