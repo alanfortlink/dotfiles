@@ -7,6 +7,6 @@ local presets = {
     'crt-amber',
 };
 
-require('noirbuddy').setup {
-    preset = presets[math.random(0, #presets)],
-}
+-- require('noirbuddy').setup {
+--     preset = presets[math.random(0, #presets)],
+-- }
