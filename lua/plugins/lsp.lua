@@ -10,7 +10,7 @@ local on_attach = function(_, bufnr)
     vim.keymap.set("n", "ga", buf.code_action)
     vim.keymap.set("n", "gk", buf.hover)
     vim.keymap.set("n", "gs", buf.signature_help)
-    vim.keymap.set("n", "<leader><leader>", buf.formatting_sync)
+    vim.keymap.set("n", "<leader><leader>", buf.format)
 
     vim.keymap.set("n", "ge", vim.diagnostic.open_float)
     vim.keymap.set("n", "gn", vim.diagnostic.goto_next)
