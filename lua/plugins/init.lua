@@ -57,6 +57,7 @@ require("packer").startup(function()
     use { "tomasiser/vim-code-dark" }
     use { "ellisonleao/gruvbox.nvim" }
     use { "nvim-lualine/lualine.nvim" }
+    use { "folke/tokyonight.nvim" }
     use {
         "jesseleite/nvim-noirbuddy",
         requires = { "tjdevries/colorbuddy.nvim", branch = "dev" }
