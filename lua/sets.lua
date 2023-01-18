@@ -49,5 +49,8 @@ vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4
 
 vim.opt.background = "dark"
-vim.cmd.colorscheme("tokyonight")
+if not pcall(function() vim.cmd.colorscheme("tokyonight") end) then
+    print("tokyonight not found!")
+end
+
 vim.opt.termguicolors = true
