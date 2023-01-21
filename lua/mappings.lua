@@ -42,10 +42,10 @@ vim.keymap.set("n", "<leader>P", "\"zP")
 vim.keymap.set("n", "<localleader>/", ":noh<CR>")
 
 -- Save / Restore a session.
-vim.keymap.set("n", "<localleader>s1", ":mks! .session1.vim<CR>")
-vim.keymap.set("n", "<localleader>s2", ":mks! .session2.vim<CR>")
-vim.keymap.set("n", "<localleader>l1", ":so .session1.vim<CR>")
-vim.keymap.set("n", "<localleader>l2", ":so .session2.vim<CR>")
+vim.keymap.set("n", "<localleader>S1", ":mks! .session1.vim<CR>")
+vim.keymap.set("n", "<localleader>S2", ":mks! .session2.vim<CR>")
+vim.keymap.set("n", "<localleader>L1", ":so .session1.vim<CR>")
+vim.keymap.set("n", "<localleader>L2", ":so .session2.vim<CR>")
 
 -- NERDTree
 vim.keymap.set("n", "<bslash><bslash>", ":NERDTreeToggle<CR>")
