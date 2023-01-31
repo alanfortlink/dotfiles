@@ -8,7 +8,7 @@ require("packer").startup(function()
     use { "nvim-lua/plenary.nvim" } -- For telescope and others
     use { "tpope/vim-fugitive" }
     use { "mbbill/undotree" }
-    use { "tpope/vim-eunuch" } -- Rename, Move, CFind, Move
+    use { "tpope/vim-eunuch" } -- Rename, Move, CFind
     use { "jremmen/vim-ripgrep" }
     use { "farmergreg/vim-lastplace" }
     use { "nvim-treesitter/nvim-treesitter" }

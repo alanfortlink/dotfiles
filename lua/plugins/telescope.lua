@@ -16,3 +16,5 @@ vim.keymap.set("n", "<leader>g", telescope.live_grep)
 -- Other telescope stuff
 vim.keymap.set("n", "<localleader>d", telescope.lsp_definitions)
 vim.keymap.set("n", "<localleader>t", telescope.lsp_type_definitions)
+
+vim.keymap.set("n", "<localleader><localleader>", telescope.resume)
