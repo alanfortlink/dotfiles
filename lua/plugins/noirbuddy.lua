@@ -1,10 +1,10 @@
 local presets = {
-    'minimal',
-    'slate',
-    'miami-nights',
-    'crt-green',
-    'kiwi',
-    'crt-amber',
+  'minimal',
+  'slate',
+  'miami-nights',
+  'crt-green',
+  'kiwi',
+  'crt-amber',
 };
 
 -- require('noirbuddy').setup {

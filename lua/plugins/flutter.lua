@@ -28,4 +28,3 @@ require("flutter-tools").setup {
     auto_open = false -- if true this will open the outline automatically when it is first populated
   },
 }
-

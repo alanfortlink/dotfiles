@@ -50,7 +50,7 @@ vim.opt.shiftwidth = 2
 
 vim.opt.background = "dark"
 if not pcall(function() vim.cmd.colorscheme("tokyonight") end) then
-    print("tokyonight not found!")
+  print("tokyonight not found!")
 end
 
 vim.opt.termguicolors = true

@@ -1,10 +1,10 @@
 local utils = require("utils")
 
 -- Window movement
-vim.keymap.set("n", "<C-h>", "<C-w>h", {noremap = true})
-vim.keymap.set("n", "<C-j>", "<C-w>j", {noremap = true})
-vim.keymap.set("n", "<C-k>", "<C-w>k", {noremap = true})
-vim.keymap.set("n", "<C-l>", "<C-w>l", {noremap = true})
+vim.keymap.set("n", "<C-h>", "<C-w>h", { noremap = true })
+vim.keymap.set("n", "<C-j>", "<C-w>j", { noremap = true })
+vim.keymap.set("n", "<C-k>", "<C-w>k", { noremap = true })
+vim.keymap.set("n", "<C-l>", "<C-w>l", { noremap = true })
 
 -- Window resizing
 vim.keymap.set("n", "<C-M-h>", "3<C-w><")
@@ -52,7 +52,7 @@ vim.keymap.set("n", "<bslash><bslash>", ":NERDTreeToggle<CR>")
 
 -- Get git link for current line (BETA)
 vim.keymap.set("n", "<localleader>gl", function()
-    local gh_link = utils.get_github_link()
-    print(gh_link)
-    vim.fn.setreg("+", gh_link)
+  local gh_link = utils.get_github_link()
+  print(gh_link)
+  vim.fn.setreg("+", gh_link)
 end)
