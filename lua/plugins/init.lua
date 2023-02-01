@@ -6,7 +6,6 @@ require("packer").startup(function()
 
   -- TOOLS
   use { "nvim-lua/plenary.nvim" } -- For telescope and others
-  use { "tpope/vim-fugitive" }
   use { "mbbill/undotree" }
   use { "tpope/vim-eunuch" } -- Rename, Move, CFind
   use { "jremmen/vim-ripgrep" }
@@ -19,13 +18,10 @@ require("packer").startup(function()
 
   -- NAVIGATION
   use { "scrooloose/nerdtree" }
-  use { "justinmk/vim-sneak" }
   use { "nvim-telescope/telescope.nvim" }
   use { "ThePrimeagen/harpoon" }
 
   -- AUTO-COMPLETE
-  use { "weilbith/nvim-code-action-menu", cmd = "CodeActionMenu" }
-
   use {
     "VonHeikemen/lsp-zero.nvim",
     requires = {
