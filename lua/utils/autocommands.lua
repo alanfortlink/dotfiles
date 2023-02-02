@@ -1,6 +1,6 @@
 local utils = require("utils")
 
-local augroup = vim.api.nvim_create_augroup("dartaugroup", { clear = true })
+local augroup = vim.api.nvim_create_augroup("autocommandsaugroup", { clear = true })
 
 -- Update git gutter on save
 vim.api.nvim_create_autocmd("BufWritePost", {

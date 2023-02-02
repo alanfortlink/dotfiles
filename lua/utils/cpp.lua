@@ -1,4 +1,4 @@
-local augroup = vim.api.nvim_create_augroup("dartaugroup", { clear = true })
+local augroup = vim.api.nvim_create_augroup("cppaugroup", { clear = true })
 
 -- Jump between .h/.cpp and go to local CMakeLists.txt
 vim.api.nvim_create_autocmd("FileType", {
