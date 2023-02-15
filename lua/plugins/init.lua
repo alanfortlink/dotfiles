@@ -12,6 +12,12 @@ require("packer").startup(function()
   use { "farmergreg/vim-lastplace" }
   use { "nvim-treesitter/nvim-treesitter" }
 
+  use {
+    "nvim-neorg/neorg",
+    run = ":Neorg sync-parsers", -- This is the important bit!
+    config = function() end,
+  }
+
   -- FLUTTER
   -- use { "thosakwe/vim-flutter" }
   use { "akinsho/flutter-tools.nvim", requires = "nvim-lua/plenary.nvim" }
