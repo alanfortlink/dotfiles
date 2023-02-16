@@ -13,6 +13,7 @@ require("plugins.telescope")
 require("plugins.treesitter")
 require("plugins.undotree")
 require("plugins.harpoon")
+require("plugins.neorg")
 
 require("utils")
 require("utils.autocommands")
