@@ -1,6 +1,8 @@
 vim.cmd [[packadd packer.nvim]]
 
 require("packer").startup(function()
+  use "/Users/alan/repos/blackjack.nvim"
+
   -- PACKER.NVIM
   use { "wbthomason/packer.nvim" }
 
