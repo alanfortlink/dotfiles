@@ -2,7 +2,7 @@ require("utils")
 require("sets")
 require("mappings")
 
-require("./plugins")
+require("plugins")
 require("plugins.flutter")
 require("plugins.gitgutter")
 require("plugins.lsp")
