@@ -7,7 +7,7 @@ vim.keymap.set("i", "<Tab>", function()
   else
     vim.api.nvim_command("normal! a\t")
   end
-end)
+end, { noremap = true})
 
 local function wrap_jump(value)
   return function()
@@ -15,7 +15,7 @@ local function wrap_jump(value)
   end
 end
 
-vim.keymap.set("i", "<S-Tab>", wrap_jump(-1))
-vim.keymap.set("s", "<S-Tab>", wrap_jump(-1))
+vim.keymap.set("i", "<S-Tab>", wrap_jump(-1), { noremap = true})
+vim.keymap.set("s", "<S-Tab>", wrap_jump(-1), { noremap = true})
 
-vim.keymap.set("s", "<Tab>", wrap_jump(1))
+vim.keymap.set("s", "<Tab>", wrap_jump(1), { noremap = true})
