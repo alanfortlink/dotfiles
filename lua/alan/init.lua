@@ -1,0 +1,8 @@
+require("alan.autocommands")
+require("alan.cpp")
+require("alan.dart")
+require("alan.job_runner")
+require("alan.mappings")
+require("alan.packer")
+require("alan.sets")
+require("alan.utils")
