@@ -1,6 +1,14 @@
 vim.cmd [[packadd packer.nvim]]
 
 require("packer").startup(function()
+  use {
+    'alanfortlink/blackjack.nvim',
+    requires = { 'nvim-lua/plenary.nvim' },
+    config = function()
+      require("blackjack").setup({})
+    end
+  }
+
   -- PACKER.NVIM
   use { "wbthomason/packer.nvim" }
 
