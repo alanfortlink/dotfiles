@@ -37,7 +37,8 @@ vim.opt.cursorcolumn = true
 vim.opt.colorcolumn = "80"
 
 vim.cmd([[
-highlight WinSeparator guibg=None
+highlight WinSeparator guibg=DarkGray
+highlight WinSeparator guibg=DarkGray
 hi Normal guibg=NONE ctermbg=NONE
 hi EndOfBuffer guibg=NONE ctermbg=NONE
 ]])
