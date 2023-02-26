@@ -1,5 +1,5 @@
 require("blackjack").setup({
-  card_style = "large",
+  card_style = "mini",
   suit_style = "white",
 })
 

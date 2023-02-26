@@ -41,7 +41,6 @@ highlight WinSeparator guibg=DarkGray
 highlight WinSeparator guibg=DarkGray
 hi Normal guibg=NONE ctermbg=NONE
 hi EndOfBuffer guibg=NONE ctermbg=NONE
-set undofile
 ]])
 
 vim.opt.expandtab = true
