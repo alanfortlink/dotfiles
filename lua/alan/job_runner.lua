@@ -42,5 +42,5 @@ vim.keymap.set("n", "<localleader>jr", function() run_make("run") end)
 vim.keymap.set("n", "<localleader>jt", function() run_make("test") end)
 vim.keymap.set("n", "<localleader>jq", function() stop_jobs() end)
 
-vim.keymap.set("n", "<localleader>q", ":copen<CR>")
-vim.keymap.set("n", "<localleader>Q", ":cclose<CR>")
+vim.keymap.set("n", "<localleader>q", ":cclose<CR>")
+vim.keymap.set("n", "<localleader>Q", ":copen<CR>")
