@@ -1,5 +1,3 @@
-local telescope = require("telescope.builtin")
-
 local on_attach = function(_, bufnr)
   local buf = vim.lsp.buf;
 
@@ -37,15 +35,13 @@ lsp.setup_nvim_cmp({
   mapping = cmp_mappings,
   sources = {
     { name = "nvim_lsp" },
+    { name = "snipmate" },
     { name = "neorg" },
   }
 })
 
 lsp.ensure_installed({
-  "tsserver",
-  "eslint",
   "clangd",
-  "rust_analyzer",
 })
 
 lsp.configure("dartls", { force_setup = true, on_attach = on_attach })
@@ -53,3 +49,12 @@ lsp.on_attach(on_attach)
 
 lsp.nvim_workspace()
 lsp.setup()
+
+lspconfig.clangd.setup {
+    on_attach = on_attach,
+    capabilities = capabilities,
+    cmd = {
+        "clangd",
+        "--resource-dir=/opt/bb/lib/llvm-15.0/lib64/clang/15.0.7/"
+    }
+}
