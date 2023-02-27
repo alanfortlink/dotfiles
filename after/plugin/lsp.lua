@@ -41,7 +41,6 @@ lsp.setup_nvim_cmp({
 })
 
 lsp.ensure_installed({
-  "clangd",
 })
 
 lsp.configure("dartls", { force_setup = true, on_attach = on_attach })
