@@ -50,6 +50,7 @@ lsp.on_attach(on_attach)
 lsp.nvim_workspace()
 lsp.setup()
 
+local lspconfig = require("lspconfig")
 lspconfig.clangd.setup {
     on_attach = on_attach,
     capabilities = capabilities,

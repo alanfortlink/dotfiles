@@ -9,6 +9,7 @@ mkdir -p $NVIM_HOME
 cp -R after $NVIM_HOME
 cp -R lua $NVIM_HOME
 cp -R init.lua $NVIM_HOME
+cp -R snippets $NVIM_HOME
 
 cp -R $HOME/.old.nvim/undo $NVIM_HOME
 

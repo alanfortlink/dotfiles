@@ -46,6 +46,10 @@ snippet msp
         bsl::make_shared<${1:T}>($2)$3
 snippet inc
         #include <$1>
+snippet ballns
+        BALL_LOG_SET_NAMESPACE_CATEGORY("$1");
+snippet ball
+        BALL_LOG_SET_CATEGORY("$1");
 snippet log
         BALL_LOG_${1:ERROR} << "message=\"${2}\"$3"$4;
 snippet iter
