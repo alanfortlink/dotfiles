@@ -2,8 +2,8 @@ vim.cmd [[packadd packer.nvim]]
 
 require("packer").startup(function()
   use {
-    -- '/Users/alan/repos/blackjack.nvim',
-    'alanfortlink/blackjack.nvim',
+    '/Users/alan/repos/blackjack.nvim',
+    -- 'alanfortlink/blackjack.nvim',
     requires = { 'nvim-lua/plenary.nvim' },
   }
 
@@ -66,8 +66,4 @@ require("packer").startup(function()
   use { "ellisonleao/gruvbox.nvim" }
   use { "nvim-lualine/lualine.nvim" }
   use { "folke/tokyonight.nvim" }
-  use {
-    "jesseleite/nvim-noirbuddy",
-    requires = { "tjdevries/colorbuddy.nvim", branch = "dev" }
-  }
 end)

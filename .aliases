@@ -12,3 +12,5 @@ alias gps='git push'
 alias gpo='git push origin'
 alias gP='git pull'
 alias gPo='git pull origin'
+alias tmux="TERM=screen-256color-bce tmux"
+
