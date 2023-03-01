@@ -67,4 +67,7 @@ require("packer").startup(function(use)
   use { "ellisonleao/gruvbox.nvim" }
   use { "nvim-lualine/lualine.nvim" }
   use { "folke/tokyonight.nvim" }
+  use { "ggandor/leap.nvim" }
+
+  use "/Users/alan/repos/typeracer.nvim"
 end)
