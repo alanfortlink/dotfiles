@@ -1,3 +1,18 @@
+require("telescope").setup({
+  defaults = {
+    layout_config = {
+      vertical = {
+        width = 0.8,
+        height = 0.4,
+      },
+      horizontal = {
+        width = 0.8,
+        height = 0.4,
+      },
+    },
+  },
+})
+
 local telescope = require("telescope.builtin")
 
 -- Nice find files
