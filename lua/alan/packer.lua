@@ -1,6 +1,6 @@
-vim.cmd [[packadd packer.nvim]]
+vim.cmd("packadd packer.nvim")
 
-require("packer").startup(function()
+require("packer").startup(function(use)
   use {
     '/Users/alan/repos/blackjack.nvim',
     -- 'alanfortlink/blackjack.nvim',
@@ -21,7 +21,8 @@ require("packer").startup(function()
   use {
     "nvim-neorg/neorg",
     run = ":Neorg sync-parsers", -- This is the important bit!
-    config = function() end,
+    config = function()
+    end,
   }
 
   -- FLUTTER
