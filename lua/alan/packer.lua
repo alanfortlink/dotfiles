@@ -63,16 +63,20 @@ require("packer").startup(function(use)
 
   -- STYLE
   use { "airblade/vim-gitgutter" }
-  use { "tomasiser/vim-code-dark" }
-  use { "ellisonleao/gruvbox.nvim" }
   use { "nvim-lualine/lualine.nvim" }
-  use { "folke/tokyonight.nvim" }
   use { "ggandor/leap.nvim" }
 
   use {
     'ldelossa/gh.nvim',
     requires = { { 'ldelossa/litee.nvim' } }
   }
+
+  -- COLORSCHEMES
+  use { "tomasiser/vim-code-dark" }
+  use { "ellisonleao/gruvbox.nvim" }
+  use { "folke/tokyonight.nvim" }
+  use { "catppuccin/nvim" }
+
 
   use "/Users/alan/repos/typeracer.nvim"
 end)

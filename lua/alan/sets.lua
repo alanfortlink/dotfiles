@@ -36,12 +36,12 @@ vim.opt.cursorline = true
 vim.opt.cursorcolumn = true
 vim.opt.colorcolumn = "80"
 
-vim.cmd([[
-highlight WinSeparator guibg=DarkGray
-highlight WinSeparator guibg=DarkGray
-hi Normal guibg=NONE ctermbg=NONE
-hi EndOfBuffer guibg=NONE ctermbg=NONE
-]])
+-- vim.cmd([[
+-- highlight WinSeparator guibg=DarkGray
+-- highlight WinSeparator guibg=DarkGray
+-- hi Normal guibg=NONE ctermbg=NONE
+-- hi EndOfBuffer guibg=NONE ctermbg=NONE
+-- ]])
 
 vim.opt.expandtab = true
 vim.opt.smarttab = true
@@ -50,7 +50,7 @@ vim.opt.tabstop = 2
 vim.opt.shiftwidth = 2
 
 vim.opt.background = "dark"
-if not pcall(function() vim.cmd.colorscheme("tokyonight-moon") end) then
+if not pcall(function() vim.cmd.colorscheme("catppuccin") end) then
   print("tokyonight not found!")
 end
 
