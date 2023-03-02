@@ -69,5 +69,10 @@ require("packer").startup(function(use)
   use { "folke/tokyonight.nvim" }
   use { "ggandor/leap.nvim" }
 
+  use {
+    'ldelossa/gh.nvim',
+    requires = { { 'ldelossa/litee.nvim' } }
+  }
+
   use "/Users/alan/repos/typeracer.nvim"
 end)
