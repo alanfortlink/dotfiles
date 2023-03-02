@@ -44,10 +44,10 @@ vim.keymap.set("n", "<leader>P", "\"zP", { noremap = true })
 vim.keymap.set("n", "<localleader>/", ":noh<CR>", { noremap = true })
 
 -- Save / Restore a session.
-vim.keymap.set("n", "<localleader>S1", ":mks! .session1.vim<CR>", { noremap = true })
-vim.keymap.set("n", "<localleader>S2", ":mks! .session2.vim<CR>", { noremap = true })
-vim.keymap.set("n", "<localleader>L1", ":so .session1.vim<CR>", { noremap = true })
-vim.keymap.set("n", "<localleader>L2", ":so .session2.vim<CR>", { noremap = true })
+vim.keymap.set("n", "<localleader>sj", ":mks! .sesj.vim<CR>", { noremap = true })
+vim.keymap.set("n", "<localleader>sk", ":mks! .sesk.vim<CR>", { noremap = true })
+vim.keymap.set("n", "<localleader>lj", ":so .sesj.vim<CR>", { noremap = true })
+vim.keymap.set("n", "<localleader>lk", ":so .sesk.vim<CR>", { noremap = true })
 
 -- NERDTree
 vim.keymap.set("n", "<bslash><bslash>", ":NERDTreeToggle<CR>", { noremap = true })
