@@ -25,6 +25,8 @@ vim.keymap.set("n", "<leader>Q", ":q!<CR>", { noremap = true })
 for tab = 1, 9 do vim.keymap.set("n", "<leader>" .. tab, tab .. "gt", { noremap = true }) end
 
 -- Re-center buffer when jumping up and down
+vim.keymap.set("n", "n", "nzz", { noremap = true })
+vim.keymap.set("n", "N", "Nzz", { noremap = true })
 vim.keymap.set("n", "<C-d>", "<C-d>zz", { noremap = true })
 vim.keymap.set("n", "<C-u>", "<C-u>zz", { noremap = true })
 vim.keymap.set("n", "<C-f>", "<C-f>zz", { noremap = true })
