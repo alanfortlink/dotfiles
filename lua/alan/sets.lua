@@ -50,7 +50,7 @@ vim.opt.tabstop = 2
 vim.opt.shiftwidth = 2
 
 vim.opt.background = "dark"
-if not pcall(function() vim.cmd.colorscheme("catppuccin-mocha") end) then
+if not pcall(function() vim.cmd.colorscheme("carbonfox") end) then
   print("tokyonight not found!")
 end
 
