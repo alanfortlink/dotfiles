@@ -50,8 +50,8 @@ vim.opt.tabstop = 2
 vim.opt.shiftwidth = 2
 
 vim.opt.background = "dark"
-if not pcall(function() vim.cmd.colorscheme("duskfox") end) then
-  print("duskfox not found!")
+if not pcall(function() vim.cmd.colorscheme("carbonfox") end) then
+  print("carbonfox not found!")
 end
 
 vim.opt.termguicolors = true
