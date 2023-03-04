@@ -36,13 +36,6 @@ vim.opt.cursorline = true
 vim.opt.cursorcolumn = true
 vim.opt.colorcolumn = "80"
 
--- vim.cmd([[
--- highlight WinSeparator guibg=DarkGray
--- highlight WinSeparator guibg=DarkGray
--- hi Normal guibg=NONE ctermbg=NONE
--- hi EndOfBuffer guibg=NONE ctermbg=NONE
--- ]])
-
 vim.opt.expandtab = true
 vim.opt.smarttab = true
 vim.opt.smartindent = true
@@ -55,3 +48,9 @@ if not pcall(function() vim.cmd.colorscheme("carbonfox") end) then
 end
 
 vim.opt.termguicolors = true
+
+vim.cmd("highlight WinSeparator guibg=DarkGray")
+vim.cmd("highlight WinSeparator guibg=DarkGray")
+vim.cmd("hi NormalNC guibg=NONE ctermbg=NONE")
+vim.cmd("hi Normal guibg=NONE ctermbg=NONE")
+vim.cmd("hi EndOfBuffer guibg=NONE ctermbg=NONE")
