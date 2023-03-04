@@ -33,9 +33,7 @@ cmp_mappings["<Tab>"] = nil
 cmp_mappings["<S-Tab>"] = nil
 
 lsp.setup_nvim_cmp({
-  preselect = "none",
   completion = {
-
   },
   mapping = cmp_mappings,
   sources = {
