@@ -1,6 +1,6 @@
 local on_attach = function(_, bufnr)
   local buf = vim.lsp.buf;
-
+  vim.opt.completeopt = { "menu", "menuone", "noinsert" }
   vim.keymap.set("n", "gd", buf.definition, { noremap = true })
   vim.keymap.set("n", "gD", buf.declaration, { noremap = true })
   vim.keymap.set("n", "gt", buf.type_definition, { noremap = true })
@@ -20,22 +20,28 @@ local lsp = require("lsp-zero")
 lsp.preset("recommended")
 
 local cmp = require("cmp")
+
 local cmp_mappings = lsp.defaults.cmp_mappings({
-  ["<C-b>"] = cmp.mapping.scroll_docs(-4),
-  ["<C-f>"] = cmp.mapping.scroll_docs(4),
-  ["<C-Space>"] = cmp.mapping.complete(),
-  ["<C-e>"] = cmp.mapping.abort(),
-  ["<CR>"] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+      ["<C-b>"] = cmp.mapping.scroll_docs(-4),
+      ["<C-f>"] = cmp.mapping.scroll_docs(4),
+      ["<C-Space>"] = cmp.mapping.complete(),
+      ["<C-e>"] = cmp.mapping.abort(),
+      ["<CR>"] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
 })
 
 cmp_mappings["<Tab>"] = nil
 cmp_mappings["<S-Tab>"] = nil
 
 lsp.setup_nvim_cmp({
+  preselect = "none",
+  completion = {
+
+  },
   mapping = cmp_mappings,
   sources = {
     { name = "nvim_lsp" },
-    { name = "snipmate" },
+    { name = "path" },
+    { name = "buffer" },
     { name = "neorg" },
   }
 })
@@ -51,10 +57,18 @@ lsp.setup()
 
 local lspconfig = require("lspconfig")
 lspconfig.clangd.setup {
-    on_attach = on_attach,
-    capabilities = capabilities,
-    cmd = {
-        "clangd",
-        "--resource-dir=/opt/bb/lib/llvm-15.0/lib64/clang/15.0.7/"
-    }
+  on_attach = on_attach,
+  capabilities = capabilities,
+  cmd = {
+    "clangd",
+    "--resource-dir=/opt/bb/lib/llvm-15.0/lib64/clang/15.0.7/"
+  }
 }
+
+local cmp_config = lsp.defaults.cmp_config({
+  window = {
+    completion = cmp.config.window.bordered(),
+  },
+})
+
+cmp.setup(cmp_config)

@@ -9,7 +9,6 @@ vim.opt.wildignore = "**/cmake.bld/**,compile_commands.json"
 vim.opt.autoindent = true
 vim.opt.cmdheight = 1
 vim.opt.colorcolumn = "80"
-vim.opt.completeopt =  { "menu", "noinsert", "noinsert"}
 vim.opt.errorbells = false
 vim.opt.exrc = true
 vim.opt.hidden = true
