@@ -27,9 +27,6 @@ local cmp_mappings = lsp.defaults.cmp_mappings({
       ["<C-Space>"] = cmp.mapping.complete(),
       ["<C-e>"] = cmp.mapping.abort(),
       ["<CR>"] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
-      window = {
-        completion = cmp.config.window.bordered(),
-      },
 })
 
 cmp_mappings["<Tab>"] = nil
@@ -39,6 +36,9 @@ lsp.setup_nvim_cmp({
   completion = {
   },
   mapping = cmp_mappings,
+  window = {
+    completion = cmp.config.window.bordered(),
+  },
   sources = {
     { name = "nvim_lsp" },
     { name = "path" },
