@@ -2,8 +2,8 @@ vim.cmd("packadd packer.nvim")
 
 require("packer").startup(function(use)
   use {
-    '/Users/alan/repos/blackjack.nvim',
-    -- 'alanfortlink/blackjack.nvim',
+    -- '/Users/alan/repos/blackjack.nvim',
+    'alanfortlink/blackjack.nvim',
     requires = { 'nvim-lua/plenary.nvim' },
   }
 
@@ -78,6 +78,4 @@ require("packer").startup(function(use)
   use { "catppuccin/nvim" }
   use { "EdenEast/nightfox.nvim" }
 
-
-  use "/Users/alan/repos/typeracer.nvim"
 end)
