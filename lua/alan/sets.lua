@@ -42,7 +42,7 @@ vim.opt.tabstop = 2
 vim.opt.shiftwidth = 2
 
 vim.opt.background = "dark"
-if not pcall(function() vim.cmd.colorscheme("carbonfox") end) then
+if not pcall(function() vim.cmd.colorscheme("gruvbox") end) then
   print("carbonfox not found!")
 end
 
