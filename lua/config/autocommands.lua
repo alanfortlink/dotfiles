@@ -1,4 +1,4 @@
-local utils = require("alan.utils")
+local utils = require("config.utils")
 
 local augroup = vim.api.nvim_create_augroup("autocommandsaugroup", { clear = true })
 

@@ -1,4 +1,4 @@
-local utils = require("alan.utils")
+local utils = require("config.utils")
 
 -- Window movement
 vim.keymap.set("n", "<C-h>", "<C-w>h", { noremap = true })
