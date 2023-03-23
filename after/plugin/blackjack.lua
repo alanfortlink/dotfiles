@@ -1,5 +1,5 @@
 require("blackjack").setup({
-  card_style = "large",
+  card_style = "small",
   suit_style = "white",
   scores_path = "$HOME/.blackjack_scores.json",
 })

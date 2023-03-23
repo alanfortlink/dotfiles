@@ -2,8 +2,8 @@ vim.cmd("packadd packer.nvim")
 
 require("packer").startup(function(use)
   use {
-    -- '/Users/alan/repos/blackjack.nvim',
-    'alanfortlink/blackjack.nvim',
+    '/Users/alansilva/code/repos/blackjack.nvim',
+    -- 'alanfortlink/blackjack.nvim',
     requires = { 'nvim-lua/plenary.nvim' },
   }
 

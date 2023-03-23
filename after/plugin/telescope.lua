@@ -26,7 +26,7 @@ vim.keymap.set("n", "<localleader>c", telescope.commands, { noremap = true })
 vim.keymap.set("n", "<localleader>h", telescope.help_tags, { noremap = true })
 
 -- Almighty GREP
-vim.keymap.set("n", "<leader>g", telescope.grep_string, { noremap = true })
+vim.keymap.set("n", "<leader>g", telescope.live_grep, { noremap = true })
 vim.keymap.set("v", "<leader>g", telescope.grep_string, { noremap = true })
 
 -- Other telescope stuff
