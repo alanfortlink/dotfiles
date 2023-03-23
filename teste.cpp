@@ -9,6 +9,7 @@ int main() {
 
   int a = 1, b = 2;
   int result = calc.sum(a, b);
+  int c = calc.sum(10, 20);
 
   int k = calc.sub(1, 2);
 
