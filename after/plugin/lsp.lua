@@ -65,3 +65,17 @@ lspconfig.clangd.setup {
     "--resource-dir=/opt/bb/lib/llvm-15.0/lib64/clang/15.0.7/"
   }
 }
+
+vim.diagnostic.config({virtual_text = false, update_in_insert = false})
+
+-- -- Customize diagnostic display
+-- vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
+--   vim.lsp.diagnostic.on_publish_diagnostics, {
+--     -- Disable virtual_text
+--     virtual_text = false,
+--     -- Keep the sign column
+--     signs = true,
+--     -- Show diagnostics in status line
+--     update_in_insert = false,
+--   }
+-- )
