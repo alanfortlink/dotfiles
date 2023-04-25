@@ -23,3 +23,6 @@ alias f='flutter'
 alias g='git'
 alias rf='rm -rf'
 alias n9='/Users/alansilva/code/repos/neovim/build/bin/nvim'
+
+bindkey "^P" up-line-or-search
+bindkey "^N" down-line-or-search
