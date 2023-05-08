@@ -78,4 +78,7 @@ require("packer").startup(function(use)
   use { "catppuccin/nvim" }
   use { "EdenEast/nightfox.nvim" }
 
+  use { '1995eaton/vim-better-javascript-completion' }
+  use { 'eandrju/cellular-automaton.nvim' }
+
 end)
