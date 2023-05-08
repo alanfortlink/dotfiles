@@ -4,7 +4,7 @@ require "nvim-treesitter.configs".setup {
 
   -- Automatically install missing parsers when entering buffer
   -- Recommendation: set to false if you don"t have `tree-sitter` CLI installed locally
-  auto_install = false,
+  auto_install = true,
 
   highlight = {
     -- `false` will disable the whole extension
@@ -15,5 +15,14 @@ require "nvim-treesitter.configs".setup {
     -- Using this option may slow down your editor, and you may see some duplicate highlights.
     -- Instead of true it can also be a list of languages
     additional_vim_regex_highlighting = false,
+  },
+  textsubjects = {
+    enable = true,
+    prev_selection = ',',     -- (Optional) keymap to select the previous selection
+    keymaps = {
+      ['.'] = 'textsubjects-smart',
+      [';'] = 'textsubjects-container-outer',
+      ['i;'] = 'textsubjects-container-inner',
+    },
   },
 }

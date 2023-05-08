@@ -17,6 +17,8 @@ require("packer").startup(function(use)
   use { "jremmen/vim-ripgrep" }
   use { "farmergreg/vim-lastplace" }
   use { "nvim-treesitter/nvim-treesitter" }
+  use { 'nvim-treesitter/nvim-treesitter-textobjects' }
+
 
   use {
     "navarasu/onedark.nvim",
