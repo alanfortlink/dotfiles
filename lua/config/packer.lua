@@ -19,6 +19,13 @@ require("packer").startup(function(use)
   use { "nvim-treesitter/nvim-treesitter" }
 
   use {
+    "navarasu/onedark.nvim",
+    config = function()
+      require('onedark').load()
+    end,
+  }
+
+  use {
     "nvim-neorg/neorg",
     run = ":Neorg sync-parsers", -- This is the important bit!
     config = function()
@@ -80,5 +87,6 @@ require("packer").startup(function(use)
 
   use { '1995eaton/vim-better-javascript-completion' }
   use { 'eandrju/cellular-automaton.nvim' }
+
 
 end)
