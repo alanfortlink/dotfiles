@@ -66,7 +66,7 @@ lspconfig.clangd.setup {
   }
 }
 
-vim.diagnostic.config({virtual_text = false, update_in_insert = false})
+vim.diagnostic.config({virtual_text = true, update_in_insert = false})
 
 -- -- Customize diagnostic display
 -- vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(
