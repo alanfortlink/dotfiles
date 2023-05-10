@@ -13,7 +13,7 @@ require("packer").startup(function(use)
   -- TOOLS
   use { "nvim-lua/plenary.nvim" } -- For telescope and others
   use { "mbbill/undotree" }
-  use { "tpope/vim-eunuch" } -- Rename, Move, CFind
+  use { "tpope/vim-eunuch" }      -- Rename, Move, CFind
   use { "jremmen/vim-ripgrep" }
   use { "farmergreg/vim-lastplace" }
   use { "nvim-treesitter/nvim-treesitter" }
@@ -89,6 +89,7 @@ require("packer").startup(function(use)
 
   use { '1995eaton/vim-better-javascript-completion' }
   use { 'eandrju/cellular-automaton.nvim' }
-
-
+  use {
+    "ray-x/lsp_signature.nvim",
+  }
 end)
