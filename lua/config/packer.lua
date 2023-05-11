@@ -73,7 +73,7 @@ require("packer").startup(function(use)
   -- STYLE
   use { "airblade/vim-gitgutter" }
   use { "nvim-lualine/lualine.nvim" }
-  use { "ggandor/leap.nvim" }
+  -- use { "ggandor/leap.nvim" }
 
   use {
     'ldelossa/gh.nvim',
