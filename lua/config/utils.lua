@@ -37,6 +37,8 @@ local parse_git_url = function()
         _, _, domain, org, repo = string.find(url, "http.*://(.*)/(.*)/(.*)")
     end
 
+    repo = repo:gsub(".git$", "")
+
     return domain, org, repo
 end
 
