@@ -1,3 +1,26 @@
+local _wrap_in = function(widget, buf)
+  local seen = false
+  buf.code_action({
+    filter = function(ca) 
+      if seen then
+        return false
+      end
+  
+      if ca.command.arguments[1].action == "dart.assist.flutter.wrap."..widget then
+       seen = true
+       return true
+      end
+    end,
+    apply = true,
+  })
+end
+
+local _wrap_in_wrapper = function(widget, buf)
+  return function()
+    _wrap_in(widget, buf)
+  end
+end
+
 local on_attach = function(_, bufnr)
   local buf = vim.lsp.buf;
   vim.opt.completeopt = { "menu", "menuone", "noinsert" }
@@ -7,6 +30,7 @@ local on_attach = function(_, bufnr)
   vim.keymap.set("n", "gr", buf.references, { noremap = true })
   vim.keymap.set("n", "gR", buf.rename, { noremap = true })
   vim.keymap.set("n", "ga", buf.code_action, { noremap = true })
+
   vim.keymap.set("n", "gk", buf.hover, { noremap = true })
   vim.keymap.set("n", "gs", buf.signature_help, { noremap = true })
   vim.keymap.set("n", "<leader><leader>", buf.format, { noremap = true })
@@ -14,6 +38,11 @@ local on_attach = function(_, bufnr)
   vim.keymap.set("n", "ge", vim.diagnostic.open_float, { noremap = true })
   vim.keymap.set("n", "gn", vim.diagnostic.goto_next, { noremap = true })
   vim.keymap.set("n", "gp", vim.diagnostic.goto_prev, { noremap = true })
+
+  vim.keymap.set("n", "gwc", _wrap_in_wrapper("container", buf), { noremap = true })
+  vim.keymap.set("n", "gwC", _wrap_in_wrapper("column", buf), { noremap = true })
+  vim.keymap.set("n", "gwr", _wrap_in_wrapper("row", buf), { noremap = true })
+  vim.keymap.set("n", "gww", _wrap_in_wrapper("widget", buf), { noremap = true })
 end
 
 local lsp = require("lsp-zero")
@@ -38,7 +67,7 @@ local cmp_mappings = lsp.defaults.cmp_mappings({
   ["<C-Space>"] = cmp.mapping.complete(),
   ["<C-Y>"] = cmp.mapping.complete(),
   ["<C-e>"] = cmp.mapping.abort(),
-  ["<CR>"] = cmp.mapping.confirm({ select = true }),     -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+  ["<CR>"] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
 })
 
 cmp_mappings["<Tab>"] = nil
