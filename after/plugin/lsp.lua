@@ -1,11 +1,13 @@
 local _wrap_in = function(widget, buf)
   local seen = false
   buf.code_action({
-    filter = function(ca) 
+    filter = function(ca)
+      -- P(ca.command.arguments[1].action)
+
       if seen then
         return false
       end
-  
+
       if ca.command.arguments[1].action == "dart.assist.flutter.wrap."..widget then
        seen = true
        return true
@@ -42,7 +44,8 @@ local on_attach = function(_, bufnr)
   vim.keymap.set("n", "gwc", _wrap_in_wrapper("container", buf), { noremap = true })
   vim.keymap.set("n", "gwC", _wrap_in_wrapper("column", buf), { noremap = true })
   vim.keymap.set("n", "gwr", _wrap_in_wrapper("row", buf), { noremap = true })
-  vim.keymap.set("n", "gww", _wrap_in_wrapper("widget", buf), { noremap = true })
+  vim.keymap.set("n", "gwR", _wrap_in_wrapper("removeWidget", buf), { noremap = true })
+  vim.keymap.set("n", "gww", _wrap_in_wrapper("generic", buf), { noremap = true })
 end
 
 local lsp = require("lsp-zero")
