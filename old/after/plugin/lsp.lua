@@ -88,6 +88,7 @@ lsp.setup_nvim_cmp({
     { name = "path" },
     { name = "buffer" },
     { name = "neorg" },
+    { name = "copilot" },
   }
 })
 
@@ -101,14 +102,14 @@ lsp.nvim_workspace()
 lsp.setup()
 
 local lspconfig = require("lspconfig")
-lspconfig.clangd.setup {
-  on_attach = on_attach,
-  capabilities = capabilities,
-  cmd = {
-    "clangd",
-    "--resource-dir=/opt/bb/lib/llvm-15.0/lib64/clang/15.0.7/"
-  }
-}
+-- lspconfig.clangd.setup {
+--   on_attach = on_attach,
+--   capabilities = capabilities,
+--   cmd = {
+--     "clangd",
+--     -- "--resource-dir=/opt/bb/lib/llvm-15.0/lib64/clang/15.0.7/"
+--   },
+-- }
 
 vim.diagnostic.config({ virtual_text = true, update_in_insert = false })
 

@@ -18,6 +18,7 @@ require("packer").startup(function(use)
   use { "farmergreg/vim-lastplace" }
   use { "nvim-treesitter/nvim-treesitter" }
   use { 'nvim-treesitter/nvim-treesitter-textobjects' }
+  use { 'github/copilot.vim' }
 
 
   use {

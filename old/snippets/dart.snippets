@@ -1,0 +1,94 @@
+snippet if
+				if (${1:Name}) {
+					${2}
+				}
+snippet for
+				for (${1:Name}) {
+					${2}
+				}
+snippet map
+				map((${1:v}) => ${2})${3}
+snippet where
+				where((${1:v}) => ${2})${3}
+snippet every
+				every((${1:v}) => ${2})${3}
+snippet any
+				any((${1:v}) => ${2})${3}
+snippet class
+				class ${1:Name} {
+					${2}
+				}
+snippet dur	
+				const Duration(milliseconds: ${1})${2}
+snippet mar	
+				margin: const EdgeInsets.all(${1:4.0}),
+snippet pad	
+				padding: const EdgeInsets.all(${1:4.0}),
+snippet notifier
+				import 'package:flutter/material.dart';
+
+				class ${1:Name} extends ChangeNotifier {
+					${2}
+				}
+snippet prop
+				${1:type} _${2:name}${3};
+				$1 get $2 => _$2;
+				set $2($1 value){
+					_$2 = value;
+					${4:notifyListeners();}
+				}
+snippet stless
+				import 'package:flutter/material.dart';
+
+				class ${1:Name} extends StatelessWidget {
+					const $1({Key? key}) : super(key: key);
+
+					@override
+					Widget build(BuildContext context) {
+						return ${2:const Text("$1")};
+					}
+				}
+snippet stful
+				import 'package:flutter/material.dart';
+
+				class ${1:Name} extends StatefulWidget {
+					const $1({Key? key}) : super(key: key);
+
+					@override
+					State<$1> createState() => _$1State();
+				}
+
+				class _$1State extends State<$1> {
+					@override
+					Widget build(BuildContext context) {
+						return ${2};
+					}
+				}
+snippet text
+				${1:const }Text(
+					${2:"Temp"},
+					style: TextStyle(
+					  color: ${3:Colors.black},
+					),
+				)${4}
+snippet container
+				Container(
+					${1:color: Colors.${2:red},}
+					child: ${3},
+				)${4}
+snippet row
+				Row(
+				  mainAxisSize: MainAxisSize.${1:max},
+				  mainAxisAlignment: MainAxisAlignment.${2:center},
+					children: [
+					  ${3}
+					],
+				)${4}
+snippet col
+				Column(
+				  mainAxisSize: MainAxisSize.${1:max},
+				  mainAxisAlignment: MainAxisAlignment.${2:center},
+					children: [
+					  ${3}
+					],
+				)${4}

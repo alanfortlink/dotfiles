@@ -1,5 +1,14 @@
 require("telescope").setup({
   defaults = {
+    file_ignore_patterns = {
+      "^build/",
+      "^android/",
+      "^macos/",
+      "^ios/",
+      "^web/",
+      "^linux/",
+      "^windows/",
+    },
     layout_config = {
       vertical = {
         width = 0.8,
