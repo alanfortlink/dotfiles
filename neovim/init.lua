@@ -309,7 +309,7 @@ require("lazy").setup({
     end,
   },
   { 
-    'github/copilot.vim'
+    'github/copilot.vim',
     config = function() end,
   },
 })
