@@ -312,4 +312,5 @@ require("lazy").setup({
     'github/copilot.vim',
     config = function() end,
   },
+  { "williamboman/mason-lspconfig.nvim" },
 })
