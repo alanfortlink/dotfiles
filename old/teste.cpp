@@ -13,7 +13,5 @@ int main() {
 
   int k = calc.sub(1, 2);
 
-  int k  = calc.sub(20, 10);
-
   return 0;
 }

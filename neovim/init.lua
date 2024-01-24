@@ -19,7 +19,7 @@ require("mappings")
 require("lazy").setup({
   {
     'alanfortlink/blackjack.nvim',
-    lazy = true,
+    lazy = false,
     keys = {
       { "<leader>bj", "<cmd>BlackJackNewGame<CR>", desc = "BlackJack"},
     },
@@ -30,7 +30,7 @@ require("lazy").setup({
 
   { 
     "scrooloose/nerdtree",
-    lazy = true,
+    lazy = false,
     keys = {
       { "<bslash><bslash>", "<cmd>NERDTreeToggle<CR>", desc = "NERDTree Toggle",}
     },
@@ -89,17 +89,17 @@ require("lazy").setup({
   },
 
 
-  { "tommcdo/vim-exchange", lazy = true },
-  { "tpope/vim-surround", lazy = true },
+  { "tommcdo/vim-exchange", lazy = false },
+  { "tpope/vim-surround", lazy = false },
   { 
     "mbbill/undotree", 
-    lazy = true,
+    lazy = false,
     keys = {
       { "<localleader>u", "<cmd>UndotreeShow<CR><cmd>UndotreeFocus<CR>", desc = "UndoTree Open and Focus"},
       { "<localleader>U", "<cmd>UndotreeHide<CR>", desc = "UndoTree Hide"},
     },
   },
-  { "tpope/vim-eunuch", lazy = true },      -- Rename, Move, CFind
+  { "tpope/vim-eunuch", lazy = false },      -- Rename, Move, CFind
   { "farmergreg/vim-lastplace", lazy = false },
   { 
     "ThePrimeagen/harpoon", 
@@ -145,6 +145,8 @@ require("lazy").setup({
         vim.keymap.set("n", "gR", buf.rename, { noremap = true })
         vim.keymap.set("n", "ga", buf.code_action, { noremap = true })
 
+        vim.keymap.set("n", "ga", buf.code_action, { noremap = true })
+        vim.keymap.set("n", "<leader><leader>", buf.format, { noremap = true })
 
         vim.keymap.set("n", "gn", vim.diagnostic.goto_next, { noremap = true })
         vim.keymap.set("n", "gp", vim.diagnostic.goto_prev, { noremap = true })
