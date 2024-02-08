@@ -256,6 +256,10 @@ require("lazy").setup({
     "navarasu/onedark.nvim",
     config = function()
       require('onedark').load()
+      require('onedark').setup {
+          style = 'deep'
+      }
+
       if not pcall(function() vim.cmd.colorscheme("onedark") end) then
       end
       vim.cmd("highlight WinSeparator guibg=DarkGray")
