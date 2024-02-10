@@ -136,6 +136,7 @@ require("lazy").setup({
     branch = 'v3.x',
     config = function() 
       local lsp_zero = require('lsp-zero')
+      lsp_zero.extend_lspconfig()
 
       lsp_zero.on_attach(function(client, bufnr)
         lsp_zero.default_keymaps({buffer = bufnr})
@@ -271,35 +272,35 @@ require("lazy").setup({
     end,
   },
 
-  {
-    "williamboman/mason.nvim",
-    lazy = false,
-    config = function() 
-    end,
-    dependencies = {
-      { 
-        "williamboman/mason-lspconfig.nvim",
-        lazy = false,
-        config = function() 
-          require("mason").setup()
-          require("mason-lspconfig").setup()
-          require("mason-lspconfig").setup_handlers {
-              -- The first entry (without a key) will be the default handler
-              -- and will be called for each installed server that doesn't have
-              -- a dedicated handler.
-              function (server_name) -- default handler (optional)
-                  require("lspconfig")[server_name].setup {}
-              end,
-              -- Next, you can provide a dedicated handler for specific servers.
-              -- For example, a handler override for the `rust_analyzer`:
-              -- ["rust_analyzer"] = function ()
-              --     require("rust-tools").setup {}
-              -- end
-          }
-        end,
-      },
-    },
-  },
+  -- {
+  --   "williamboman/mason.nvim",
+  --   lazy = false,
+  --   config = function() 
+  --   end,
+  --   dependencies = {
+  --     { 
+  --       "williamboman/mason-lspconfig.nvim",
+  --       lazy = false,
+  --       config = function() 
+  --         require("mason").setup()
+  --         require("mason-lspconfig").setup()
+  --         require("mason-lspconfig").setup_handlers {
+  --             -- The first entry (without a key) will be the default handler
+  --             -- and will be called for each installed server that doesn't have
+  --             -- a dedicated handler.
+  --             function (server_name) -- default handler (optional)
+  --                 require("lspconfig")[server_name].setup {}
+  --             end,
+  --             -- Next, you can provide a dedicated handler for specific servers.
+  --             -- For example, a handler override for the `rust_analyzer`:
+  --             -- ["rust_analyzer"] = function ()
+  --             --     require("rust-tools").setup {}
+  --             -- end
+  --         }
+  --       end,
+  --     },
+  --   },
+  -- },
   { 
     "akinsho/flutter-tools.nvim", 
     dependencies = { 'nvim-lua/plenary.nvim' },
