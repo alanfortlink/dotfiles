@@ -86,7 +86,7 @@ require("lazy").setup({
       vim.keymap.set("n", "<leader><localleader>", t.builtin, { noremap = true })
 
       vim.keymap.set("n", "gs", t.lsp_document_symbols, { noremap = true })
-      vim.keymap.set("n", "gS", t.lsp_workspace_symbols, { noremap = true })
+      vim.keymap.set("n", "gS", function() t.lsp_workspace_symbols({query = ""}) end, { noremap = true })
     end,
     dependencies = { 'nvim-lua/plenary.nvim', },
   },
@@ -338,77 +338,6 @@ require("lazy").setup({
           auto_open = false -- if true this will open the outline automatically when it is first populated
         },
       }
-    end,
-  },
-
-  { 
-    "nvim-treesitter/nvim-treesitter-context",
-    lazy = false,
-    config = function() 
-      require'treesitter-context'.setup{
-        enable = true, -- enable this plugin (can be enabled/disabled later via commands)
-        max_lines = 0, -- how many lines the window should span. values <= 0 mean no limit.
-        min_window_height = 0, -- minimum editor window height to enable context. values <= 0 mean no limit.
-        line_numbers = true,
-        multiline_threshold = 20, -- maximum number of lines to show for a single context
-        trim_scope = 'outer', -- which context lines to discard if `max_lines` is exceeded. choices: 'inner', 'outer'
-        mode = 'cursor',  -- line used to calculate context. choices: 'cursor', 'topline'
-        -- separator between context and content. should be a single character string, like '-'.
-        -- when separator is set, the context will only show up when there are at least 2 lines above cursorline.
-        separator = nil,
-        zindex = 20, -- the z-index of the context window
-        on_attach = nil, -- (fun(buf: integer): boolean) return false to disable attaching
-      }
-    end,
-  },
-
-  { 
-    "nvim-treesitter/nvim-treesitter-textobjects",
-    lazy = false,
-    config = function() 
-      require'nvim-treesitter.configs'.setup {
-        textobjects = {
-          select = {
-            enable = true,
-
-            -- Automatically jump forward to textobj, similar to targets.vim
-            lookahead = true,
-
-            keymaps = {
-              -- You can use the capture groups defined in textobjects.scm
-              ["af"] = "@function.outer",
-              ["if"] = "@function.inner",
-              ["ac"] = "@class.outer",
-              ["ic"] = "@class.inner",
-              ["as"] = "@scope.outer",
-              ["is"] = "@scope.inner",
-            },
-            -- You can choose the select mode (default is charwise 'v')
-            --
-            -- Can also be a function which gets passed a table with the keys
-            -- * query_string: eg '@function.inner'
-            -- * method: eg 'v' or 'o'
-            -- and should return the mode ('v', 'V', or '<c-v>') or a table
-            -- mapping query_strings to modes.
-            selection_modes = {
-              ['@parameter.outer'] = 'v', -- charwise
-              ['@function.outer'] = 'V', -- linewise
-              ['@class.outer'] = '<c-v>', -- blockwise
-            },
-            -- If you set this to `true` (default is `false`) then any textobject is
-            -- extended to include preceding or succeeding whitespace. Succeeding
-            -- whitespace has priority in order to act similarly to eg the built-in
-            -- `ap`.
-            --
-            -- Can also be a function which gets passed a table with the keys
-            -- * query_string: eg '@function.inner'
-            -- * selection_mode: eg 'v'
-            -- and should return true of false
-            include_surrounding_whitespace = true,
-          },
-        },
-      }
-
     end,
   },
   { 
