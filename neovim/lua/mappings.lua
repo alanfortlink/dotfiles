@@ -50,7 +50,7 @@ vim.keymap.set("n", "<localleader>lj", ":so .sesj.vim<CR>", { noremap = true })
 vim.keymap.set("n", "<localleader>lk", ":so .sesk.vim<CR>", { noremap = true })
 
 -- Run
-vim.keymap.set("n", "<leader>r", ":make run<CR>", { noremap = true })
+vim.keymap.set("n", "<leader>r", ":!make run<CR>", { noremap = true })
 
 -- Get git link for current line (BETA)
 vim.keymap.set("n", "<localleader>gl", function()
