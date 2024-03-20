@@ -74,6 +74,8 @@ vim.api.nvim_create_autocmd("FileType", {
         vim.keymap.set("n", "<leader>h", ":e %<.h<CR>")
         vim.keymap.set("n", "<leader>H", ":vnew %<.h<CR>")
         vim.keymap.set("n", "<leader>b", ":vnew %:p:h/CMakeLists.txt<CR>")
+        vim.opt.tabstop = 4
+        vim.opt.shiftwidth = 4
     end,
     group = augroup
 })
