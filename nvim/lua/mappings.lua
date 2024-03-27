@@ -57,7 +57,7 @@ vim.keymap.set("n", "<leader>R", ":!make run<CR>", { noremap = true })
 
 -- Get git link for current line (BETA)
 vim.keymap.set("n", "<localleader>gl", function()
-  print(utils.get_github_link())
+    print(utils.get_github_link())
 end, { noremap = true })
 
 local augroup = vim.api.nvim_create_augroup("augroup1", { clear = true })
@@ -76,9 +76,9 @@ vim.api.nvim_create_autocmd("FileType", {
 })
 
 vim.api.nvim_create_autocmd('TextYankPost', {
-	desc = 'Highlight when yanking (copying) text',
-	group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
-	callback = function()
-		vim.highlight.on_yank()
-	end,
+    desc = 'Highlight when yanking (copying) text',
+    group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
+    callback = function()
+        vim.highlight.on_yank()
+    end,
 })

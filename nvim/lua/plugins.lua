@@ -14,104 +14,104 @@ vim.opt.rtp:prepend(lazypath)
 require('lazy').setup({
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
   { 'numToStr/Comment.nvim', opts = {} },
-  { -- LSP Configuration & Plugins
-      'neovim/nvim-lspconfig',
-      dependencies = {
-        -- Automatically install LSPs and related tools to stdpath for Neovim
-        'williamboman/mason.nvim',
-        'williamboman/mason-lspconfig.nvim',
-        'WhoIsSethDaniel/mason-tool-installer.nvim',
-  
-        -- Useful status updates for LSP.
-        -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
-        { 'j-hui/fidget.nvim', opts = {} },
-  
-        -- `neodev` configures Lua LSP for your Neovim config, runtime and plugins
-        -- used for completion, annotations and signatures of Neovim apis
-        { 'folke/neodev.nvim', opts = {} },
-      },
-      config = function()
-        vim.api.nvim_create_autocmd('LspAttach', {
-          group = vim.api.nvim_create_augroup('kickstart-lsp-attach', { clear = true }),
-          callback = function(event)
-            local buf = vim.lsp.buf;
+  {                   -- LSP Configuration & Plugins
+    'neovim/nvim-lspconfig',
+    dependencies = {
+      -- Automatically install LSPs and related tools to stdpath for Neovim
+      'williamboman/mason.nvim',
+      'williamboman/mason-lspconfig.nvim',
+      'WhoIsSethDaniel/mason-tool-installer.nvim',
 
-            vim.keymap.set("n", "gr", buf.references, { noremap = true })
-            vim.keymap.set("n", "gR", buf.rename, { noremap = true })
+      -- Useful status updates for LSP.
+      -- NOTE: `opts = {}` is the same as calling `require('fidget').setup({})`
+      { 'j-hui/fidget.nvim', opts = {} },
 
-            vim.keymap.set("n", "gd", require('telescope.builtin').lsp_definitions, { noremap = true })
-            vim.keymap.set("n", "gD", buf.declaration, { noremap = true })
+      -- `neodev` configures Lua LSP for your Neovim config, runtime and plugins
+      -- used for completion, annotations and signatures of Neovim apis
+      { 'folke/neodev.nvim', opts = {} },
+    },
+    config = function()
+      vim.api.nvim_create_autocmd('LspAttach', {
+        group = vim.api.nvim_create_augroup('kickstart-lsp-attach', { clear = true }),
+        callback = function(event)
+          local buf = vim.lsp.buf;
 
-            vim.keymap.set("n", "ga", buf.code_action, { noremap = true })
-            vim.keymap.set("n", "K", buf.hover, { noremap = true })
-            vim.keymap.set("n", "gs", buf.signature_help, { noremap = true })
+          vim.keymap.set("n", "gr", buf.references, { noremap = true })
+          vim.keymap.set("n", "gR", buf.rename, { noremap = true })
 
-            vim.keymap.set("n", "<leader><leader>", buf.format, { noremap = true })
+          vim.keymap.set("n", "gd", require('telescope.builtin').lsp_definitions, { noremap = true })
+          vim.keymap.set("n", "gD", buf.declaration, { noremap = true })
 
-            vim.keymap.set("n", "gn", vim.diagnostic.goto_next, { noremap = true })
-            vim.keymap.set("n", "gp", vim.diagnostic.goto_prev, { noremap = true })
-            vim.keymap.set("n", "ge", vim.diagnostic.open_float, { noremap = true })
-  
-            -- The following two autocommands are used to highlight references of the
-            -- word under your cursor when your cursor rests there for a little while.
-            --    See `:help CursorHold` for information about when this is executed
-            --
-            -- When you move your cursor, the highlights will be cleared (the second autocommand).
-            local client = vim.lsp.get_client_by_id(event.data.client_id)
-            if client and client.server_capabilities.documentHighlightProvider then
-              vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
-                buffer = event.buf,
-                callback = vim.lsp.buf.document_highlight,
-              })
-  
-              vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
-                buffer = event.buf,
-                callback = vim.lsp.buf.clear_references,
-              })
-            end
-          end,
-        })
-  
-        local capabilities = vim.lsp.protocol.make_client_capabilities()
-        capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
-  
-        local servers = {
-          -- clangd = {},
-          lua_ls = {
-            settings = {
-              Lua = {
-                completion = {
-                  callSnippet = 'Replace',
-                },
-                -- diagnostics = { disable = { 'missing-fields' } },
+          vim.keymap.set("n", "ga", buf.code_action, { noremap = true })
+          vim.keymap.set("n", "K", buf.hover, { noremap = true })
+          vim.keymap.set("n", "gs", buf.signature_help, { noremap = true })
+
+          vim.keymap.set("n", "<leader><leader>", buf.format, { noremap = true })
+
+          vim.keymap.set("n", "gn", vim.diagnostic.goto_next, { noremap = true })
+          vim.keymap.set("n", "gp", vim.diagnostic.goto_prev, { noremap = true })
+          vim.keymap.set("n", "ge", vim.diagnostic.open_float, { noremap = true })
+
+          -- The following two autocommands are used to highlight references of the
+          -- word under your cursor when your cursor rests there for a little while.
+          --    See `:help CursorHold` for information about when this is executed
+          --
+          -- When you move your cursor, the highlights will be cleared (the second autocommand).
+          local client = vim.lsp.get_client_by_id(event.data.client_id)
+          if client and client.server_capabilities.documentHighlightProvider then
+            vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
+              buffer = event.buf,
+              callback = vim.lsp.buf.document_highlight,
+            })
+
+            vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
+              buffer = event.buf,
+              callback = vim.lsp.buf.clear_references,
+            })
+          end
+        end,
+      })
+
+      local capabilities = vim.lsp.protocol.make_client_capabilities()
+      capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
+
+      local servers = {
+        -- clangd = {},
+        lua_ls = {
+          settings = {
+            Lua = {
+              completion = {
+                callSnippet = 'Replace',
               },
+              -- diagnostics = { disable = { 'missing-fields' } },
             },
           },
-        }
-  
-        require('mason').setup()
-  
-        local ensure_installed = vim.tbl_keys(servers or {})
-        vim.list_extend(ensure_installed, {
-          'stylua', -- Used to format Lua code
-        })
-        require('mason-tool-installer').setup { ensure_installed = ensure_installed }
-  
-        require('mason-lspconfig').setup {
-          handlers = {
-            function(server_name)
-              local server = servers[server_name] or {}
-              -- This handles overriding only values explicitly passed
-              -- by the server configuration above. Useful when disabling
-              -- certain features of an LSP (for example, turning off formatting for tsserver)
-              server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-              require('lspconfig')[server_name].setup(server)
-            end,
-          },
-        }
-      end,
-    },
-{ -- Autocompletion
+        },
+      }
+
+      require('mason').setup()
+
+      local ensure_installed = vim.tbl_keys(servers or {})
+      vim.list_extend(ensure_installed, {
+        'stylua', -- Used to format Lua code
+      })
+      require('mason-tool-installer').setup { ensure_installed = ensure_installed }
+
+      require('mason-lspconfig').setup {
+        handlers = {
+          function(server_name)
+            local server = servers[server_name] or {}
+            -- This handles overriding only values explicitly passed
+            -- by the server configuration above. Useful when disabling
+            -- certain features of an LSP (for example, turning off formatting for tsserver)
+            server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+            require('lspconfig')[server_name].setup(server)
+          end,
+        },
+      }
+    end,
+  },
+  { -- Autocompletion
     'hrsh7th/nvim-cmp',
     event = 'InsertEnter',
     dependencies = {
@@ -127,9 +127,9 @@ require('lazy').setup({
           end
           return 'make install_jsregexp'
         end)(),
-	config = function ()
-	      require("luasnip.loaders.from_snipmate").lazy_load()
-	end,
+        config = function()
+          require("luasnip.loaders.from_snipmate").lazy_load()
+        end,
       },
       'saadparwaiz1/cmp_luasnip',
       'hrsh7th/cmp-nvim-lsp',
@@ -219,10 +219,9 @@ require('lazy').setup({
   },
 
   {
-    'nvim-telescope/telescope.nvim', 
+    'nvim-telescope/telescope.nvim',
     lazy = false,
-    config = function() 
-
+    config = function()
       require("telescope").setup({
         defaults = {
           file_ignore_patterns = {
@@ -234,9 +233,9 @@ require('lazy').setup({
             "^./linux/",
             "^./windows/",
           },
-	  mappings = {
-		  i = { ['<c-enter>'] = 'to_fuzzy_refine' },
-	  },
+          mappings = {
+            i = { ['<c-enter>'] = 'to_fuzzy_refine' },
+          },
         },
       })
 
@@ -261,49 +260,49 @@ require('lazy').setup({
       vim.keymap.set("n", "<leader><localleader>", t.builtin, { noremap = true })
 
       vim.keymap.set("n", "gs", t.lsp_document_symbols, { noremap = true })
-      vim.keymap.set("n", "gS", function() t.lsp_workspace_symbols({query = ""}) end, { noremap = true })
+      vim.keymap.set("n", "gS", function() t.lsp_workspace_symbols({ query = "" }) end, { noremap = true })
     end,
     dependencies = { 'nvim-lua/plenary.nvim', },
   },
 
 
-  { "tommcdo/vim-exchange", lazy = false },
-  { "tpope/vim-surround", lazy = false },
-  { 
-    "mbbill/undotree", 
+  { "tommcdo/vim-exchange",  lazy = false },
+  { "tpope/vim-surround",    lazy = false },
+  {
+    "mbbill/undotree",
     lazy = false,
     keys = {
-      { "<localleader>u", "<cmd>UndotreeShow<CR><cmd>UndotreeFocus<CR>", desc = "UndoTree Open and Focus"},
-      { "<localleader>U", "<cmd>UndotreeHide<CR>", desc = "UndoTree Hide"},
+      { "<localleader>u", "<cmd>UndotreeShow<CR><cmd>UndotreeFocus<CR>", desc = "UndoTree Open and Focus" },
+      { "<localleader>U", "<cmd>UndotreeHide<CR>",                       desc = "UndoTree Hide" },
     },
   },
-  { "tpope/vim-eunuch", lazy = false },      -- Rename, Move, CFind
+  { "tpope/vim-eunuch",         lazy = false }, -- Rename, Move, CFind
   { "farmergreg/vim-lastplace", lazy = false },
-  { 
-    "ThePrimeagen/harpoon", 
-    lazy = false, 
+  {
+    "ThePrimeagen/harpoon",
+    lazy = false,
     config = function()
       require("harpoon").setup({})
 
       local mark = require("harpoon.mark")
       local ui = require("harpoon.ui")
 
-      vim.keymap.set("n", "<localleader>s", mark.add_file, { noremap = true})
-      vim.keymap.set("n", "<localleader>r", mark.rm_file, { noremap = true})
-      vim.keymap.set("n", "<localleader>a", ui.toggle_quick_menu, { noremap = true})
+      vim.keymap.set("n", "<localleader>s", mark.add_file, { noremap = true })
+      vim.keymap.set("n", "<localleader>r", mark.rm_file, { noremap = true })
+      vim.keymap.set("n", "<localleader>a", ui.toggle_quick_menu, { noremap = true })
 
-      vim.keymap.set("n", "<localleader>n", ui.nav_next, { noremap = true})
-      vim.keymap.set("n", "<localleader>p", ui.nav_prev, { noremap = true})
+      vim.keymap.set("n", "<localleader>n", ui.nav_next, { noremap = true })
+      vim.keymap.set("n", "<localleader>p", ui.nav_prev, { noremap = true })
 
-      for i = 1, 9 do vim.keymap.set("n", "<localleader>" .. i, function() ui.nav_file(i) end, { noremap = true}) end
-    end, 
+      for i = 1, 9 do vim.keymap.set("n", "<localleader>" .. i, function() ui.nav_file(i) end, { noremap = true }) end
+    end,
   },
-  { 
-    "airblade/vim-gitgutter", 
+  {
+    "airblade/vim-gitgutter",
     lazy = false,
     keys = {
-      { "gh", "<cmd>GitGutterNextHunk<CR>", desc = "Next GitGutter Hunk"},
-      { "gH", "<cmd>GitGutterPrevHunk<CR>", desc = "Previous GitGutter Hunk"},
+      { "gh", "<cmd>GitGutterNextHunk<CR>", desc = "Next GitGutter Hunk" },
+      { "gH", "<cmd>GitGutterPrevHunk<CR>", desc = "Previous GitGutter Hunk" },
     },
   },
 
@@ -312,7 +311,7 @@ require('lazy').setup({
     config = function()
       require('onedark').load()
       require('onedark').setup {
-          style = 'deep'
+        style = 'deep'
       }
 
       if not pcall(function() vim.cmd.colorscheme("onedark") end) then
@@ -324,10 +323,10 @@ require('lazy').setup({
       vim.cmd("hi EndOfBuffer guibg=NONE ctermbg=NONE")
     end,
   },
-  { 
-    "akinsho/flutter-tools.nvim", 
+  {
+    "akinsho/flutter-tools.nvim",
     dependencies = { 'nvim-lua/plenary.nvim' },
-    config = function() 
+    config = function()
       require("flutter-tools").setup {
         decorations = {
           statusline = {
@@ -342,29 +341,29 @@ require('lazy').setup({
         },
         closing_tags = {
           highlight = "Comment", -- highlight for the closing tag
-          prefix = "// ", -- character to use for close tag e.g. > Widget
-          enabled = true -- set to false to disable
+          prefix = "// ",        -- character to use for close tag e.g. > Widget
+          enabled = true         -- set to false to disable
         },
         dev_log = {
           enabled = true,
           open_cmd = "vnew", -- command to use to open the log buffer
         },
         dev_tools = {
-          autostart = true, -- autostart devtools server if not detected
+          autostart = true,          -- autostart devtools server if not detected
           auto_open_browser = false, -- Automatically opens devtools in the browser
         },
         outline = {
           open_cmd = "30vnew", -- command to use to open the outline buffer
-          auto_open = false -- if true this will open the outline automatically when it is first populated
+          auto_open = false    -- if true this will open the outline automatically when it is first populated
         },
       }
     end,
   },
-  { 
+  {
     'github/copilot.vim',
     config = function() end,
   },
 
-  })
+})
 
 return {}
