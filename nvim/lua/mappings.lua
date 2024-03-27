@@ -2,6 +2,7 @@ local utils = require("utils")
 
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
+
 -- Window movement
 vim.keymap.set("n", "<C-h>", "<C-w>h", { noremap = true })
 vim.keymap.set("n", "<C-j>", "<C-w>j", { noremap = true })
