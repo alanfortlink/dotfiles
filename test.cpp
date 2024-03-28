@@ -9,11 +9,6 @@ public:
 int main() {
   Calculator calc;
 
-  if (true) {
-    int a = 1, b = 2;
-    int result = calc.sum(a, b);
-  }
-
   int a = 1, b = 2;
   int result = calc.sum(a, b);
   int c = calc.sum(10, 20);

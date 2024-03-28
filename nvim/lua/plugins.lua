@@ -192,6 +192,7 @@ require('lazy').setup({
 				sources = {
 					{ name = 'nvim_lsp' },
 					{ name = 'luasnip' },
+					{ name = 'copilot' },
 					{ name = 'path' },
 				},
 			}
