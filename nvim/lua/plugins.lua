@@ -179,6 +179,8 @@ require('lazy').setup({
 					['<Tab>'] = cmp.mapping(function()
 						if luasnip.expand_or_locally_jumpable() then
 							luasnip.expand_or_jump()
+            else
+              require("copilot.suggestion").accept()
 						end
 					end, { 'i', 's' }),
 					['<S-Tab>'] = cmp.mapping(function()
@@ -188,7 +190,6 @@ require('lazy').setup({
 					end, { 'i', 's' }),
 				},
 				sources = {
-					{ name = 'copilot' },
 					{ name = 'nvim_lsp' },
 					{ name = 'luasnip' },
 					{ name = 'path' },
@@ -413,14 +414,14 @@ require('lazy').setup({
 				},
 				suggestion = {
 					enabled = true,
-					auto_trigger = false,
+					auto_trigger = true,
 					debounce = 75,
 					keymap = {
-						accept = "<M-l>",
+						accept = "<Tab>",
 						accept_word = false,
 						accept_line = false,
-						next = "<M-]>",
-						prev = "<M-[>",
+						next = "<C-h>",
+						prev = "<C-l>",
 						dismiss = "<C-]>",
 					},
 				},
