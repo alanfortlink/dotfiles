@@ -1,7 +1,7 @@
 vim.g.mapleader = ","
 vim.g.maplocalleader = " "
 
-vim.opt.undodir = os.getenv("HOME") .. "/.config/nvim/undo"
+vim.opt.undodir = os.getenv("HOME") .. "/.vim_undo"
 vim.opt.wildignore = "**/cmake.bld/**,compile_commands.json"
 
 vim.opt.undofile = true
