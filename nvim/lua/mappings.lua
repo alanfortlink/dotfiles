@@ -1,7 +1,7 @@
 local utils = require("utils")
 
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
-
+vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
 -- Window movement
 vim.keymap.set("n", "<C-h>", "<C-w>h", { noremap = true })
