@@ -3,6 +3,8 @@ vim.g.maplocalleader = " "
 
 vim.opt.undodir = os.getenv("HOME") .. "/.vim_undo"
 vim.opt.wildignore = "**/cmake.bld/**,compile_commands.json"
+vim.g.have_nerd_font = true
+vim.opt.wrap = false
 
 vim.opt.undofile = true
 vim.opt.number = true
