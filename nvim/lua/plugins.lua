@@ -181,7 +181,8 @@ require('lazy').setup({
             if luasnip.expand_or_locally_jumpable() then
               luasnip.expand_or_jump()
             else
-              require("copilot.suggestion").accept()
+              -- confirm codium suggestions
+              cmp.confirm { select = true }
             end
           end, { 'i', 's' }),
           ['<S-Tab>'] = cmp.mapping(function()
@@ -193,7 +194,7 @@ require('lazy').setup({
         sources = {
           { name = 'nvim_lsp' },
           { name = 'luasnip' },
-          { name = 'copilot' },
+          -- { name = 'copilot' },
           { name = 'path' },
         },
       }
@@ -311,14 +312,14 @@ require('lazy').setup({
     config = function()
       require('onedark').setup {
         -- Main options --
-        style = 'deep',           -- Default theme style. Choose between 'dark', 'darker', 'cool', 'deep', 'warm', 'warmer' and 'light'
-        transparent = false,      -- Show/hide background
-        term_colors = true,       -- Change terminal color as per the selected theme style
-        ending_tildes = false,    -- Show the end-of-buffer tildes. By default they are hidden
+        style = 'deep',               -- Default theme style. Choose between 'dark', 'darker', 'cool', 'deep', 'warm', 'warmer' and 'light'
+        transparent = false,          -- Show/hide background
+        term_colors = true,           -- Change terminal color as per the selected theme style
+        ending_tildes = false,        -- Show the end-of-buffer tildes. By default they are hidden
         cmp_itemkind_reverse = false, -- reverse item kind highlights in cmp menu
 
         -- toggle theme style ---
-        toggle_style_key = nil,                                                        -- keybind to toggle theme style. Leave it nil to disable it, or set it to a string, for example "<leader>ts"
+        toggle_style_key = nil,                                                              -- keybind to toggle theme style. Leave it nil to disable it, or set it to a string, for example "<leader>ts"
         toggle_style_list = { 'dark', 'darker', 'cool', 'deep', 'warm', 'warmer', 'light' }, -- List of styles to toggle between
 
         -- Change code style ---
@@ -338,13 +339,13 @@ require('lazy').setup({
         },
 
         -- Custom Highlights --
-        colors = {}, -- Override default colors
+        colors = {},     -- Override default colors
         highlights = {}, -- Override highlight groups
 
         -- Plugins Config --
         diagnostics = {
-          darker = true, -- darker colors for diagnostic
-          undercurl = true, -- use undercurl instead of underline for diagnostics
+          darker = true,     -- darker colors for diagnostic
+          undercurl = true,  -- use undercurl instead of underline for diagnostics
           background = true, -- use background color for virtual text
         },
       }
@@ -376,78 +377,133 @@ require('lazy').setup({
         },
         closing_tags = {
           highlight = "Comment", -- highlight for the closing tag
-          prefix = "// ",   -- character to use for close tag e.g. > Widget
-          enabled = true    -- set to false to disable
+          prefix = "// ",        -- character to use for close tag e.g. > Widget
+          enabled = true         -- set to false to disable
         },
         dev_log = {
           enabled = true,
           open_cmd = "vnew", -- command to use to open the log buffer
         },
         dev_tools = {
-          autostart = true,     -- autostart devtools server if not detected
+          autostart = true,          -- autostart devtools server if not detected
           auto_open_browser = false, -- Automatically opens devtools in the browser
         },
         outline = {
           open_cmd = "30vnew", -- command to use to open the outline buffer
-          auto_open = false -- if true this will open the outline automatically when it is first populated
+          auto_open = false    -- if true this will open the outline automatically when it is first populated
         },
       }
     end,
   },
 
+  -- {
+  --   "zbirenbaum/copilot.lua",
+  --   config = function()
+  --     require("copilot").setup({
+  --       panel = {
+  --         enabled = true,
+  --         auto_refresh = false,
+  --         keymap = {
+  --           jump_prev = "[[",
+  --           jump_next = "]]",
+  --           accept = "<Tab>",
+  --           refresh = "gr",
+  --           open = "<M-CR>"
+  --         },
+  --         layout = {
+  --           position = "bottom", -- | top | left | right
+  --           ratio = 0.4
+  --         },
+  --       },
+  --       suggestion = {
+  --         enabled = true,
+  --         auto_trigger = true,
+  --         debounce = 75,
+  --         keymap = {
+  --           accept = "<Tab>",
+  --           accept_word = false,
+  --           accept_line = false,
+  --           next = "<C-h>",
+  --           prev = "<C-l>",
+  --           dismiss = "<C-]>",
+  --         },
+  --       },
+  --       filetypes = {
+  --         yaml = false,
+  --         markdown = false,
+  --         help = false,
+  --         gitcommit = false,
+  --         gitrebase = false,
+  --         hgcommit = false,
+  --         svn = false,
+  --         cvs = false,
+  --         ["."] = false,
+  --       },
+  --       copilot_node_command = 'node', -- Node.js version must be > 18.x
+  --       server_opts_overrides = {},
+  --     })
+  --   end,
+  -- },
+
+  -- {
+  --   "zbirenbaum/copilot-cmp",
+  --   config = function()
+  --     require("copilot_cmp").setup()
+  --   end
+  -- },
+
   {
-    "zbirenbaum/copilot.lua",
+    "karb94/neoscroll.nvim",
     config = function()
-      require("copilot").setup({
-        panel = {
-          enabled = true,
-          auto_refresh = false,
-          keymap = {
-            jump_prev = "[[",
-            jump_next = "]]",
-            accept = "<Tab>",
-            refresh = "gr",
-            open = "<M-CR>"
-          },
-          layout = {
-            position = "bottom", -- | top | left | right
-            ratio = 0.4
-          },
-        },
-        suggestion = {
-          enabled = true,
-          auto_trigger = true,
-          debounce = 75,
-          keymap = {
-            accept = "<Tab>",
-            accept_word = false,
-            accept_line = false,
-            next = "<C-h>",
-            prev = "<C-l>",
-            dismiss = "<C-]>",
-          },
-        },
-        filetypes = {
-          yaml = false,
-          markdown = false,
-          help = false,
-          gitcommit = false,
-          gitrebase = false,
-          hgcommit = false,
-          svn = false,
-          cvs = false,
-          ["."] = false,
-        },
-        copilot_node_command = 'node', -- Node.js version must be > 18.x
-        server_opts_overrides = {},
-      })
-    end,
+      require('neoscroll').setup {
+        easing_function = "quadratic",
+      }
+    end
   },
 
   {
-    "zbirenbaum/copilot-cmp",
+    'Exafunction/codeium.vim',
     config = function()
-      require("copilot_cmp").setup()
+      -- Change '<C-g>' here to any keycode you like.
+      vim.keymap.set('i', '<C-g>', function() return vim.fn['codeium#Accept']() end, { expr = true, silent = true })
+      vim.keymap.set('i', '<Tab><Tab>', function() return vim.fn['codeium#Accept']() end, { expr = true, silent = true })
+      vim.keymap.set('i', '<c-;>', function() return vim.fn['codeium#CycleCompletions'](1) end,
+        { expr = true, silent = true })
+      vim.keymap.set('i', '<c-,>', function() return vim.fn['codeium#CycleCompletions'](-1) end,
+        { expr = true, silent = true })
+      vim.keymap.set('i', '<c-x>', function() return vim.fn['codeium#Clear']() end, { expr = true, silent = true })
+    end
+  },
+
+  {
+    'nvim-telescope/telescope-ui-select.nvim',
+    config = function()
+      require("telescope").setup {
+        extensions = {
+          ["ui-select"] = {
+            require("telescope.themes").get_dropdown {
+              -- even more opts
+            }
+
+            -- pseudo code / specification for writing custom displays, like the one
+            -- for "codeactions"
+            -- specific_opts = {
+            --   [kind] = {
+            --     make_indexed = function(items) -> indexed_items, width,
+            --     make_displayer = function(widths) -> displayer
+            --     make_display = function(displayer) -> function(e)
+            --     make_ordinal = function(e) -> string
+            --   },
+            --   -- for example to disable the custom builtin "codeactions" display
+            --      do the following
+            --   codeactions = false,
+            -- }
+          }
+        }
+      }
+      -- To get ui-select loaded and working with telescope, you need to call
+      -- load_extension, somewhere after setup function:
+      require("telescope").load_extension("ui-select")
     end
   },
 
@@ -471,6 +527,7 @@ require('lazy').setup({
       lazy = '💤 ',
     },
   },
+
 })
 
 return {}
