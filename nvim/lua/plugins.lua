@@ -35,6 +35,7 @@ require('lazy').setup({
         group = vim.api.nvim_create_augroup('kickstart-lsp-attach', { clear = true }),
         callback = function(event)
           local buf = vim.lsp.buf;
+          local utils = require("utils")
 
           vim.keymap.set("n", "gr", buf.references, { noremap = true })
           vim.keymap.set("n", "gR", buf.rename, { noremap = true })
@@ -51,6 +52,12 @@ require('lazy').setup({
           vim.keymap.set("n", "gn", vim.diagnostic.goto_next, { noremap = true })
           vim.keymap.set("n", "gp", vim.diagnostic.goto_prev, { noremap = true })
           vim.keymap.set("n", "ge", vim.diagnostic.open_float, { noremap = true })
+
+          vim.keymap.set("n", "gwc", utils.code_action_wrapper("container", buf), { noremap = true })
+          vim.keymap.set("n", "gwC", utils.code_action_wrapper("column", buf), { noremap = true })
+          vim.keymap.set("n", "gwr", utils.code_action_wrapper("row", buf), { noremap = true })
+          vim.keymap.set("n", "gwR", utils.code_action_wrapper("removeWidget", buf), { noremap = true })
+          vim.keymap.set("n", "gww", utils.code_action_wrapper("generic", buf), { noremap = true })
 
           -- The following two autocommands are used to highlight references of the
           -- word under your cursor when your cursor rests there for a little while.
