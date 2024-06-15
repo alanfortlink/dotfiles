@@ -192,6 +192,7 @@ require('lazy').setup({
           end, { 'i', 's' }),
         },
         sources = {
+          { name = "codeium" },
           { name = 'nvim_lsp' },
           { name = 'luasnip' },
           -- { name = 'copilot' },
@@ -462,16 +463,14 @@ require('lazy').setup({
   },
 
   {
-    'Exafunction/codeium.vim',
+    "Exafunction/codeium.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "hrsh7th/nvim-cmp",
+    },
     config = function()
-      -- Change '<C-g>' here to any keycode you like.
-      vim.keymap.set('i', '<C-g>', function() return vim.fn['codeium#Accept']() end, { expr = true, silent = true })
-      vim.keymap.set('i', '<Tab><Tab>', function() return vim.fn['codeium#Accept']() end, { expr = true, silent = true })
-      vim.keymap.set('i', '<c-;>', function() return vim.fn['codeium#CycleCompletions'](1) end,
-        { expr = true, silent = true })
-      vim.keymap.set('i', '<c-,>', function() return vim.fn['codeium#CycleCompletions'](-1) end,
-        { expr = true, silent = true })
-      vim.keymap.set('i', '<c-x>', function() return vim.fn['codeium#Clear']() end, { expr = true, silent = true })
+      require("codeium").setup({
+      })
     end
   },
 
