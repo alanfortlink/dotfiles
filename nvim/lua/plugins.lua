@@ -582,6 +582,17 @@ require('lazy').setup({
     end
   },
 
+  {
+    'stevearc/oil.nvim',
+    opts = {},
+    -- Optional dependencies
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    config = function()
+      require("oil").setup()
+    end,
+  },
+
+
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
