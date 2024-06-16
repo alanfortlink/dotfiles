@@ -513,6 +513,75 @@ require('lazy').setup({
     end
   },
 
+  {
+    'mfussenegger/nvim-dap',
+    dependencies = {
+      "rcarriga/nvim-dap-ui",
+      "theHamsta/nvim-dap-virtual-text",
+      "nvim-neotest/nvim-nio",
+      "jay-babu/mason-nvim-dap.nvim",
+    },
+    config = function()
+      local dap = require "dap"
+      local ui = require "dapui"
+
+      require("dapui").setup()
+      require("nvim-dap-virtual-text").setup()
+
+      require("mason-nvim-dap").setup()
+
+      dap.adapters.python = {
+        type = 'executable',
+        command = 'python3',
+        args = { '-m', 'debugpy.adapter' },
+      }
+
+      dap.configurations.python = {
+        {
+          type = 'python',
+          request = 'launch',
+          name = 'Launch file',
+          program = '${file}',
+          pythonPath = function()
+            return 'python3' -- Adjust this to your Python path
+          end,
+        },
+      }
+
+
+      -- dap adapter for c++ setup
+      vim.keymap.set("n", "<localleader>b", dap.toggle_breakpoint)
+      vim.keymap.set("n", "<localleader>gb", dap.run_to_cursor)
+
+      vim.keymap.set("n", "<localleader>?", function()
+        require("dapui").eval(nil, { enter = true })
+      end)
+
+      vim.keymap.set("n", "<localleader>l", dap.continue)
+      vim.keymap.set("n", "<localleader>j", dap.step_over)
+      vim.keymap.set("n", "<localleader>J", dap.step_into)
+      vim.keymap.set("n", "<localleader>k", dap.step_out)
+      vim.keymap.set("n", "<localleader>K", dap.step_back)
+      vim.keymap.set("n", "<localleader>H", dap.restart)
+
+      dap.listeners.before.attach.dapui_config = function()
+        ui.open()
+      end
+
+      dap.listeners.before.launch.dapui_config = function()
+        ui.open()
+      end
+
+      dap.listeners.before.event_terminated.dapui_config = function()
+        ui.open()
+      end
+
+      dap.listeners.before.event_exited.dapui_config = function()
+        ui.open()
+      end
+    end
+  },
+
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
