@@ -562,18 +562,20 @@ require('lazy').setup({
 
       -- dap adapter for c++ setup
       vim.keymap.set("n", "<localleader>b", dap.toggle_breakpoint)
-      vim.keymap.set("n", "<localleader>gb", dap.run_to_cursor)
+      vim.keymap.set("n", "<localleader>dc", dap.continue)
+
+      vim.keymap.set("n", "<localleader>dt", ui.toggle)
 
       vim.keymap.set("n", "<localleader>?", function()
         require("dapui").eval(nil, { enter = true })
       end)
 
-      vim.keymap.set("n", "<localleader>l", dap.continue)
-      vim.keymap.set("n", "<localleader>j", dap.step_over)
-      vim.keymap.set("n", "<localleader>J", dap.step_into)
-      vim.keymap.set("n", "<localleader>k", dap.step_out)
-      vim.keymap.set("n", "<localleader>K", dap.step_back)
-      vim.keymap.set("n", "<localleader>H", dap.restart)
+      vim.keymap.set("n", "<F5>", dap.continue)
+      vim.keymap.set("n", "<F6>", dap.step_over)
+      vim.keymap.set("n", "<F7>", dap.step_into)
+      vim.keymap.set("n", "<F8>", dap.step_out)
+      vim.keymap.set("n", "<F9>", dap.step_back)
+      vim.keymap.set("n", "<F10>", dap.restart)
 
       dap.listeners.before.attach.dapui_config = function()
         ui.open()

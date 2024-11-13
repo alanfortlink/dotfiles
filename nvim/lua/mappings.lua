@@ -83,14 +83,3 @@ vim.api.nvim_create_autocmd('TextYankPost', {
         vim.highlight.on_yank()
     end,
 })
-
-vim.keymap.set('n', '<localleader>b', function() require('dap').toggle_breakpoint() end)
-vim.keymap.set('n', '<localleader>d', function() require('dap').continue() end)
-vim.keymap.set('n', '<localleader>?', function() require('dapui').eval(nil, { enter = true, }) end)
-
-vim.keymap.set('n', '<F4>', function() require('dapui').toggle() end)
-vim.keymap.set('n', '<F5>', function() require('dap').continue() end)
-vim.keymap.set('n', '<F6>', function() require('dap').step_over() end)
-vim.keymap.set('n', '<F7>', function() require('dap').step_into() end)
-vim.keymap.set('n', '<F8>', function() require('dap').step_out() end)
-vim.keymap.set('n', '<F9>', function() require('dap').step_back() end)
