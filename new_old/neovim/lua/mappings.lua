@@ -49,6 +49,10 @@ vim.keymap.set("n", "<localleader>Sk", ":mks! .sesk.vim<CR>", { noremap = true }
 vim.keymap.set("n", "<localleader>lj", ":so .sesj.vim<CR>", { noremap = true })
 vim.keymap.set("n", "<localleader>lk", ":so .sesk.vim<CR>", { noremap = true })
 
+-- Run
+vim.keymap.set("n", "<leader>r", ":silent !make run<CR>", { noremap = true })
+vim.keymap.set("n", "<leader>R", ":!make run<CR>", { noremap = true })
+
 -- Get git link for current line (BETA)
 vim.keymap.set("n", "<localleader>gl", function()
   print(utils.get_github_link())
