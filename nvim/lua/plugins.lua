@@ -548,13 +548,29 @@ require('lazy').setup({
         args = { "--interpreter=dap", "--eval-command", "set print pretty on" }
       };
 
+      dap.adapters.codelldb = {
+        type = "server",
+        port = "${port}",
+        executable = {
+          command = "codelldb",
+          args = { "--port", "${port}" },
+        },
+      };
+
       dap.configurations.cpp = {
         {
-          name = "Select and attach to process",
-          type = "gdb",
+          name = "Attach",
+          type = "codelldb",
           request = "attach",
           program = function() return require("dap.utils").pick_file({}) end,
           pid = require("dap.utils").pick_process,
+          cwd = '${workspaceFolder}'
+        },
+        {
+          name = "Launch",
+          type = "codelldb",
+          request = "launch",
+          program = function() return require("dap.utils").pick_file({}) end,
           cwd = '${workspaceFolder}'
         },
       };
