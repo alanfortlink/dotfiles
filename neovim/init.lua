@@ -340,8 +340,56 @@ require("lazy").setup({
       }
     end,
   },
-  { 
-    'github/copilot.vim',
-    config = function() end,
+
+  {
+    'mfussenegger/nvim-dap',
+    config = function()
+      local dap = require("dap");
+      -- dap.adapters.gdb = {
+      --   type = "executable",
+      --   command = "gdb",
+      --   args = { "--interpreter=dap", "--eval-command", "set print pretty on" }
+      -- };
+
+      -- dap.configurations.cpp = {
+      --   {
+      --     name = "Select and attach to process",
+      --     type = "gdb",
+      --     request = "attach",
+      --     program = function() return require("dap.utils").pick_file( { filter = ".tsk" } ) end,
+      --     pid = require("dap.utils").pick_process,
+      --     cwd = '${workspaceFolder}'
+      --   },
+      -- };
+
+      -- ERROR: It tries to find an nvim-dap.ad7Engine.json
+      -- SOLUTION?: Copy the cppdbg.ad7Engine.json from the same location and rename it to nvim-dap.ad7Engine.json
+      dap.adapters.cppdbg = {
+        type = "executable",
+        command = "/home/asilva173/programs/extension/debugAdapters/bin/OpenDebugAD7",
+      };
+
+      dap.configurations.cpp = {
+        {
+          name = "Select and attach to process",
+          type = "cppdbg",
+          request = "attach",
+          program = function() return require("dap.utils").pick_file({ filter = ".tsk" }) end,
+          processId = require("dap.utils").pick_process,
+          cwd = '${workspaceFolder}'
+        },
+      };
+
+      dap.configurations.h = dap.configurations.cpp;
+      dap.configurations.c = dap.configurations.cpp;
+    end,
+  },
+
+  {
+    "rcarriga/nvim-dap-ui",
+    dependencies = { "mfussenegger/nvim-dap", "nvim-neotest/nvim-nio" },
+    config = function()
+      require("dapui").setup()
+    end,
   },
 })
