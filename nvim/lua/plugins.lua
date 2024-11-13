@@ -96,6 +96,7 @@ require('lazy').setup({
         },
       }
 
+      require('lspconfig').gdscript.setup(capabilities)
       require('mason').setup()
 
       local ensure_installed = vim.tbl_keys(servers or {})
@@ -118,6 +119,12 @@ require('lazy').setup({
       }
     end,
   },
+
+  {
+    'habamax/vim-godot',
+    event = 'VimEnter',
+  },
+
   { -- Autocompletion
     'hrsh7th/nvim-cmp',
     event = 'InsertEnter',
@@ -199,7 +206,6 @@ require('lazy').setup({
           end, { 'i', 's' }),
         },
         sources = {
-          { name = "codeium" },
           { name = 'nvim_lsp' },
           { name = 'luasnip' },
           -- { name = 'copilot' },
@@ -219,7 +225,7 @@ require('lazy').setup({
         enable = true,
         additional_vim_regex_highlighting = { 'ruby' },
       },
-      indent = { enable = true, disable = { 'ruby' } },
+      indent = { enable = true, disable = { 'ruby', 'gd', 'gdscript' } },
     },
     config = function(_, opts)
       ---@diagnostic disable-next-line: missing-fields
@@ -466,18 +472,6 @@ require('lazy').setup({
       require('neoscroll').setup {
         easing_function = "quadratic",
       }
-    end
-  },
-
-  {
-    "Exafunction/codeium.nvim",
-    dependencies = {
-      "nvim-lua/plenary.nvim",
-      "hrsh7th/nvim-cmp",
-    },
-    config = function()
-      require("codeium").setup({
-      })
     end
   },
 

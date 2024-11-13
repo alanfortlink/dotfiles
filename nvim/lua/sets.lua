@@ -1,6 +1,7 @@
 vim.g.mapleader = ","
 vim.g.maplocalleader = " "
 
+vim.g.godot_executable = '/Applications/Godot.app/Contents/MacOS/Godot'
 vim.opt.undodir = os.getenv("HOME") .. "/.vim_undo"
 vim.opt.wildignore = "**/cmake.bld/**,compile_commands.json"
 vim.g.have_nerd_font = true
@@ -37,3 +38,9 @@ vim.opt.smarttab = true
 vim.opt.smartindent = true
 vim.opt.tabstop = 2
 vim.opt.shiftwidth = 2
+
+local pipepath = vim.fn.stdpath("cache") .. "/server.pipe"
+if not vim.loop.fs_stat(pipepath) then
+  vim.fn.serverstart(pipepath)
+end
+
