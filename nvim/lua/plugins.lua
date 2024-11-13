@@ -542,6 +542,23 @@ require('lazy').setup({
         },
       }
 
+      dap.adapters.gdb = {
+        type = "executable",
+        command = "gdb",
+        args = { "--interpreter=dap", "--eval-command", "set print pretty on" }
+      };
+
+      dap.configurations.cpp = {
+        {
+          name = "Select and attach to process",
+          type = "gdb",
+          request = "attach",
+          program = function() return require("dap.utils").pick_file({}) end,
+          pid = require("dap.utils").pick_process,
+          cwd = '${workspaceFolder}'
+        },
+      };
+
 
       -- dap adapter for c++ setup
       vim.keymap.set("n", "<localleader>b", dap.toggle_breakpoint)
