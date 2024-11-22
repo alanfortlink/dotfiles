@@ -44,3 +44,4 @@ if not vim.loop.fs_stat(pipepath) then
   vim.fn.serverstart(pipepath)
 end
 
+vim.g.neovide_transparency = 0.8
