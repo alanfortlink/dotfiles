@@ -652,14 +652,14 @@ require('lazy').setup({
       };
 
       dap.configurations.cpp = {
-        {
-          name = "Attach",
-          type = "codelldb",
-          request = "attach",
-          program = function() return require("dap.utils").pick_file({}) end,
-          pid = require("dap.utils").pick_process,
-          cwd = '${workspaceFolder}'
-        },
+        -- {
+        --   name = "Attach",
+        --   type = "codelldb",
+        --   request = "attach",
+        --   program = function() return require("dap.utils").pick_file({}) end,
+        --   pid = require("dap.utils").pick_process,
+        --   cwd = '${workspaceFolder}'
+        -- },
         {
           name = "Launch",
           type = "codelldb",
@@ -676,7 +676,7 @@ require('lazy').setup({
 
       vim.keymap.set("n", "<localleader>dt", ui.toggle)
 
-      vim.keymap.set("n", "<localleader>?", function()
+      vim.keymap.set("n", "??", function()
         require("dapui").eval(nil, { enter = true })
       end)
 
