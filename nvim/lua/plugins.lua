@@ -40,7 +40,7 @@ require('lazy').setup({
           vim.keymap.set("n", "gr", buf.references, { noremap = true })
           vim.keymap.set("n", "gR", buf.rename, { noremap = true })
 
-          vim.keymap.set("n", "gd", require('telescope.builtin').lsp_definitions, { noremap = true })
+          vim.keymap.set("n", "gd", buf.definition, { noremap = true })
           vim.keymap.set("n", "gD", buf.declaration, { noremap = true })
 
           vim.keymap.set("n", "ga", buf.code_action, { noremap = true })
@@ -96,11 +96,16 @@ require('lazy').setup({
         },
       }
 
+      -- require('lspconfig').clangd.setup({
+      --   capabilities = capabilities,
+      --   cmd = {
+      --     '/home/alan/apps/llvm/LLVM-19.1.0-Linux-X64/bin/clangd'
+      --   }
+      -- })
+
       require('lspconfig').clangd.setup({
         capabilities = capabilities,
-        cmd = {
-          '/home/alan/apps/llvm/LLVM-19.1.0-Linux-X64/bin/clangd'
-        }
+        cmd = { '/opt/homebrew/Cellar/llvm/19.1.4/bin/clangd' },
       })
 
       require('lspconfig').gdscript.setup(capabilities)
