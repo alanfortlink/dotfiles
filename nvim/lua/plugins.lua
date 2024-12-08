@@ -309,10 +309,6 @@ require('lazy').setup({
   },
 
   {
-    'nvim-treesitter/nvim-treesitter-context'
-  },
-
-  {
     'nvim-telescope/telescope.nvim',
     lazy = false,
     config = function()
@@ -651,7 +647,6 @@ require('lazy').setup({
       background_colour = "#1a1b26",
     }
   },
-
 
 }, {
   ui = {
