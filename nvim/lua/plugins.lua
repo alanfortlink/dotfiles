@@ -681,6 +681,8 @@ require('lazy').setup({
         },
       };
 
+      dap.configurations.c = dap.configurations.cpp;
+      dap.configurations.rust = dap.configurations.cpp;
 
       -- dap adapter for c++ setup
       vim.keymap.set("n", "<localleader>b", dap.toggle_breakpoint)
