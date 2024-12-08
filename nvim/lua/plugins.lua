@@ -121,9 +121,6 @@ require('lazy').setup({
         handlers = {
           function(server_name)
             local server = servers[server_name] or {}
-            -- This handles overriding only values explicitly passed
-            -- by the server configuration above. Useful when disabling
-            -- certain features of an LSP (for example, turning off formatting for tsserver)
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
             require('lspconfig')[server_name].setup(server)
           end,
@@ -176,38 +173,16 @@ require('lazy').setup({
         completion = { completeopt = 'menu,menuone,noinsert' },
 
         mapping = cmp.mapping.preset.insert {
-          -- Select the [n]ext item
           ['<C-n>'] = cmp.mapping.select_next_item(),
-          -- Select the [p]revious item
           ['<C-p>'] = cmp.mapping.select_prev_item(),
-
-          -- Scroll the documentation window [b]ack / [f]orward
           ['<C-b>'] = cmp.mapping.scroll_docs(-4),
           ['<C-f>'] = cmp.mapping.scroll_docs(4),
-
-          -- Accept ([y]es) the completion.
-          --  This will auto-import if your LSP supports it.
-          --  This will expand snippets if the LSP sent a snippet.
           ['<CR>'] = cmp.mapping.confirm { select = true },
-
-          -- Manually trigger a completion from nvim-cmp.
-          --  Generally you don't need this, because nvim-cmp will display
-          --  completions whenever it has completion options available.
           ['<C-y>'] = cmp.mapping.complete {},
-
-          -- Think of <c-l> as moving to the right of your snippet expansion.
-          --  So if you have a snippet that's like:
-          --  function $name($args)
-          --    $body
-          --  end
-          --
-          -- <c-l> will move you to the right of each of the expansion locations.
-          -- <c-h> is similar, except moving you backwards.
           ['<Tab>'] = cmp.mapping(function()
             if luasnip.expand_or_locally_jumpable() then
               luasnip.expand_or_jump()
             else
-              -- confirm codium suggestions
               cmp.confirm { select = true }
             end
           end, { 'i', 's' }),
@@ -220,7 +195,6 @@ require('lazy').setup({
         sources = {
           { name = 'nvim_lsp' },
           { name = 'luasnip' },
-          -- { name = 'copilot' },
           { name = 'path' },
         },
       }
@@ -338,7 +312,6 @@ require('lazy').setup({
     'nvim-treesitter/nvim-treesitter-context'
   },
 
-
   {
     'nvim-telescope/telescope.nvim',
     lazy = false,
@@ -380,8 +353,7 @@ require('lazy').setup({
       vim.keymap.set("n", "<localleader><localleader>", t.resume, { noremap = true })
       vim.keymap.set("n", "<leader><localleader>", t.builtin, { noremap = true })
 
-      vim.keymap.set("n", "gs", t.lsp_document_symbols, { noremap = true })
-      vim.keymap.set("n", "gS", function() t.lsp_workspace_symbols({ query = "" }) end, { noremap = true })
+      vim.keymap.set("n", "gS", t.lsp_document_symbols, { noremap = true })
     end,
     dependencies = { 'nvim-lua/plenary.nvim', },
   },
@@ -516,62 +488,6 @@ require('lazy').setup({
     end,
   },
 
-  -- {
-  --   "zbirenbaum/copilot.lua",
-  --   config = function()
-  --     require("copilot").setup({
-  --       panel = {
-  --         enabled = true,
-  --         auto_refresh = false,
-  --         keymap = {
-  --           jump_prev = "[[",
-  --           jump_next = "]]",
-  --           accept = "<Tab>",
-  --           refresh = "gr",
-  --           open = "<M-CR>"
-  --         },
-  --         layout = {
-  --           position = "bottom", -- | top | left | right
-  --           ratio = 0.4
-  --         },
-  --       },
-  --       suggestion = {
-  --         enabled = true,
-  --         auto_trigger = true,
-  --         debounce = 75,
-  --         keymap = {
-  --           accept = "<Tab>",
-  --           accept_word = false,
-  --           accept_line = false,
-  --           next = "<C-h>",
-  --           prev = "<C-l>",
-  --           dismiss = "<C-]>",
-  --         },
-  --       },
-  --       filetypes = {
-  --         yaml = false,
-  --         markdown = false,
-  --         help = false,
-  --         gitcommit = false,
-  --         gitrebase = false,
-  --         hgcommit = false,
-  --         svn = false,
-  --         cvs = false,
-  --         ["."] = false,
-  --       },
-  --       copilot_node_command = 'node', -- Node.js version must be > 18.x
-  --       server_opts_overrides = {},
-  --     })
-  --   end,
-  -- },
-
-  -- {
-  --   "zbirenbaum/copilot-cmp",
-  --   config = function()
-  --     require("copilot_cmp").setup()
-  --   end
-  -- },
-
   {
     "karb94/neoscroll.nvim",
     config = function()
@@ -677,7 +593,7 @@ require('lazy').setup({
           type = "codelldb",
           request = "launch",
           program = function() return require("dap.utils").pick_file({}) end,
-          cwd = '${workspaceFolder}'
+          cwd = '${workspaceFolder}',
         },
       };
 
