@@ -96,6 +96,13 @@ require('lazy').setup({
         },
       }
 
+      require('lspconfig').clangd.setup({
+        capabilities = capabilities,
+        cmd = {
+          '/home/alan/apps/llvm/LLVM-19.1.0-Linux-X64/bin/clangd'
+        }
+      })
+
       require('lspconfig').gdscript.setup(capabilities)
       require('mason').setup()
 
