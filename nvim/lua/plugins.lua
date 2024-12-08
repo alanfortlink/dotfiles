@@ -645,6 +645,13 @@ require('lazy').setup({
     end,
   },
 
+  {
+    'rcarriga/nvim-notify',
+    opts = {
+      background_colour = "#1a1b26",
+    }
+  },
+
 
 }, {
   ui = {
