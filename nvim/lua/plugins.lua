@@ -395,8 +395,8 @@ require('lazy').setup({
     "airblade/vim-gitgutter",
     lazy = false,
     keys = {
-      { "]g", "<cmd>GitGutterNextHunk<CR>", desc = "Next GitGutter Hunk" },
-      { "[g", "<cmd>GitGutterPrevHunk<CR>", desc = "Previous GitGutter Hunk" },
+      { "]h", "<cmd>GitGutterNextHunk<CR>", desc = "Next GitGutter Hunk" },
+      { "[h", "<cmd>GitGutterPrevHunk<CR>", desc = "Previous GitGutter Hunk" },
     },
   },
   {
