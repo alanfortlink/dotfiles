@@ -86,6 +86,6 @@ vim.api.nvim_create_autocmd('TextYankPost', {
 
 vim.keymap.set("n", "<localleader>o", "<cmd>copen<CR>", { noremap = true })
 vim.keymap.set("n", "<localleader>O", "<cmd>cclose<CR>", { noremap = true })
-vim.keymap.set("n", "]q", "<cmd>cnext<CR>", { noremap = true })
-vim.keymap.set("n", "[q", "<cmd>cprevious<CR>", { noremap = true })
+vim.keymap.set("n", "]q", "<cmd>cnext<CR>zz", { noremap = true })
+vim.keymap.set("n", "[q", "<cmd>cprevious<CR>zz", { noremap = true })
 
