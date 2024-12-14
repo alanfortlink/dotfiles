@@ -49,8 +49,8 @@ require('lazy').setup({
 
           vim.keymap.set("n", "<leader><leader>", buf.format, { noremap = true })
 
-          vim.keymap.set("n", "gn", vim.diagnostic.goto_next, { noremap = true })
-          vim.keymap.set("n", "gp", vim.diagnostic.goto_prev, { noremap = true })
+          vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { noremap = true })
+          vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, { noremap = true })
           vim.keymap.set("n", "ge", vim.diagnostic.open_float, { noremap = true })
 
           vim.keymap.set("n", "gwc", utils.code_action_wrapper("container", buf), { noremap = true })
@@ -105,7 +105,9 @@ require('lazy').setup({
 
       require('lspconfig').clangd.setup({
         capabilities = capabilities,
-        cmd = { '/opt/homebrew/Cellar/llvm/19.1.4/bin/clangd' },
+        cmd = {
+          '/home/alan/apps/llvm/LLVM-19.1.0-Linux-X64/bin/clangd'
+        }
       })
 
       require('lspconfig').gdscript.setup(capabilities)
@@ -313,7 +315,11 @@ require('lazy').setup({
     lazy = false,
     config = function()
       require("telescope").setup({
-        defaults = {
+        pickers = {
+          find_files = {
+          },
+        },
+        defaults = require('telescope.themes').get_ivy {
           file_ignore_patterns = {
             "^./build/",
             "^./android/",
@@ -327,6 +333,8 @@ require('lazy').setup({
             i = { ['<c-enter>'] = 'to_fuzzy_refine' },
           },
         },
+
+
       })
 
       local t = require("telescope.builtin")
@@ -380,9 +388,6 @@ require('lazy').setup({
       vim.keymap.set("n", "<localleader>r", mark.rm_file, { noremap = true })
       vim.keymap.set("n", "<localleader>a", ui.toggle_quick_menu, { noremap = true })
 
-      vim.keymap.set("n", "<localleader>n", ui.nav_next, { noremap = true })
-      vim.keymap.set("n", "<localleader>p", ui.nav_prev, { noremap = true })
-
       for i = 1, 9 do vim.keymap.set("n", "<localleader>" .. i, function() ui.nav_file(i) end, { noremap = true }) end
     end,
   },
@@ -390,8 +395,8 @@ require('lazy').setup({
     "airblade/vim-gitgutter",
     lazy = false,
     keys = {
-      { "gh", "<cmd>GitGutterNextHunk<CR>", desc = "Next GitGutter Hunk" },
-      { "gH", "<cmd>GitGutterPrevHunk<CR>", desc = "Previous GitGutter Hunk" },
+      { "]g", "<cmd>GitGutterNextHunk<CR>", desc = "Next GitGutter Hunk" },
+      { "[g", "<cmd>GitGutterPrevHunk<CR>", desc = "Previous GitGutter Hunk" },
     },
   },
   {
@@ -612,22 +617,6 @@ require('lazy').setup({
       vim.keymap.set("n", "<F8>", dap.step_out)
       vim.keymap.set("n", "<F9>", dap.step_back)
       vim.keymap.set("n", "<F10>", dap.restart)
-
-      dap.listeners.before.attach.dapui_config = function()
-        ui.open()
-      end
-
-      dap.listeners.before.launch.dapui_config = function()
-        ui.open()
-      end
-
-      dap.listeners.before.event_terminated.dapui_config = function()
-        ui.open()
-      end
-
-      dap.listeners.before.event_exited.dapui_config = function()
-        ui.open()
-      end
     end
   },
 
