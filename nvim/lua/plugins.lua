@@ -339,9 +339,10 @@ require('lazy').setup({
 
       local t = require("telescope.builtin")
       local live_multigrep = require("config.telescope.multigrep").live_multigrep
+      local file_multigrep = require("config.telescope.multigrep").file_multigrep
 
       -- Find files
-      vim.keymap.set("n", "<leader>f", function() t.find_files({ hidden = false }) end, { noremap = true })
+      vim.keymap.set("n", "<leader>f", function() file_multigrep({ hidden = false }) end, { noremap = true })
 
       -- Find with hidden files
       vim.keymap.set("n", "<leader>F", function() t.find_files({ hidden = true }) end, { noremap = true })
