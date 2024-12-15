@@ -27,7 +27,11 @@ local live_multigrep = function(opts)
       while parts[i] do
         if parts[i] then
           table.insert(args, "-g")
-          table.insert(args, string.format("*.%s", parts[i]))
+          if parts[i][1] == '.' then
+            table.insert(args, string.format("*%s", parts[i]))
+          else
+            table.insert(args, parts[i])
+          end
         end
         i = i + 1
       end
