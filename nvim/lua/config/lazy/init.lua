@@ -338,7 +338,6 @@ require('lazy').setup({
       })
 
       local t = require("telescope.builtin")
-      local live_multigrep = require("config.telescope.multigrep").live_multigrep
 
       -- Find files
       vim.keymap.set("n", "<leader>f", function() t.find_files({ hidden = false }) end, { noremap = true })
@@ -351,7 +350,7 @@ require('lazy').setup({
       vim.keymap.set("n", "<localleader>h", t.help_tags, { noremap = true })
 
       -- Almighty GREP
-      vim.keymap.set("n", "<leader>g", live_multigrep, { noremap = true })
+      vim.keymap.set("n", "<leader>g", t.live_grep, { noremap = true })
       vim.keymap.set("v", "<leader>g", t.grep_string, { noremap = true })
 
       -- Other telescope stuff
