@@ -106,7 +106,8 @@ require('lazy').setup({
       require('lspconfig').clangd.setup({
         capabilities = capabilities,
         cmd = {
-          '/home/alan/apps/llvm/LLVM-19.1.0-Linux-X64/bin/clangd'
+          -- '/home/alan/apps/llvm/LLVM-19.1.0-Linux-X64/bin/clangd'
+          '/opt/homebrew/Cellar/llvm/19.1.4/bin/clangd',
         }
       })
 
