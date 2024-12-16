@@ -10,10 +10,10 @@ vim.keymap.set("n", "<C-k>", "<C-w>k", { noremap = true })
 vim.keymap.set("n", "<C-l>", "<C-w>l", { noremap = true })
 
 -- Window resizing
-vim.keymap.set("n", "<C-H>", "3<C-w><", { noremap = true })
-vim.keymap.set("n", "<C-L>", "3<C-w>>", { noremap = true })
-vim.keymap.set("n", "<C-K>", "1<C-w>-", { noremap = true })
-vim.keymap.set("n", "<C-J>", "1<C-w>+", { noremap = true })
+vim.keymap.set("n", "-", "<cmd>horizontal resize -5<CR>", { noremap = true })
+vim.keymap.set("n", "=", "<cmd>horizontal resize +5<CR>", { noremap = true })
+vim.keymap.set("n", "_", "<cmd>vertical resize -5<CR>", { noremap = true })
+vim.keymap.set("n", "+", "<cmd>vertical resize +5<CR>", { noremap = true })
 vim.keymap.set("n", "<leader>M", "<C-w>_<C-w><Bar> ", { noremap = true })
 vim.keymap.set("n", "<leader>m", "<C-w>=", { noremap = true })
 
@@ -58,30 +58,30 @@ vim.keymap.set("n", "<leader>R", ":!make run<CR>", { noremap = true })
 
 -- Get git link for current line (BETA)
 vim.keymap.set("n", "<localleader>gl", function()
-    print(utils.get_github_link())
+  print(utils.get_github_link())
 end, { noremap = true })
 
 local augroup = vim.api.nvim_create_augroup("augroup1", { clear = true })
 
 -- Jump between .h/.cpp and go to local CMakeLists.txt
 vim.api.nvim_create_autocmd("FileType", {
-    pattern = { "cpp", "h" },
-    callback = function()
-        vim.keymap.set("n", "<leader>c", ":e %<.cpp<CR>")
-        vim.keymap.set("n", "<leader>C", ":vnew %<.cpp<CR>")
-        vim.keymap.set("n", "<leader>h", ":e %<.h<CR>")
-        vim.keymap.set("n", "<leader>H", ":vnew %<.h<CR>")
-        vim.keymap.set("n", "<leader>b", ":vnew %:p:h/CMakeLists.txt<CR>")
-    end,
-    group = augroup
+  pattern = { "cpp", "h" },
+  callback = function()
+    vim.keymap.set("n", "<leader>c", ":e %<.cpp<CR>")
+    vim.keymap.set("n", "<leader>C", ":vnew %<.cpp<CR>")
+    vim.keymap.set("n", "<leader>h", ":e %<.h<CR>")
+    vim.keymap.set("n", "<leader>H", ":vnew %<.h<CR>")
+    vim.keymap.set("n", "<leader>b", ":vnew %:p:h/CMakeLists.txt<CR>")
+  end,
+  group = augroup
 })
 
 vim.api.nvim_create_autocmd('TextYankPost', {
-    desc = 'Highlight when yanking (copying) text',
-    group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
-    callback = function()
-        vim.highlight.on_yank()
-    end,
+  desc = 'Highlight when yanking (copying) text',
+  group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
+  callback = function()
+    vim.highlight.on_yank()
+  end,
 })
 
 vim.keymap.set("n", "<localleader>o", "<cmd>copen<CR>", { noremap = true })
@@ -91,4 +91,3 @@ vim.keymap.set("n", "[q", "<cmd>cprevious<CR>zz", { noremap = true })
 
 vim.keymap.set("n", "<localleader>x", ":.lua<CR>", { noremap = true })
 vim.keymap.set("v", "<localleader>x", ":lua<CR>", { noremap = true })
-
