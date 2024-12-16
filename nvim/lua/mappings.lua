@@ -10,10 +10,10 @@ vim.keymap.set("n", "<C-k>", "<C-w>k", { noremap = true })
 vim.keymap.set("n", "<C-l>", "<C-w>l", { noremap = true })
 
 -- Window resizing
-vim.keymap.set("n", "<C-M-h>", "3<C-w><", { noremap = true })
-vim.keymap.set("n", "<C-M-l>", "3<C-w>>", { noremap = true })
-vim.keymap.set("n", "<C-M-k>", "1<C-w>-", { noremap = true })
-vim.keymap.set("n", "<C-M-j>", "1<C-w>+", { noremap = true })
+vim.keymap.set("n", "<C-H>", "3<C-w><", { noremap = true })
+vim.keymap.set("n", "<C-L>", "3<C-w>>", { noremap = true })
+vim.keymap.set("n", "<C-K>", "1<C-w>-", { noremap = true })
+vim.keymap.set("n", "<C-J>", "1<C-w>+", { noremap = true })
 vim.keymap.set("n", "<leader>M", "<C-w>_<C-w><Bar> ", { noremap = true })
 vim.keymap.set("n", "<leader>m", "<C-w>=", { noremap = true })
 
