@@ -49,8 +49,8 @@ require('lazy').setup({
 
           vim.keymap.set("n", "<leader><leader>", buf.format, { noremap = true })
 
-          vim.keymap.set("n", "]e", vim.diagnostic.goto_next, { noremap = true })
-          vim.keymap.set("n", "[e", vim.diagnostic.goto_prev, { noremap = true })
+          vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { noremap = true })
+          vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, { noremap = true })
           vim.keymap.set("n", "ge", vim.diagnostic.open_float, { noremap = true })
 
           vim.keymap.set("n", "gwc", utils.code_action_wrapper("container", buf), { noremap = true })
@@ -295,15 +295,6 @@ require('lazy').setup({
               ["[M"] = "@function.outer",
               ["[]"] = "@class.outer",
             },
-            -- Below will go to either the start or the end, whichever is closer.
-            -- Use if you want more granular movements
-            -- Make it even more gradual by adding multiple queries and regex.
-            goto_next = {
-              ["]d"] = "@conditional.outer",
-            },
-            goto_previous = {
-              ["[d"] = "@conditional.outer",
-            }
           },
         },
       }
@@ -398,6 +389,7 @@ require('lazy').setup({
     keys = {
       { "]h", "<cmd>GitGutterNextHunk<CR>zz", desc = "Next GitGutter Hunk" },
       { "[h", "<cmd>GitGutterPrevHunk<CR>zz", desc = "Previous GitGutter Hunk" },
+      { "HH", "<cmd>GitGutterPreviewHunk<CR>zz", desc = "Previous GitGutter Hunk" },
     },
   },
   {
