@@ -197,6 +197,22 @@ require('lazy').setup({
   },
 
   {
+    'L3MON4D3/LuaSnip',
+    build = (function()
+      -- Build Step is needed for regex support in snippets.
+      -- This step is not supported in many windows environments.
+      -- Remove the below condition to re-enable on windows.
+      if vim.fn.has 'win32' == 1 or vim.fn.executable 'make' == 0 then
+        return
+      end
+      return 'make install_jsregexp'
+    end)(),
+    config = function()
+      require("luasnip.loaders.from_snipmate").load()
+    end,
+  },
+
+  {
     'saghen/blink.cmp',
     lazy = false,
     dependencies = 'rafamadriz/friendly-snippets',
@@ -208,9 +224,32 @@ require('lazy').setup({
         nerd_font_variant = 'mono'
       },
 
+      snippets = {
+        expand = function(snippet) require('luasnip').lsp_expand(snippet) end,
+        active = function(filter)
+          if filter and filter.direction then
+            return require('luasnip').jumpable(filter.direction)
+          end
+          return require('luasnip').in_snippet()
+        end,
+        jump = function(direction) require('luasnip').jump(direction) end,
+      },
+
+      luasnip = {
+        name = 'Luasnip',
+        module = 'blink.cmp.sources.luasnip',
+        opts = {
+          -- Whether to use show_condition for filtering snippets
+          use_show_condition = true,
+          -- Whether to show autosnippets in the completion list
+          show_autosnippets = true,
+        }
+      },
+
+
       sources = {
         min_keyword_length = 1,
-        default = { 'lsp', 'snippets', 'buffer', 'path' },
+        default = { 'luasnip', 'snippets', 'lsp', 'buffer', 'path' },
       },
 
     },

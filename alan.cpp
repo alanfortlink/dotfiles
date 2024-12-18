@@ -9,6 +9,7 @@ int parse(int a) {
 int somar(int a, int b){
   a = parse(a);
   b = parse(b);
+
   return op(a, b);
 }
 
