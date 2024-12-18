@@ -106,8 +106,8 @@ require('lazy').setup({
       require('lspconfig').clangd.setup({
         capabilities = capabilities,
         cmd = {
-          -- '/home/alan/apps/llvm/LLVM-19.1.0-Linux-X64/bin/clangd'
-          '/opt/homebrew/Cellar/llvm/19.1.4/bin/clangd',
+          '/home/alan/apps/llvm/LLVM-19.1.0-Linux-X64/bin/clangd'
+          -- '/opt/homebrew/Cellar/llvm/19.1.4/bin/clangd',
         }
       })
 
@@ -319,12 +319,14 @@ require('lazy').setup({
               -- You can use the capture groups defined in textobjects.scm
               ["af"] = "@function.outer",
               ["if"] = "@function.inner",
+              ["is"] = "@local.scope.inner",
+              ["as"] = "@local.scope.outer",
               ["ac"] = "@class.outer",
               -- You can optionally set descriptions to the mappings (used in the desc parameter of
               -- nvim_buf_set_keymap) which plugins like which-key display
               ["ic"] = { query = "@class.inner", desc = "Select inner part of a class region" },
-              -- You can also use captures from other query groups like `locals.scm`
-              ["as"] = { query = "@local.scope", query_group = "locals", desc = "Select language scope" },
+              ["ip"] = { query = "@parameter.inner", },
+              ["ap"] = { query = "@parameter.outer", },
             },
             -- You can choose the select mode (default is charwise 'v')
             --
@@ -338,16 +340,7 @@ require('lazy').setup({
               ['@function.outer'] = 'V',  -- linewise
               ['@class.outer'] = '<c-v>', -- blockwise
             },
-            -- If you set this to `true` (default is `false`) then any textobject is
-            -- extended to include preceding or succeeding whitespace. Succeeding
-            -- whitespace has priority in order to act similarly to eg the built-in
-            -- `ap`.
-            --
-            -- Can also be a function which gets passed a table with the keys
-            -- * query_string: eg '@function.inner'
-            -- * selection_mode: eg 'v'
-            -- and should return true or false
-            include_surrounding_whitespace = true,
+            include_surrounding_whitespace = false,
           },
           move = {
             enable = true,
@@ -358,12 +351,11 @@ require('lazy').setup({
               --
               -- You can use regex matching (i.e. lua pattern) and/or pass a list in a "query" key to group multiple queries.
               ["]o"] = "@loop.*",
-              -- ["]o"] = { query = { "@loop.inner", "@loop.outer" } }
-              --
               -- You can pass a query group to use query from `queries/<lang>/<query_group>.scm file in your runtime path.
               -- Below example nvim-treesitter's `locals.scm` and `folds.scm`. They also provide highlights.scm and indent.scm.
               ["]s"] = { query = "@local.scope", query_group = "locals", desc = "Next scope" },
               ["]z"] = { query = "@fold", query_group = "folds", desc = "Next fold" },
+              ["]p"] = { query = "@parameter", },
             },
             goto_next_end = {
               ["]M"] = "@function.outer",
@@ -372,6 +364,7 @@ require('lazy').setup({
             goto_previous_start = {
               ["[m"] = "@function.outer",
               ["[["] = "@class.outer",
+              ["[p"] = { query = "@parameter", },
             },
             goto_previous_end = {
               ["[M"] = "@function.outer",
