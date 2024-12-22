@@ -91,3 +91,6 @@ vim.keymap.set("n", "[q", "<cmd>cprevious<CR>zz", { noremap = true })
 
 vim.keymap.set("n", "<localleader>x", ":.lua<CR>", { noremap = true })
 vim.keymap.set("v", "<localleader>x", ":lua<CR>", { noremap = true })
+
+vim.keymap.set("v", "<localleader>", ":lua<CR>", { noremap = true })
+

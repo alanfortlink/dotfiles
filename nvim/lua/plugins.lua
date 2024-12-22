@@ -418,6 +418,14 @@ require('lazy').setup({
       vim.keymap.set("n", "<localleader><localleader>", t.resume, { noremap = true })
       vim.keymap.set("n", "<leader><localleader>", t.builtin, { noremap = true })
 
+      vim.keymap.set("n", "<localleader>d", function()
+        require('telescope.builtin').find_files {
+          cwd = vim.fn.stdpath("config"),
+          hidden = true,
+        }
+      end)
+
+
       vim.keymap.set("n", "gS", t.lsp_document_symbols, { noremap = true })
     end,
     dependencies = { 'nvim-lua/plenary.nvim', },
