@@ -1,8 +1,5 @@
 local utils = require("utils")
 
-vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
-vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
-
 -- Window movement
 vim.keymap.set("n", "<C-h>", "<C-w>h", { noremap = true })
 vim.keymap.set("n", "<C-j>", "<C-w>j", { noremap = true })
@@ -94,3 +91,8 @@ vim.keymap.set("v", "<localleader>x", ":lua<CR>", { noremap = true })
 
 vim.keymap.set("v", "<localleader>", ":lua<CR>", { noremap = true })
 
+vim.keymap.set({"n"}, "<Esc>", ":silent! nohl<CR>", { noremap = true })
+vim.keymap.set({"t"}, "<Esc><Esc>", "<C-\\><C-n>", { noremap = true })
+
+vim.keymap.set("n", "<localleader>t", ":silent! ToggleTerminal<CR>", { noremap = true })
+vim.keymap.set('n', '<localleader>q', ':silent! KillTerminal<CR>', { noremap = true })
