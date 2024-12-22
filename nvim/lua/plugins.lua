@@ -684,6 +684,13 @@ require('lazy').setup({
   },
 
   {
+    "mfussenegger/nvim-dap-python",
+    config = function()
+      require("dap-python").setup("python3")
+    end,
+  },
+
+  {
     'stevearc/oil.nvim',
     opts = {},
     -- Optional dependencies

@@ -18,12 +18,13 @@ alias grhh='git reset --hard HEAD'
 alias gl='git log'
 alias grl='git reflog'
 alias t='tmux'
-alias n='nvim'
+alias n='nvim -u ~/repos/dotfiles/nvim/init.lua'
 alias f='flutter'
 alias g='git'
 alias rf='rm -rf'
 alias n9='/Users/alansilva/code/repos/neovim/build/bin/nvim'
 alias p='python3'
+alias ll='ls -lh'
 
 bindkey "^P" history-beginning-search-backward
 bindkey "^N" history-beginning-search-forward
