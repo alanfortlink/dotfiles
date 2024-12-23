@@ -60,19 +60,6 @@ end, { noremap = true })
 
 local augroup = vim.api.nvim_create_augroup("augroup1", { clear = true })
 
--- Jump between .h/.cpp and go to local CMakeLists.txt
-vim.api.nvim_create_autocmd("FileType", {
-  pattern = { "cpp", "h" },
-  callback = function()
-    vim.keymap.set("n", "<leader>c", ":e %<.cpp<CR>")
-    vim.keymap.set("n", "<leader>C", ":vnew %<.cpp<CR>")
-    vim.keymap.set("n", "<leader>h", ":e %<.h<CR>")
-    vim.keymap.set("n", "<leader>H", ":vnew %<.h<CR>")
-    vim.keymap.set("n", "<leader>b", ":vnew %:p:h/CMakeLists.txt<CR>")
-  end,
-  group = augroup
-})
-
 vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
   group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
@@ -87,12 +74,13 @@ vim.keymap.set("n", "]q", "<cmd>cnext<CR>zz", { noremap = true })
 vim.keymap.set("n", "[q", "<cmd>cprevious<CR>zz", { noremap = true })
 
 vim.keymap.set("n", "<localleader>x", ":.lua<CR>", { noremap = true })
+vim.keymap.set("n", "<localleader>xx", ":%lua<CR>", { noremap = true })
 vim.keymap.set("v", "<localleader>x", ":lua<CR>", { noremap = true })
 
 vim.keymap.set("v", "<localleader>", ":lua<CR>", { noremap = true })
 
-vim.keymap.set({"n"}, "<Esc>", ":nohl<CR>", { noremap = true, silent = true})
-vim.keymap.set({"t"}, "<Esc><Esc>", "<C-\\><C-n>", { noremap = true })
+vim.keymap.set({ "n" }, "<Esc>", ":nohl<CR>", { noremap = true, silent = true })
+vim.keymap.set({ "t" }, "<Esc><Esc>", "<C-\\><C-n>", { noremap = true })
 
 vim.keymap.set("n", "<localleader>t", ":ToggleTerminal<CR>", { noremap = true, silent = true })
 vim.keymap.set('n', '<localleader>q', ':KillTerminal<CR>', { noremap = true, silent = true })

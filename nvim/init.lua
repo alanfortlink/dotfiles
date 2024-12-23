@@ -1,4 +1,6 @@
 require("sets")
 require("mappings")
-require("plugins")
 require("terminal")
+require("utils")
+
+require("config.lazy")
