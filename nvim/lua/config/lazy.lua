@@ -29,5 +29,6 @@ require("lazy").setup({
       opts = {},
       dependencies = { "nvim-tree/nvim-web-devicons" }
     },
+    { 'alanfortlink/blackjack.nvim' },
   }
 })
