@@ -94,5 +94,5 @@ vim.keymap.set("v", "<localleader>", ":lua<CR>", { noremap = true })
 vim.keymap.set({"n"}, "<Esc>", ":nohl<CR>", { noremap = true, silent = true})
 vim.keymap.set({"t"}, "<Esc><Esc>", "<C-\\><C-n>", { noremap = true })
 
-vim.keymap.set("n", "<localleader>t", "ToggleTerminal<CR>", { noremap = true, silent = true })
-vim.keymap.set('n', '<localleader>q', 'KillTerminal<CR>', { noremap = true, silent = true })
+vim.keymap.set("n", "<localleader>t", ":ToggleTerminal<CR>", { noremap = true, silent = true })
+vim.keymap.set('n', '<localleader>q', ':KillTerminal<CR>', { noremap = true, silent = true })
