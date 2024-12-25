@@ -1,162 +1,70 @@
+---@diagnostic disable: unused-local
+local executor = require("animated.executor")
+
 local M = {}
 
-local active_extmarks = {}
-local active_hls = {}
-local looping = false
-local elapsed = 0
-local duration = 10
+--- Local module to keep internal state
+local internal = {}
 
-local fps = 60
-local delegate = nil
+--- Stores information about the animations currently in progress
+--- key: the coroutine id for the given animation
+--- value: table containing the animation opts
+internal.in_progress = {}
 
-local get_buf = function()
-  return 0
-end
+--- Stores the list of the animations that can be played
+--- key: a string with the animation name
+--- value: a function that when called, returns an animation
+internal.animations = {}
 
-local get_win = function()
-  return 0
-end
+internal.on_animation_over = function(animation_id)
+  local animation = internal.in_progress[animation_id]
+  internal.in_progress[animation_id] = nil
 
-local get_rows = function()
-  local num_rows_in_text = vim.api.nvim_buf_line_count(get_buf());
-  local num_rows_in_win = vim.api.nvim_win_get_height(get_win())
-
-  return math.max(num_rows_in_text, num_rows_in_win)
-end
-
-local get_cols = function()
-  return vim.api.nvim_win_get_width(get_win())
-end
-
-local get_line = function(row)
-  return vim.api.nvim_buf_get_lines(get_buf(), row, row + 1, true)[1]
-end
-
-local get_ns_id = function()
-  local ns_id = vim.api.nvim_create_namespace("AnimatedBG")
-  return ns_id;
-end
-
-local get_hl = function(color)
-  if active_hls[color] then
-    return active_hls[color]
+  if animation.clean then
+    animation.clean()
   end
 
-  local hl_name = string.format("AnimatedBG%s", string.sub(color, 2))
-  vim.api.nvim_set_hl(0, hl_name, { bg = color })
-
-  active_hls[color] = hl_name
-  return hl_name
+  executor.clean(animation_id)
 end
 
+--- Configured the default options for animations
+---@param opts table
 M.setup = function(opts)
-  if looping then
-    return
-  end
-  opts = opts or {}
+  opts = opts or {
+  }
+
+  opts.fps = opts.fps or 60
+  internal.default_opts = opts
+
+  local test_animation = require("animated.animations.test")
+  internal.animations[test_animation.animation_id] = test_animation
 end
 
-local clear = function()
-  vim.api.nvim_buf_clear_namespace(0, get_ns_id(), 0, -1)
-  for _, id in ipairs(active_extmarks) do
-    vim.api.nvim_buf_del_extmark(get_buf(), get_ns_id(), id)
-  end
+local ERROR_OPTS_NIL = "`opts` cannot be nil."
+local ERROR_NO_ANIMATION = "'%s' animation not found"
 
-  active_extmarks = {}
-end
-
-local update = function(dt)
-  if not delegate then
-    return
-  end
-  elapsed = elapsed + dt
-  delegate.update(dt)
-end
-
-local render = function()
-  if not delegate then
+M.play = function(opts)
+  if not opts then
+    error(ERROR_OPTS_NIL);
     return
   end
 
-  local num_rows_in_text = vim.api.nvim_buf_line_count(get_buf());
-  local num_rows_in_win = vim.api.nvim_win_get_height(get_win())
-
-  local rows = get_rows()
-  local cols = get_cols()
-
-  for row = 0, rows - 1, 1 do
-    local used_space = #get_line(row)
-
-    for col = 0, used_space, 1 do
-      local color = delegate.get_color(row, col, rows, cols)
-      if not color then
-        goto continue
-      end
-      vim.api.nvim_buf_add_highlight(0, get_ns_id(), get_hl(color), row, col, col + 1)
-
-      ::continue::
-    end
-
-    local extmarks = {}
-    for col = used_space, cols, 1 do
-      local color = delegate.get_color(row, col, rows, cols)
-      if color then
-        table.insert(extmarks, { " ", get_hl(color) })
-      else
-        table.insert(extmarks, { " ", "@none" })
-      end
-    end
-
-    local id = vim.api.nvim_buf_set_extmark(0, get_ns_id(), row, used_space, {
-      virt_text = extmarks,
-      virt_text_pos = "overlay",
-      strict = false,
-    })
-
-    table.insert(active_extmarks, id);
-  end
-end
-
-local _internal = {}
-_internal._loop = function()
-  looping = true
-  clear()
-
-  if elapsed >= duration then
-    elapsed = 0
-    delegate = nil
-  end
-
-  if delegate then
-    update(1.0 / fps)
-    render()
-    vim.defer_fn(_internal._loop, (1000 / fps))
-  end
-end
-
-M.start = function(opts)
-  opts = opts or {}
-  elapsed = 0
-
-  if not opts.delegate then
-    opts.delegate = require("animated.fireworks")
-    opts.delegate.setup({})
-  end
-
-  opts.delegate.prepare(get_rows(), get_cols())
-
-  delegate = opts.delegate
-  fps = opts.fps or 60
-  duration = opts.duration or 10
-
-  if looping then
+  if not opts.animation or not internal.animations[opts.animation] then
+    error(string.format(ERROR_NO_ANIMATION, opts.animation))
     return
   end
-  _internal._loop()
-end
 
-M.setup({})
-M.start({
-})
+  local animation = internal.animations[opts.animation]
+  local executor_opts = {
+    animation = animation,
+    fps = internal.default_opts.fps,
+    on_animation_over = internal.on_animation_over,
+    buffer = vim.api.nvim_get_current_buf(),
+    window = vim.api.nvim_get_current_win(),
+  }
+
+  local animation_id = executor.create_animation(executor_opts)
+  internal.in_progress[animation_id] = animation
+end
 
 return M
