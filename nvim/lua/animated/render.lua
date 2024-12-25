@@ -20,13 +20,16 @@ internal.clean = function(buffer)
   internal.active_extmarks = {}
 end
 
-M.clean = function(opts)
-  internal.clean(opts.buffer)
+M.clean = function()
+  local buffers = vim.api.nvim_list_bufs()
+  for buffer in ipairs(buffers) do
+    internal.clean(buffer)
+  end
 end
 
 M.render = function(canvas)
   canvas.prerender()
-  internal.clean(0)
+  M.clean()
 
   local buffer = 0
   local window = 0

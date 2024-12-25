@@ -16,7 +16,15 @@ M.create = function(opts)
     end,
 
     render = function(canvas)
-      canvas.draw_rect(0, 0, canvas.rows, canvas.cols, { bg = "#FFFFFF", fg = "#FF0000", content = "X" })
+      local rect = {
+        row = 0,
+        col = 0,
+        rows = canvas.rows,
+        cols = canvas.cols,
+      }
+
+      local decoration = { bg = "#FFFFFF", fg = "#FF0000", content = "X" }
+      canvas.draw_rect(rect, decoration, { painting_style = "empty" })
     end,
   }
 end

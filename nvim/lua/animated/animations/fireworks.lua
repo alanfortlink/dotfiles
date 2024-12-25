@@ -86,11 +86,17 @@ M.create = function(opts)
 
     render = function(canvas)
       for _, f in ipairs(fireworks) do
-        canvas.draw_rect(f.row, f.col, 1, 1, { bg = f.color })
+        -- local rect = { row = f.row, col = f.col, rows = 1, cols = 1 }
+        -- canvas.draw_rect(rect, decoration)
+        local decoration = { bg = f.color }
+        local circle = { center = { row = f.row, col = f.col }, radius = 1 }
+        canvas.draw_circle(circle, decoration, { painting_style = "empty" })
       end
 
       for _, p in ipairs(particles) do
-        canvas.draw_rect(p.row, p.col, 1, 1, { fg = p.color, content = "*" })
+        local rect = { row = p.row, col = p.col, rows = 1, cols = 1 }
+        local decoration = { fg = p.color, content = "*" }
+        canvas.draw_rect(rect, decoration)
       end
     end
 

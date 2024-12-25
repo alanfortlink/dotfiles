@@ -7,8 +7,6 @@ internal.animations = {}
 local canvas = require("animated.canvas")
 local render = require("animated.render")
 
-canvas.setup()
-
 is_execution_running = false
 local global_dt = 0
 
@@ -28,7 +26,7 @@ internal.run = function()
     return
   end
 
-  render.clean({ buffer = 0 })
+  render.clean()
   is_execution_running = false
 end
 
@@ -49,6 +47,7 @@ internal.get_new_game_loop = function(opts)
 end
 
 M.start_new_animation = function(opts)
+  canvas.setup(opts)
   opts.id = tostring({}):sub(8)
   opts.animation = opts.animation.create(opts)
 

@@ -25,8 +25,8 @@ return {
           vim.keymap.set("n", "gr", buf.references, { noremap = true })
           vim.keymap.set("n", "gR", buf.rename, { noremap = true })
 
-          vim.keymap.set("n", "gd", buf.definition, { noremap = true })
-          vim.keymap.set("n", "gD", buf.declaration, { noremap = true })
+          vim.keymap.set("n", "gD", buf.definition, { noremap = true })
+          vim.keymap.set("n", "gd", "<C-]>", { noremap = true })
 
           vim.keymap.set("n", "ga", buf.code_action, { noremap = true })
           vim.keymap.set("n", "K", buf.hover, { noremap = true })

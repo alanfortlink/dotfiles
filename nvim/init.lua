@@ -14,8 +14,14 @@ vim.keymap.set("n", "<localleader>r", function()
 
 end, {})
 
-vim.keymap.set("n", "<localleader>e", function()
+vim.keymap.set("n", "<localleader>f", function()
   local animated = require("animated")
   animated.setup({})
   animated.play({ animation = "fireworks" })
+end, {})
+
+vim.keymap.set("n", "<localleader>e", function()
+  local animated = require("animated")
+  animated.setup({})
+  animated.play({ animation = "test" })
 end, {})
