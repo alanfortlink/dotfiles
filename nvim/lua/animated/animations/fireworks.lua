@@ -10,8 +10,8 @@ M.create = function(opts)
   local particles = {}
   local gravity = 10.0
 
-  local move = function(obj, dt)
-    obj.row_speed = obj.row_speed + gravity * dt
+  local move = function(obj, dt, gravity_override)
+    obj.row_speed = obj.row_speed + (gravity_override or gravity) * dt
     obj.col = obj.col + obj.col_speed * dt
     obj.row = obj.row + obj.row_speed * dt
   end
@@ -29,7 +29,7 @@ M.create = function(opts)
         local row_speed = -math.random(0.4 * opts.rows, 0.8 * opts.rows)
         local col_speed = math.random(-15, 15)
 
-        local row_limit = math.random(0.2 * opts.rows, 0.3 * opts.rows)
+        local row_limit = math.random(0.2 * opts.rows, 0.4 * opts.rows)
 
         local color = "#FFFFFF"
 
@@ -51,7 +51,7 @@ M.create = function(opts)
 
       local filtered_fireworks = {}
       for _, f in ipairs(fireworks) do
-        move(f, dt)
+        move(f, dt, 0.3 * gravity)
         if f.row > f.row_limit and f.row_speed < 0 then
           table.insert(filtered_fireworks, f)
         else
@@ -76,7 +76,7 @@ M.create = function(opts)
       end
 
       for _, p in ipairs(particles) do
-        move(p, dt)
+        move(p, dt, 0)
       end
 
       fireworks = filtered_fireworks
