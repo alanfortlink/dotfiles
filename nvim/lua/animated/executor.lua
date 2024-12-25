@@ -28,6 +28,7 @@ internal.run = function()
     return
   end
 
+  render.clean({ buffer = 0 })
   is_execution_running = false
 end
 
