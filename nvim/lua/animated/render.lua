@@ -24,16 +24,19 @@ M.clean = function(opts)
   internal.clean(opts.buffer)
 end
 
-M.render = function(opts, canvas)
+M.render = function(canvas)
   canvas.prerender()
-  internal.clean(opts.buffer)
+  internal.clean(0)
 
-  local rows, cols = utils.get_win_size(opts.window)
+  local buffer = 0
+  local window = 0
+
+  local rows, cols = utils.get_win_size(window)
   local row_scroll, col_scroll = utils.get_scroll()
 
   for row = 0, rows - 1, 1 do
     local real_row = row + row_scroll - 1
-    local used_space = #internal.get_line(opts.buffer, real_row)
+    local used_space = #internal.get_line(buffer, real_row)
 
     for col = 0, used_space, 1 do
       local bundle = canvas.get_hl(row, col)
@@ -57,7 +60,7 @@ M.render = function(opts, canvas)
       end
     end
 
-    local id = vim.api.nvim_buf_set_extmark(opts.buffer, internal.ns_id, real_row, used_space, {
+    local id = vim.api.nvim_buf_set_extmark(buffer, internal.ns_id, real_row, used_space, {
       virt_text = extmarks,
       virt_text_pos = "overlay",
       strict = false,

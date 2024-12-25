@@ -8,6 +8,9 @@ internal.active_hls = {}
 internal.last_color_id = 0
 internal.color_to_id = {}
 
+internal.last_content_id = 0
+internal.content_to_id = {}
+
 M.raw_canvas = {}
 
 M.setup = function(opts)
@@ -39,9 +42,19 @@ M.get_hl = function(row, col)
     return nil
   end
 
-  local content_id = cell.content
+  local content_id = nil
   local bg_id = nil
   local fg_id = nil
+
+  if cell.content then
+    if internal.content_to_id[cell.content] then
+      content_id = internal.content_to_id[cell.content]
+    else
+      internal.last_content_id = internal.last_content_id + 1
+      internal.content_to_id[cell.content] = internal.last_content_id
+      content_id = internal.last_content_id
+    end
+  end
 
   if cell.bg then
     if internal.color_to_id[cell.bg] then
@@ -87,12 +100,14 @@ M.clear = function()
 end
 
 M.draw_rect = function(row, col, rows, cols, opts)
-  for i = row, row + rows, 1 do
+  for i = row, row + rows-1, 1 do
+    i = math.floor(i)
     if not M.raw_canvas[i] then
       goto row_continue
     end
 
-    for j = col, col + cols, 1 do
+    for j = col, col + cols-1, 1 do
+      j = math.floor(j)
       if not M.raw_canvas[i][j] then
         goto col_continue
       end

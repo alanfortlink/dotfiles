@@ -2,56 +2,62 @@ local M = {}
 
 local internal = {}
 internal.last_id = 0
-internal.local_id_to_coroutine_id = {}
-internal.coroutines = {}
+internal.animations = {}
 
-internal.run = function(id, opts)
-  local dt = 1000.0 / opts.fps
-  if internal.coroutines[id] then
-    local coro = internal.coroutines[id]
-    coroutine.resume(coro)
-    vim.defer_fn(function() internal.run(id, opts) end, dt)
+local canvas = require("animated.canvas")
+local render = require("animated.render")
+
+local is_running = false
+local global_dt = 0
+
+internal.run = function()
+  local count = 0
+  canvas.clear()
+
+  for id, animation in pairs(internal.animations) do
+    animation.loop(global_dt)
+    count = count + 1
   end
+
+  if count > 0 then
+    is_running = true
+    vim.defer_fn(internal.run, global_dt * 1000)
+    render.render(canvas)
+    return
+  end
+
+  is_running = false
 end
 
 -- closure for the game loop
 internal.get_new_game_loop = function(opts)
-  -- game loop
-  return function()
-    local canvas = require("animated.canvas")
-    local render = require("animated.render")
-    local dt = 1.0 / opts.fps
-    canvas.setup(opts)
-    opts.animation.init()
-    while opts.animation.update(dt) do
-      opts.animation.render(canvas)
-      render.render(opts, canvas)
-      coroutine.yield()
-    end
-    local id = internal.local_id_to_coroutine_id[opts.animation_id]
-    internal.local_id_to_coroutine_id[opts.animation] = nil
-    opts.on_animation_over(id)
-    render.clean(opts)
-  end
+  return {
+    start = function()
+      canvas.setup(opts)
+      opts.animation.init(opts)
+    end,
+    loop = function(dt)
+      if opts.animation.update(dt) then
+        opts.animation.render(canvas)
+        return
+      else
+        local id = opts.id
+        internal.animations[id] = nil
+        render.clean(opts)
+      end
+    end,
+  }
 end
 
-M.create_animation = function(opts)
-  internal.last_id = internal.last_id + 1
-  opts.animation_id = internal.last_id
+M.start_new_animation = function(opts)
+  opts.id = tostring({}):sub(8)
+  global_dt = 1.0 / opts.fps
   local game_loop = internal.get_new_game_loop(opts)
-  local coro = coroutine.create(game_loop)
-  local id = tostring(coro):sub(8) -- extracts the "address" part
-  internal.local_id_to_coroutine_id[opts.animation_id] = id
-
-  coroutine.resume(coro)
-  internal.coroutines[id] = coro
-
-  internal.run(id, opts)
-  return id
-end
-
-M.clean = function(id)
-  internal.coroutines[id] = nil
+  internal.animations[opts.id] = game_loop
+  game_loop.start()
+  if not is_running then
+    internal.run()
+  end
 end
 
 return M
