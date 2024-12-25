@@ -13,8 +13,9 @@ internal.content_to_id = {}
 
 M.raw_canvas = {}
 
-M.setup = function(opts)
-  local rows, cols = utils.get_win_size(opts.window)
+M.setup = function()
+  local window = 0
+  local rows, cols = utils.get_win_size(window)
   M.raw_canvas = {}
 
   for i = 0, rows, 1 do
@@ -24,7 +25,6 @@ M.setup = function(opts)
     end
   end
 
-  internal.opts = opts
   M.rows = rows
   M.cols = cols
 end
@@ -90,7 +90,8 @@ M.get_hl = function(row, col)
 end
 
 M.clear = function()
-  local rows, cols = utils.get_win_size(internal.opts.window)
+  local window = 0
+  local rows, cols = utils.get_win_size(window)
   for i = 0, rows, 1 do
     M.raw_canvas[i] = {}
     for j = 0, cols, 1 do

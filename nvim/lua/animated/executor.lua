@@ -7,7 +7,9 @@ internal.animations = {}
 local canvas = require("animated.canvas")
 local render = require("animated.render")
 
-local is_running = false
+canvas.setup()
+
+is_execution_running = false
 local global_dt = 0
 
 internal.run = function()
@@ -19,31 +21,27 @@ internal.run = function()
     count = count + 1
   end
 
+  render.render(canvas)
+
   if count > 0 then
-    is_running = true
     vim.defer_fn(internal.run, global_dt * 1000)
-    render.render(canvas)
     return
   end
 
-  is_running = false
+  is_execution_running = false
 end
 
--- closure for the game loop
 internal.get_new_game_loop = function(opts)
   return {
     start = function()
-      canvas.setup(opts)
-      opts.animation.init(opts)
+      opts.animation.init()
     end,
     loop = function(dt)
       if opts.animation.update(dt) then
         opts.animation.render(canvas)
         return
       else
-        local id = opts.id
-        internal.animations[id] = nil
-        render.clean(opts)
+        internal.animations[opts.id] = nil
       end
     end,
   }
@@ -51,11 +49,15 @@ end
 
 M.start_new_animation = function(opts)
   opts.id = tostring({}):sub(8)
+  opts.animation = opts.animation.create(opts)
+
   global_dt = 1.0 / opts.fps
   local game_loop = internal.get_new_game_loop(opts)
   internal.animations[opts.id] = game_loop
   game_loop.start()
-  if not is_running then
+
+  if not is_execution_running then
+    is_execution_running = true
     internal.run()
   end
 end

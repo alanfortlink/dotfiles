@@ -1,5 +1,9 @@
 {
     "diagnostics.disable": [
         "unused-function"
+    ],
+    "diagnostics.globals": [
+        "is_running",
+        "is_execution_running"
     ]
 }
