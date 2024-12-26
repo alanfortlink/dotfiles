@@ -1,4 +1,4 @@
-local utils = require("animated.utils")
+local utils = require("animatedbg-nvim.utils")
 
 --- @type AnimationBuilder
 local M = {

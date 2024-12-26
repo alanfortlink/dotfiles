@@ -7,7 +7,7 @@ require("config.lazy")
 
 vim.keymap.set("n", "<localleader>r", function()
   for name, _ in pairs(package.loaded) do
-    if vim.startswith(name, "animated") then
+    if vim.startswith(name, "animatedbg-nvim") then
       package.loaded[name] = nil
     end
   end
@@ -15,13 +15,13 @@ vim.keymap.set("n", "<localleader>r", function()
 end, {})
 
 vim.keymap.set("n", "<localleader>f", function()
-  local animated = require("animated")
+  local animated = require("animatedbg-nvim")
   animated.setup({})
   animated.play({ animation = "fireworks" })
 end, {})
 
 vim.keymap.set("n", "<localleader>e", function()
-  local animated = require("animated")
+  local animated = require("animatedbg-nvim")
   animated.setup({})
-  animated.play({ animation = "test" })
+  animated.play({ animation = "demo" })
 end, {})

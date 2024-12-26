@@ -1,7 +1,8 @@
 ---@diagnostic disable: unused-local
-local executor = require("animated.executor")
-local utils = require("animated.utils")
+local executor = require("animatedbg-nvim.executor")
+local utils = require("animatedbg-nvim.utils")
 
+--- @class Animated
 local M = {}
 
 --- @class AnimatedInternal
@@ -17,7 +18,6 @@ local internal = {
 --- @param builders AnimationBuilder[]
 local add_custom_builders = function(builders)
   for _, name in ipairs(builders) do
-    --- @type AnimationBuilder
     local builder = require(name)
     internal.animation_builders[builder.id] = builder
   end
@@ -25,18 +25,21 @@ end
 
 local load_builtin_animations = function()
   --- @type string[]
-  local builtin = { "animated.animations.test", "animated.animations.fireworks" }
+  local builtin = { "animatedbg-nvim.animations.demo", "animatedbg-nvim.animations.fireworks" }
   add_custom_builders(builtin)
 end
 
 --- @class Animation
+--- @field init fun()
+--- @field update fun(dt: number) : boolean
+--- @field render fun(canvas: Canvas)
 
 --- @class AnimationBuilder
 --- @field id string
 --- @field create fun(opts: ExecutorOpts): Animation
 
 --- @class AnimatedPluginOpts
---- @field fps integer
+--- @field fps integer | nil
 --- @field builders (AnimationBuilder[]) | nil
 
 --- Configured the default options for animations

@@ -17,9 +17,9 @@ internal.last_id = 0
 internal.animations = {}
 
 local buf_to_canvas = {}
-local renderer = require("animated.renderer")
+local renderer = require("animatedbg-nvim.renderer")
 
-is_execution_running = false
+local is_execution_running = false
 local global_dt = 0
 
 --- @type Executor
@@ -28,7 +28,7 @@ local M = {
   --- @param opts ExecutorOpts
   start_new_animation = function(opts)
     if not buf_to_canvas[opts.buffer] then
-      buf_to_canvas[opts.buffer] = require("animated.canvas").create()
+      buf_to_canvas[opts.buffer] = require("animatedbg-nvim.canvas").create()
     end
 
     buf_to_canvas[opts.buffer].setup(opts)

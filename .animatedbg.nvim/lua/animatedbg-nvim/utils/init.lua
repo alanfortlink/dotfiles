@@ -24,11 +24,26 @@ M.get_scroll = function(window)
   return topline, 0
 end
 
-M.rotate = function(row, col, angle)
-  local r_row = row * math.cos(angle) - col * math.sin(angle)
-  local r_col = row * math.sin(angle) + col * math.cos(angle)
+--- @param row number
+--- @param col number
+--- @param angle number
+--- @param center? Point
+--- @return number, number
+M.rotate = function(row, col, angle, center)
+  center = center or { row = 0, col = 0 }
+  -- Convert angle from degrees to radians
+  local radians = angle
 
-  return r_row, r_col
+  local translated_row = row - center.row
+  local translated_col = col - center.col
+
+  local rotated_row = translated_row * math.cos(radians) - translated_col * math.sin(radians)
+  local rotated_col = translated_row * math.sin(radians) + translated_col * math.cos(radians)
+
+  local final_row = rotated_row + center.row
+  local final_col = rotated_col + center.col
+
+  return final_row, final_col
 end
 
 local split_color = function(rgb_color)

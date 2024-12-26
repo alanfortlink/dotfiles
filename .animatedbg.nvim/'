@@ -3,6 +3,9 @@ local M = {}
 --- @class Canvas
 --- @field rows integer
 --- @field cols integer
+--- @field draw_rect fun(rect : Rect, decoration: Decoration, opts?: PaintingOpts)
+--- @field draw_circle fun(circle : Circle, decoration: Decoration, opts?: PaintingOpts)
+--- @field draw_polygon fun(polygon : Polygon, decoration: Decoration, opts?: PaintingOpts)
 
 --- @class Decoration
 --- @field bg string | nil
@@ -240,8 +243,7 @@ M.create = function()
   end
 
   --- @class PaintingOpts
-  --- @field painting_style "fill"|"empty"
-  --- @field adjust_aspect_ratio boolean
+  --- @field painting_style? "fill"|"empty"
 
   ---Draws all the points in a rect that are valid according to the classifier
   --- @param rect Rect
@@ -294,7 +296,7 @@ M.create = function()
     opts = opts or {}
 
     C.generic_draw(rect, decoration, opts, function(point)
-      return get_point_status_in_rect(rect, point, 1)
+      return get_point_status_in_rect(rect, point, 2)
     end)
   end
 
@@ -303,35 +305,20 @@ M.create = function()
   --- @param opts PaintingOpts
   C.draw_circle = function(circle, decoration, opts)
     opts = opts or {}
-    local adjust_aspect_ratio = opts.adjust_aspect_ratio or false
-
-    local row_adjustment = 0
-    local col_adjustment = 0
 
     local radius = circle.radius
 
-    if adjust_aspect_ratio then
-      if C.cols > C.rows then
-        local fac = C.rows / C.cols
-        col_adjustment = 0.5 * fac * circle.radius
-      else
-        local fac = C.cols / C.rows
-        row_adjustment = 0.5 * fac * circle.radius
-      end
-    end
-
     local rect = {
-      row = circle.center.row - radius - row_adjustment,
-      col = circle.center.col - radius - col_adjustment,
-      rows = 2 * radius + 2 * row_adjustment,
-      cols = 2 * radius + 2 * col_adjustment,
+      row = circle.center.row - radius,
+      col = circle.center.col - radius,
+      rows = 2 * radius,
+      cols = 2 * radius,
     }
 
     C.generic_draw(rect, decoration, opts, function(point)
       return get_point_status_in_circle(circle, point, 1)
     end)
   end
-
 
 
   --- @param polygon Polygon
