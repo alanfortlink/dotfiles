@@ -91,7 +91,7 @@ M.create = function(opts)
         -- canvas.draw_rect(rect, decoration)
         local decoration = { bg = f.color }
         local circle = { center = { row = f.row, col = f.col }, radius = 1 }
-        canvas.draw_circle(circle, decoration, { painting_style = "empty" })
+        canvas.draw_circle(circle, decoration, { painting_style = "line" })
       end
 
       for _, p in ipairs(particles) do

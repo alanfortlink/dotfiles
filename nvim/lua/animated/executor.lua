@@ -5,7 +5,7 @@ internal.last_id = 0
 internal.animations = {}
 
 local canvas = require("animated.canvas")
-local render = require("animated.render")
+local renderer = require("animated.renderer")
 
 is_execution_running = false
 local global_dt = 0
@@ -19,14 +19,14 @@ internal.run = function()
     count = count + 1
   end
 
-  render.render(canvas)
+  renderer.render(canvas)
 
   if count > 0 then
     vim.defer_fn(internal.run, global_dt * 1000)
     return
   end
 
-  render.clean()
+  renderer.clean()
   is_execution_running = false
 end
 

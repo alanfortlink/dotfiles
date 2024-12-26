@@ -94,106 +94,44 @@ M.clear = function()
   end
 end
 
-M.draw_rect = function(rect, decoration, opts)
-  opts = opts or {}
-  local painting_style = opts.painting_style or "fill"
+local function get_point_status_in_rect(rect, point, threshold)
+  local row_dist = math.min(math.abs(point.row - rect.row), math.abs(point.row - (rect.row + rect.rows)))
+  local col_dist = math.min(math.abs(point.col - rect.col), math.abs(point.col - (rect.col + rect.cols)))
 
-  local end_row = rect.row + rect.rows
-  for i = rect.row, end_row - 1, 1 do
-    i = math.floor(i)
-
-    if not M.raw_canvas[i] then
-      goto next_row
-    end
-
-    local end_col = rect.col + rect.cols
-    for j = rect.col, end_col - 1, 1 do
-      j = math.floor(j)
-
-      if not M.raw_canvas[i][j] then
-        goto next_column
-      end
-
-      if painting_style == "empty" then
-        if i > rect.row and i < end_row - 1 and j > rect.col and j < end_col - 1 then
-          goto next_column
-        end
-      end
-
-      M.raw_canvas[i][j] = decoration
-
-      ::next_column::
-    end
-
-    ::next_row::
+  if point.row == rect.row or point.row == rect.row + rect.rows-1 then
+    return "border"
   end
+
+  if point.col == rect.col or point.col == rect.col + rect.cols-1 then
+    return "border"
+  end
+
+  if point.row >= rect.row and point.row <= rect.row + rect.rows then
+    if point.col >= rect.col and point.col <= rect.col + rect.cols then
+      return "inside"
+    end
+  end
+
+  return "outside"
 end
 
-M.draw_circle = function(circle, decoration, opts)
-  opts = opts or {}
-  local painting_style = opts.painting_style or "fill"
-  local adjust_aspect_ratio = opts.adjust_aspect_ratio or false
+local function get_point_status_in_circle(circle, point, threshold)
+  local row_term = math.pow(circle.center.row - point.row, 2)
+  local col_term = math.pow(circle.center.col - point.col, 2)
+  local dist = math.sqrt(row_term + col_term)
 
-  local row_adjustment = 0
-  local col_adjustment = 0
-
-  local radius = circle.radius
-
-  if adjust_aspect_ratio then
-    if M.cols > M.rows then
-      local fac = M.rows / M.cols
-      col_adjustment = 0.5 * fac * circle.radius
-    else
-      local fac = M.cols / M.rows
-      row_adjustment = 0.5 * fac * circle.radius
-    end
+  if dist > circle.radius then
+    return "outside"
   end
 
-  local rect = {
-    row = circle.center.row - radius - row_adjustment,
-    col = circle.center.col - radius - col_adjustment,
-    rows = 2 * radius + 2 * row_adjustment,
-    cols = 2 * radius + 2 * col_adjustment,
-  }
-
-  local end_row = rect.row + rect.rows
-  for i = rect.row, end_row, 1 do
-    i = math.floor(i)
-
-    if not M.raw_canvas[i] then
-      goto next_row
-    end
-
-    local end_col = rect.col + rect.cols
-    for j = rect.col, end_col, 1 do
-      j = math.floor(j)
-
-      if not M.raw_canvas[i][j] then
-        goto next_column
-      end
-
-      local dist = math.sqrt(math.pow(circle.center.row - i, 2) + math.pow(circle.center.col - j, 2))
-
-      if painting_style == "empty" then
-        if math.abs(dist - radius) > 1 then
-          goto next_column
-        end
-      end
-
-      if dist > radius then
-        goto next_column
-      end
-
-      M.raw_canvas[i][j] = decoration
-
-      ::next_column::
-    end
-
-    ::next_row::
+  if math.abs(dist - circle.radius) <= threshold then
+    return "border"
   end
+
+  return "inside"
 end
 
-local function get_point_status(polygon, point, threshold)
+local function get_point_status_in_polygon(polygon, point, threshold)
   local vertices = polygon.vertices
   local x, y = point.col, point.row
   local inside = false
@@ -227,31 +165,9 @@ local function get_point_status(polygon, point, threshold)
   return inside and "inside" or "outside"
 end
 
-
-M.draw_polygon = function(polygon, decoration, opts)
+M.generic_draw = function(rect, decoration, opts, classifier)
   opts = opts or {}
   local painting_style = opts.painting_style or "fill"
-
-  local top_row = M.rows
-  local bottom_row = 0
-
-  local left_col = M.cols
-  local right_col = 0
-
-  for i, p in ipairs(polygon.vertices) do
-    top_row = math.min(top_row, p.row)
-    left_col = math.min(left_col, p.col)
-
-    bottom_row = math.max(bottom_row, p.row)
-    right_col = math.max(right_col, p.col)
-  end
-
-  local rect = {
-    row = top_row,
-    col = left_col,
-    rows = bottom_row - top_row + 1,
-    cols = right_col - left_col + 1,
-  }
 
   local end_row = rect.row + rect.rows
   for i = rect.row, end_row - 1, 1 do
@@ -269,9 +185,9 @@ M.draw_polygon = function(polygon, decoration, opts)
         goto next_column
       end
 
-      local status = get_point_status(polygon, { row = i, col = j }, 2)
+      local status = classifier({ row = i, col = j })
 
-      if painting_style == "empty" and status ~= "border" then
+      if painting_style == "line" and status ~= "border" then
         goto next_column
       end
 
@@ -288,4 +204,80 @@ M.draw_polygon = function(polygon, decoration, opts)
   end
 end
 
+M.draw_rect = function(rect, decoration, opts)
+  opts = opts or {}
+
+  M.generic_draw(rect, decoration, opts, function(point)
+    return get_point_status_in_rect(rect, point, 1)
+  end)
+end
+
+M.draw_circle = function(circle, decoration, opts)
+  opts = opts or {}
+  local adjust_aspect_ratio = opts.adjust_aspect_ratio or false
+
+  local row_adjustment = 0
+  local col_adjustment = 0
+
+  local radius = circle.radius
+
+  if adjust_aspect_ratio then
+    if M.cols > M.rows then
+      local fac = M.rows / M.cols
+      col_adjustment = 0.5 * fac * circle.radius
+    else
+      local fac = M.cols / M.rows
+      row_adjustment = 0.5 * fac * circle.radius
+    end
+  end
+
+  local rect = {
+    row = circle.center.row - radius - row_adjustment,
+    col = circle.center.col - radius - col_adjustment,
+    rows = 2 * radius + 2 * row_adjustment,
+    cols = 2 * radius + 2 * col_adjustment,
+  }
+
+  M.generic_draw(rect, decoration, opts, function(point)
+    return get_point_status_in_circle(circle, point, 1)
+  end)
+end
+
+
+
+M.draw_polygon = function(polygon, decoration, opts)
+  local top_row = M.rows
+  local bottom_row = 0
+
+  local left_col = M.cols
+  local right_col = 0
+
+  for _, p in ipairs(polygon.vertices) do
+    top_row = math.min(top_row, p.row)
+    left_col = math.min(left_col, p.col)
+
+    bottom_row = math.max(bottom_row, p.row)
+    right_col = math.max(right_col, p.col)
+  end
+
+  local rect = {
+    row = top_row,
+    col = left_col,
+    rows = bottom_row - top_row + 1,
+    cols = right_col - left_col + 1,
+  }
+
+  M.generic_draw(rect, decoration, opts, function(point)
+    return get_point_status_in_polygon(polygon, point, 1)
+  end)
+end
+
 return M
+
+
+
+
+
+
+
+--
