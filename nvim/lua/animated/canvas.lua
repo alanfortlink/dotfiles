@@ -95,9 +95,6 @@ M.clear = function()
 end
 
 local function get_point_status_in_rect(rect, point, threshold)
-  local row_dist = math.min(math.abs(point.row - rect.row), math.abs(point.row - (rect.row + rect.rows)))
-  local col_dist = math.min(math.abs(point.col - rect.col), math.abs(point.col - (rect.col + rect.cols)))
-
   if point.row == rect.row or point.row == rect.row + rect.rows-1 then
     return "border"
   end
@@ -171,7 +168,7 @@ M.generic_draw = function(rect, decoration, opts, classifier)
 
   local end_row = rect.row + rect.rows
   for i = rect.row, end_row - 1, 1 do
-    i = math.floor(i)
+    i = math.ceil(i)
 
     if not M.raw_canvas[i] then
       goto next_row
@@ -179,7 +176,7 @@ M.generic_draw = function(rect, decoration, opts, classifier)
 
     local end_col = rect.col + rect.cols
     for j = rect.col, end_col - 1, 1 do
-      j = math.floor(j)
+      j = math.ceil(j)
 
       if not M.raw_canvas[i][j] then
         goto next_column
