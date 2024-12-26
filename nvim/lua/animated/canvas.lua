@@ -5,10 +5,11 @@ local M = {}
 --- @field cols integer
 
 --- @class Decoration
---- @field bg string
---- @field fg string
---- @field content string
+--- @field bg string | nil
+--- @field fg string | nil
+--- @field content string | nil
 
+--- @return Canvas
 M.create = function()
   local C = {}
 
@@ -16,7 +17,7 @@ M.create = function()
   ---
   --- We create highlights only for the colors that are used in the animation
   --- Also, some characters are not allowed to be used in a highlight's name
-  --- @type Map<string, string>
+  --- @type {string: string}
   C.active_hls = {}
 
 
@@ -25,7 +26,7 @@ M.create = function()
   --- The highlight name is derived from the color/decoration properties.
   --- Given that some symbols are not allowed to be used in highlight names,
   --- this maps the actual color to an id that'll be used to create a highlight name
-  --- @type Map<string, string>
+  --- @type {string: string}
   C.color_to_id = {}
 
   --- Maps the content string of a decoration to an id like 0x123456789
@@ -33,12 +34,12 @@ M.create = function()
   --- The highlight name is derived from the color/decoration properties.
   --- Given that some symbols are not allowed to be used in highlight names,
   --- this maps the actual content to an id that'll be used to create a highlight name
-  --- @type Map<string, string>
+  --- @type {string: string}
   C.content_to_id = {}
 
   --- 2d grid with the decorations that'll be used
   --- Gets updated every frame
-  --- @type List<List<Decoration>>
+  --- @type (Decoration[])[]
   C.raw_canvas = {}
 
   --- (Re-)Initializes the canvas

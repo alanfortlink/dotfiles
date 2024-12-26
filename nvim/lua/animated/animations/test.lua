@@ -4,7 +4,7 @@ local elapsed = 0.0
 
 M.id = "test"
 
-M.create = function(opts)
+M.create = function(_)
   return {
     init = function()
       elapsed = 0.0
@@ -16,14 +16,6 @@ M.create = function(opts)
     end,
 
     render = function(canvas)
-      -- local rect = {
-      --   row = 0,
-      --   col = 0,
-      --   rows = canvas.rows,
-      --   cols = canvas.cols,
-      -- }
-
-      -- canvas.draw_rect(rect, decoration, { painting_style = "line" })
       local polygon = {
         vertices = {
           { row = canvas.rows * 0.2, col = canvas.cols * 0.5 },
