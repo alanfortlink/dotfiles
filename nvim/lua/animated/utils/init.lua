@@ -30,4 +30,37 @@ M.rotate = function(row, col, angle)
   return r_row, r_col
 end
 
+local split_color = function(rgb_color)
+  assert(#rgb_color == 7, string.format("Expect rgb like '#FFFFFF', not %s", rgb_color))
+  local r = tonumber(string.sub(rgb_color, 2, 3), 16);
+  local g = tonumber(string.sub(rgb_color, 4, 5), 16);
+  local b = tonumber(string.sub(rgb_color, 6, 7), 16);
+
+  return r, g, b
+end
+
+local join_color = function(r, g, b)
+  return string.format("#%02x%02x%02x", r, g, b)
+end
+
+local clamp_color = function(v)
+  return math.min(255, math.max(v, 0))
+end
+
+M.brighten = function(rgb_color, factor)
+  local r, g, b = split_color(rgb_color)
+  r = clamp_color(r + r * factor)
+  g = clamp_color(g + g * factor)
+  b = clamp_color(b + b * factor)
+  return join_color(r, g, b)
+end
+
+M.darken = function(rgb_color, factor)
+  local r, g, b = split_color(rgb_color)
+  r = clamp_color(r - r * factor)
+  g = clamp_color(g - g * factor)
+  b = clamp_color(b - b * factor)
+  return join_color(r, g, b)
+end
+
 return M

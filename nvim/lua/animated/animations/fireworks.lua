@@ -31,7 +31,7 @@ M.create = function(opts)
 
         local row_limit = math.random(0.2 * opts.rows, 0.4 * opts.rows)
 
-        local color = "#FFFFFF"
+        local color = "#111111"
 
         local firework = {
           col = col,
@@ -52,6 +52,7 @@ M.create = function(opts)
       local filtered_fireworks = {}
       for _, f in ipairs(fireworks) do
         move(f, dt, 0.3 * gravity)
+        f.color = utils.brighten(f.color, 0.09)
         if f.row > f.row_limit and f.row_speed < 0 then
           table.insert(filtered_fireworks, f)
         else

@@ -16,15 +16,24 @@ M.create = function(opts)
     end,
 
     render = function(canvas)
-      local rect = {
-        row = 0,
-        col = 0,
-        rows = canvas.rows,
-        cols = canvas.cols,
-      }
+      -- local rect = {
+      --   row = 0,
+      --   col = 0,
+      --   rows = canvas.rows,
+      --   cols = canvas.cols,
+      -- }
 
+      -- canvas.draw_rect(rect, decoration, { painting_style = "empty" })
+      local polygon = {
+        vertices = {
+          { row = canvas.rows * 0.2, col = canvas.cols * 0.5 },
+          { row = canvas.rows * 0.6, col = canvas.cols * 0.2 },
+          { row = canvas.rows * 0.8, col = canvas.cols * 0.5 },
+          { row = canvas.rows * 0.6, col = canvas.cols * 0.8 },
+        }
+      }
       local decoration = { bg = "#FFFFFF", fg = "#FF0000", content = "X" }
-      canvas.draw_rect(rect, decoration, { painting_style = "empty" })
+      canvas.draw_polygon(polygon, decoration)
     end,
   }
 end
