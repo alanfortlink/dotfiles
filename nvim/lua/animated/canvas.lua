@@ -1,17 +1,48 @@
 local M = {}
 
+--- @class Canvas
+--- @field rows integer
+--- @field cols integer
+
+--- @class Decoration
+--- @field bg string
+--- @field fg string
+--- @field content string
+
 M.create = function()
   local C = {}
+
+  --- Maps the `decoration` id to the highlight name
+  ---
+  --- We create highlights only for the colors that are used in the animation
+  --- Also, some characters are not allowed to be used in a highlight's name
+  --- @type Map<string, string>
   C.active_hls = {}
 
-  C.last_color_id = 0
+
+  --- Maps the color a color like "#FFFFFF" to an id like 0x123456789
+  ---
+  --- The highlight name is derived from the color/decoration properties.
+  --- Given that some symbols are not allowed to be used in highlight names,
+  --- this maps the actual color to an id that'll be used to create a highlight name
+  --- @type Map<string, string>
   C.color_to_id = {}
 
-  C.last_content_id = 0
+  --- Maps the content string of a decoration to an id like 0x123456789
+  ---
+  --- The highlight name is derived from the color/decoration properties.
+  --- Given that some symbols are not allowed to be used in highlight names,
+  --- this maps the actual content to an id that'll be used to create a highlight name
+  --- @type Map<string, string>
   C.content_to_id = {}
 
+  --- 2d grid with the decorations that'll be used
+  --- Gets updated every frame
+  --- @type List<List<Decoration>>
   C.raw_canvas = {}
 
+  --- (Re-)Initializes the canvas
+  --- @param opts {rows: integer, cols : integer}
   C.setup = function(opts)
     C.raw_canvas = {}
 
@@ -29,6 +60,13 @@ M.create = function()
   C.prerender = function()
   end
 
+  --- Gets the highlight associated with the given cell
+  ---
+  --- Returns nil if the cell is not being used in the frame.
+  --- Otherwise, returns the highlight name and the content of the cell
+  --- @param row integer
+  --- @param col integer
+  --- @return nil | { hl: string, content: string }
   C.get_hl = function(row, col)
     local C_row = C.raw_canvas[row]
 
@@ -53,9 +91,8 @@ M.create = function()
       if C.content_to_id[cell.content] then
         content_id = C.content_to_id[cell.content]
       else
-        C.last_content_id = C.last_content_id + 1
-        C.content_to_id[cell.content] = C.last_content_id
-        content_id = C.last_content_id
+        content_id = tostring({}):sub(8)
+        C.content_to_id[cell.content] = content_id
       end
     end
 
@@ -63,9 +100,8 @@ M.create = function()
       if C.color_to_id[cell.bg] then
         bg_id = C.color_to_id[cell.bg]
       else
-        C.last_color_id = C.last_color_id + 1
-        C.color_to_id[cell.bg] = C.last_color_id
-        bg_id = C.last_color_id
+        bg_id = tostring({}):sub(8)
+        C.color_to_id[cell.bg] = bg_id
       end
     end
 
@@ -73,9 +109,8 @@ M.create = function()
       if C.color_to_id[cell.fg] then
         fg_id = C.color_to_id[cell.fg]
       else
-        C.last_color_id = C.last_color_id + 1
-        C.color_to_id[cell.fg] = C.last_color_id
-        fg_id = C.last_color_id
+        fg_id = tostring({}):sub(8)
+        C.color_to_id[cell.fg] = fg_id
       end
     end
 
@@ -92,6 +127,7 @@ M.create = function()
     return { hl = hl_name, content = cell.content }
   end
 
+  --- Clears the canvas by setting all the properties as null
   C.clear = function()
     for i = 0, C.rows - 1, 1 do
       C.raw_canvas[i] = {}
@@ -101,6 +137,24 @@ M.create = function()
     end
   end
 
+  --- @class Rect
+  --- table with row, col, rows, cols
+  --- (row, col) represent the top left of the rect
+  --- rows stands for the number of rows that the rect will span
+  --- cols stand for the number of columns that the rect will span
+  --- @field row integer
+  --- @field col integer
+  --- @field rows integer
+  --- @field cols integer
+
+  --- @class Point
+  --- @field row number
+  --- @field col number
+
+  --- @param rect Rect
+  --- @param point Point
+  --- @param threshold number
+  --- @return "border"|"inside"|"outside"
   local function get_point_status_in_rect(rect, point, threshold)
     if point.row == rect.row or point.row == rect.row + rect.rows - 1 then
       return "border"
@@ -119,6 +173,14 @@ M.create = function()
     return "outside"
   end
 
+  --- @class Circle
+  --- @field center Point
+  --- @field radius number
+
+  --- @param circle Circle
+  --- @param point Point
+  --- @param threshold number
+  --- @return "outside"|"border"|"inside"
   local function get_point_status_in_circle(circle, point, threshold)
     local row_term = math.pow(circle.center.row - point.row, 2)
     local col_term = math.pow(circle.center.col - point.col, 2)
@@ -135,6 +197,13 @@ M.create = function()
     return "inside"
   end
 
+  --- @class Polygon
+  --- @field vertices Point[]
+
+  --- @param polygon Polygon
+  --- @param point Point
+  --- @param threshold number
+  --- @return "outside"|"inside"|"border"
   local function get_point_status_in_polygon(polygon, point, threshold)
     local vertices = polygon.vertices
     local x, y = point.col, point.row
@@ -169,6 +238,15 @@ M.create = function()
     return inside and "inside" or "outside"
   end
 
+  --- @class PaintingOpts
+  --- @field painting_style "fill"|"empty"
+  --- @field adjust_aspect_ratio boolean
+
+  ---Draws all the points in a rect that are valid according to the classifier
+  --- @param rect Rect
+  --- @param decoration Decoration
+  --- @param opts PaintingOpts
+  --- @param classifier any -- TODO: function signature here?
   C.generic_draw = function(rect, decoration, opts, classifier)
     opts = opts or {}
     local painting_style = opts.painting_style or "fill"
@@ -208,6 +286,9 @@ M.create = function()
     end
   end
 
+  --- @param rect Rect
+  --- @param decoration Decoration
+  --- @param opts PaintingOpts
   C.draw_rect = function(rect, decoration, opts)
     opts = opts or {}
 
@@ -216,6 +297,9 @@ M.create = function()
     end)
   end
 
+  --- @param circle Circle
+  --- @param decoration Decoration
+  --- @param opts PaintingOpts
   C.draw_circle = function(circle, decoration, opts)
     opts = opts or {}
     local adjust_aspect_ratio = opts.adjust_aspect_ratio or false
@@ -249,6 +333,9 @@ M.create = function()
 
 
 
+  --- @param polygon Polygon
+  --- @param decoration Decoration
+  --- @param opts PaintingOpts
   C.draw_polygon = function(polygon, decoration, opts)
     local top_row = C.rows
     local bottom_row = 0
