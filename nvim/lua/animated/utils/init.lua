@@ -19,8 +19,9 @@ M.get_win_size = function(window)
 end
 
 M.get_scroll = function(window)
-  local view = vim.fn.winsaveview()
-  return view.topline, view.leftcol
+  local topline = vim.fn.line("w0", window)
+  --- TODO: calculate the horizontal scroll too
+  return topline, 0
 end
 
 M.rotate = function(row, col, angle)

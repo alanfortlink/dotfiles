@@ -12,30 +12,34 @@ internal.get_line = function(buf, row)
 end
 
 internal.clean = function(buffer)
-  vim.api.nvim_buf_clear_namespace(0, internal.ns_id, 0, -1)
-  for _, id in ipairs(internal.active_extmarks) do
-    vim.api.nvim_buf_del_extmark(buffer, internal.ns_id, id)
+  if not buffer then
+    return
+  end
+  vim.api.nvim_buf_clear_namespace(buffer, internal.ns_id, 0, -1)
+  if vim.api.nvim_buf_is_valid(buffer) then
+    vim.api.nvim_buf_clear_namespace(buffer, internal.ns_id, 0, -1)
+    for _, id in ipairs(internal.active_extmarks) do
+      vim.api.nvim_buf_del_extmark(buffer, internal.ns_id, id)
+    end
   end
 
   internal.active_extmarks = {}
 end
 
-M.clean = function()
-  local buffers = vim.api.nvim_list_bufs()
-  for buffer in ipairs(buffers) do
-    internal.clean(buffer)
-  end
+M.clean = function(buffer)
+  internal.clean(buffer)
 end
 
-M.render = function(canvas)
+M.render = function(canvas, opts)
   canvas.prerender()
-  M.clean()
+  M.clean(opts.buffer)
 
-  local buffer = 0
-  local window = 0
+  local buffer = opts.buffer
+  local window = opts.window
 
-  local rows, cols = utils.get_win_size(window)
-  local row_scroll, col_scroll = utils.get_scroll()
+  local rows = opts.rows
+  local cols = opts.cols
+  local row_scroll, col_scroll = utils.get_scroll(window)
 
   for row = 0, rows - 1, 1 do
     local real_row = row + row_scroll - 1
@@ -48,7 +52,9 @@ M.render = function(canvas)
       end
       local hl = bundle.hl
       -- local content = bundle.content
-      vim.api.nvim_buf_add_highlight(0, internal.ns_id, hl, real_row, col, col + 1)
+      pcall(function()
+        vim.api.nvim_buf_add_highlight(buffer, internal.ns_id, hl, real_row, col, col + 1)
+      end)
 
       ::continue::
     end
@@ -63,13 +69,15 @@ M.render = function(canvas)
       end
     end
 
-    local id = vim.api.nvim_buf_set_extmark(buffer, internal.ns_id, real_row, used_space, {
-      virt_text = extmarks,
-      virt_text_pos = "overlay",
-      strict = false,
-    })
+    pcall(function()
+      local id = vim.api.nvim_buf_set_extmark(buffer, internal.ns_id, real_row, used_space, {
+        virt_text = extmarks,
+        virt_text_pos = "overlay",
+        strict = false,
+      })
 
-    table.insert(internal.active_extmarks, id);
+      table.insert(internal.active_extmarks, id);
+    end)
   end
 end
 
