@@ -1,6 +1,6 @@
 return
 {
-  {   -- Highlight, edit, and navigate code
+  { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
     opts = {
@@ -32,6 +32,8 @@ return
 
             keymaps = {
               -- You can use the capture groups defined in textobjects.scm
+              ["al"] = "@loop.outer",
+              ["il"] = "@loop.inner",
               ["af"] = "@function.outer",
               ["if"] = "@function.inner",
               ["is"] = "@local.scope.inner",
