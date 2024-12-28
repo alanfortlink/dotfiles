@@ -1,8 +1,0 @@
-require("config.sets")
-require("config.autocommands")
-require("config.cpp")
-require("config.dart")
-require("config.job_runner")
-require("config.mappings")
-require("config.packer")
-require("config.utils")
