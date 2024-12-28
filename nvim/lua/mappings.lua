@@ -55,7 +55,9 @@ vim.keymap.set("n", "<leader>R", ":!make run<CR>", { noremap = true })
 
 -- Get git link for current line (BETA)
 vim.keymap.set("n", "<localleader>gl", function()
-  print(utils.get_github_link())
+  local link = utils.get_github_link()
+  vim.fn.setreg("+", link)
+  print(link)
 end, { noremap = true })
 
 local augroup = vim.api.nvim_create_augroup("augroup1", { clear = true })
