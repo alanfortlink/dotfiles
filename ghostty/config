@@ -1,8 +1,10 @@
 font-family = Pragmasevka Nerd Font
 font-style = Regular
-font-size = 13
 font-thicken = true
+font-size = 25
 
-background-opacity = 0.9
-background-blur-radius = 80
+background = "#000000"
+background-opacity = 0.8
+background-blur-radius = 100
+macos-titlebar-style = hidden
 theme = "3024 Night"
