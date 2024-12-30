@@ -6,7 +6,7 @@ return {
 
   window_background_image = '/home/alan/Downloads/ezgif-7-c3c0261f34.jpg', -- Replace with the path to your image
   window_background_image_hsb = {
-    brightness = 0.025,
+    brightness = 0.010,
     hue = 1.0,
     saturation = 1.0,
   },
