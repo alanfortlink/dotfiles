@@ -1,6 +1,6 @@
 return {
   dir = '/Users/alan/repos/animatedbg.nvim',
-  dev = true,
+  lazy = false,
   config = function()
     require("animatedbg-nvim").setup({})
 
@@ -22,6 +22,11 @@ return {
     vim.keymap.set("n", "<localleader>ff", function()
       local animated = require("animatedbg-nvim")
       animated.play({ animation = "fireworks", duration = 500 })
+    end, {})
+
+    vim.keymap.set("n", "<localleader>fff", function()
+      local animated = require("animatedbg-nvim")
+      animated.play({ animation = "fireworks", duration = 500, time_between_shots = 0.1 })
     end, {})
 
     vim.keymap.set("n", "<localleader>e", function()
