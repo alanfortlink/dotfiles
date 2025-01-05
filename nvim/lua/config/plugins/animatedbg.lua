@@ -1,5 +1,5 @@
 return {
-  dir = '/Users/alan/repos/animatedbg.nvim',
+  dir = '/home/alan/repos/animatedbg.nvim',
   lazy = false,
   config = function()
     require("animatedbg-nvim").setup({})
