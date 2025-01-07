@@ -5,8 +5,7 @@ else
 fi
 
 [ -f /usr/local/etc/profile.d/autojump.sh ] && . /usr/local/etc/profile.d/autojump.sh
-source ~/.aliases
-source $(brew --prefix nvm)/nvm.sh
+# source $(brew --prefix nvm)/nvm.sh
 
 export JAVA_HOME="/Users/alansilva/code/jdk-20.jdk/Contents/Home"
 
@@ -41,3 +40,4 @@ antigen apply
 
 set -o vi
 
+source ~/.aliases
