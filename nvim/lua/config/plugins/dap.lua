@@ -73,8 +73,9 @@ return {
       -- dap adapter for c++ setup
       vim.keymap.set("n", "<localleader>b", dap.toggle_breakpoint)
       vim.keymap.set("n", "<localleader>dc", dap.continue)
+      vim.keymap.set("n", "<localleader>dt", dap.terminate)
 
-      vim.keymap.set("n", "<localleader>dt", ui.toggle)
+      vim.keymap.set("n", "<localleader>du", ui.toggle)
 
       vim.keymap.set("n", "??", function()
         require("dapui").eval(nil, { enter = true })
