@@ -2,7 +2,7 @@ return {
   dir = '/Users/alan/repos/animatedbg.nvim',
   lazy = false,
   config = function()
-    require("animatedbg-nvim").setup({})
+    require("animatedbg-nvim").setup({fps = 120})
 
     vim.keymap.set("n", "<localleader>r", function()
       for name, _ in pairs(package.loaded) do
@@ -11,7 +11,7 @@ return {
         end
       end
       local animated = require("animatedbg-nvim")
-      animated.setup({})
+      animated.setup({fps = 120})
     end, {})
 
     vim.keymap.set("n", "<localleader>f", function()
