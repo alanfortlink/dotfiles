@@ -52,10 +52,14 @@ local toggle_terminal = function()
 end
 
 local kill_terminal = function()
-  vim.api.nvim_buf_delete(state.floating.buf, { force = true })
+  if vim.api.nvim_buf_is_valid(state.floating.buf) then
+    vim.api.nvim_buf_delete(state.floating.buf, { force = true })
+  end
 end
 
 -- Example usage:
 -- Create a floating window with default dimensions
 vim.api.nvim_create_user_command("ToggleTerminal", toggle_terminal, {})
 vim.api.nvim_create_user_command("KillTerminal", kill_terminal, {})
+
+vim.api.nvim_create_autocmd("VimLeave", { callback = kill_terminal })
