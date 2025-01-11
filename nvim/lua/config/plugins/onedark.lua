@@ -1,6 +1,6 @@
 return {
   "navarasu/onedark.nvim",
-  priority = 1000,
+  priority = 2048,
   config = function()
     require('onedark').setup {
       -- Main options --
