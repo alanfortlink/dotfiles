@@ -26,6 +26,8 @@ alias g='git'
 alias rf='rm -rf'
 alias n9='/Users/alansilva/code/repos/neovim/build/bin/nvim'
 alias p='python3'
+alias ppi='python3 -m pip install'
+alias ppt='python3 -m pytest'
 alias ll='ls -lh'
 
 bindkey "^P" history-beginning-search-backward
