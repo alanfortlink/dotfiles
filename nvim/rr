@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Get the current pane ID
+current_pane=$(tmux display-message -p '#{pane_id}')
+
+# Get the current window ID
+current_window=$(tmux display-message -p '#{window_id}')
+
+# Iterate over all panes in the current window, excluding the current pane
+tmux list-panes -t "$current_window" -F '#{pane_id}' | while read -r pane_id; do
+    if [ "$pane_id" != "$current_pane" ]; then
+        tmux send-keys -t "$pane_id" "$*" C-m
+    fi
+done
