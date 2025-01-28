@@ -10,6 +10,7 @@ fi
 export JAVA_HOME="/Users/alansilva/code/jdk-20.jdk/Contents/Home"
 
 export PATH="$PATH:/Users/alansilva/.cargo/bin"
+export PATH="$PATH:/Users/alan/development/bin"
 export PATH="$PATH:/Users/alansilva/code/flutter/bin"
 export PATH="$PATH:/Users/alansilva/Library/Android/sdk"
 export PATH="$PATH:/Users/alansilva/Library/Android/sdk/cmdline-tools/latest/bin"
