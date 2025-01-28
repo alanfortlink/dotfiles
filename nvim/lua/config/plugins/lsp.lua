@@ -83,9 +83,9 @@ return {
       require('lspconfig').clangd.setup({
         capabilities = capabilities,
         cmd = {
-          '/usr/bin/clangd'
+          -- '/usr/bin/clangd'
           -- '/opt/homebrew/Cellar/llvm/19.1.4/bin/clangd',
-          -- '/opt/homebrew/Cellar/llvm/19.1.6/bin/clangd',
+          '/opt/homebrew/Cellar/llvm/19.1.6/bin/clangd',
         }
       })
 
