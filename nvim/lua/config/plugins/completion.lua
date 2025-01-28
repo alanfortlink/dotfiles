@@ -44,16 +44,20 @@ return
         ['<C-f>'] = cmp.mapping.scroll_docs(4),
         ['<CR>'] = cmp.mapping.confirm { select = true },
         ['<C-y>'] = cmp.mapping.complete {},
-        ['<Tab>'] = cmp.mapping(function()
+        ['<Tab>'] = cmp.mapping(function(fallback)
           if luasnip.expand_or_locally_jumpable() then
             luasnip.expand_or_jump()
-          else
+          elseif cmp.visible() then
             cmp.confirm { select = true }
+          else
+            fallback()
           end
         end, { 'i', 's' }),
-        ['<S-Tab>'] = cmp.mapping(function()
+        ['<S-Tab>'] = cmp.mapping(function(fallback)
           if luasnip.locally_jumpable(-1) then
             luasnip.jump(-1)
+          else
+              fallback()
           end
         end, { 'i', 's' }),
       },
