@@ -75,10 +75,13 @@ return
               ["]p"] = { query = "@parameter", },
             },
             goto_next_end = {
-              ["]M"] = "@function.outer",
+              ["]f"] = "@function.inner",
+              ["]F"] = "@function.outer",
               ["]["] = "@class.outer",
             },
             goto_previous_start = {
+              ["[f"] = "@function.inner",
+              ["[F"] = "@function.outer",
               ["[m"] = "@function.outer",
               ["[["] = "@class.outer",
               ["[p"] = { query = "@parameter", },

@@ -25,8 +25,7 @@ return {
           vim.keymap.set("n", "gr", buf.references, { noremap = true })
           vim.keymap.set("n", "gR", buf.rename, { noremap = true })
 
-          vim.keymap.set("n", "gD", buf.definition, { noremap = true })
-          vim.keymap.set("n", "gd", "<C-]>", { noremap = true })
+          vim.keymap.set("n", "gd", buf.definition, { noremap = true })
 
           vim.keymap.set("n", "ga", buf.code_action, { noremap = true })
           vim.keymap.set("n", "K", buf.hover, { noremap = true })
@@ -84,9 +83,9 @@ return {
       require('lspconfig').clangd.setup({
         capabilities = capabilities,
         cmd = {
-          -- '/home/alan/tools/llvm/LLVM-19.1.0-Linux-X64/bin/clangd'
+          '/usr/bin/clangd'
           -- '/opt/homebrew/Cellar/llvm/19.1.4/bin/clangd',
-          '/opt/homebrew/Cellar/llvm/19.1.6/bin/clangd',
+          -- '/opt/homebrew/Cellar/llvm/19.1.6/bin/clangd',
         }
       })
 
