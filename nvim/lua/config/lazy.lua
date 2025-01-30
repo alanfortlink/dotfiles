@@ -25,6 +25,17 @@ require("lazy").setup({
     { "karb94/neoscroll.nvim",    opts = { easing_function = "quadratic" } },
     { 'numToStr/Comment.nvim' },
     {
+      "Exafunction/codeium.nvim",
+      dependencies = {
+        "nvim-lua/plenary.nvim",
+        "hrsh7th/nvim-cmp",
+      },
+      config = function()
+        require("codeium").setup({
+        })
+      end
+    },
+    {
       'stevearc/oil.nvim',
       opts = {},
       dependencies = { "nvim-tree/nvim-web-devicons" }
