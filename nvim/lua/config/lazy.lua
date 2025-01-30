@@ -24,17 +24,7 @@ require("lazy").setup({
     { "farmergreg/vim-lastplace", lazy = false },
     { "karb94/neoscroll.nvim",    opts = { easing_function = "quadratic" } },
     { 'numToStr/Comment.nvim' },
-    {
-      "Exafunction/codeium.nvim",
-      dependencies = {
-        "nvim-lua/plenary.nvim",
-        "hrsh7th/nvim-cmp",
-      },
-      config = function()
-        require("codeium").setup({
-        })
-      end
-    },
+    { "github/copilot.vim" },
     {
       'stevearc/oil.nvim',
       opts = {},

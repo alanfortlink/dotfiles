@@ -89,3 +89,20 @@ vim.keymap.set("n", "<localleader>t", ":ToggleTerminal<CR>", { noremap = true, s
 vim.keymap.set('n', '<localleader>q', ':KillTerminal<CR>', { noremap = true, silent = true })
 
 vim.keymap.set('n', '<localleader><leader>', ':Codeium Chat<CR>', { noremap = true, silent = true })
+
+vim.keymap.set('i', '<C-l>', 'copilot#Accept("\\<CR>")', {
+  expr = true,
+  replace_keycodes = false
+})
+vim.keymap.set('i', '<C-j>', 'copilot#Next("\\<CR>")', {
+  expr = true,
+  replace_keycodes = false
+})
+vim.keymap.set('i', '<C-k>', 'copilot#Previous("\\<CR>")', {
+  expr = true,
+  replace_keycodes = false
+})
+vim.keymap.set('i', '<C-h>', 'copilot#AcceptWord("\\<CR>")', {
+  expr = true,
+  replace_keycodes = false
+})
