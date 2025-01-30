@@ -111,3 +111,9 @@ vim.keymap.set('i', '<C-h>', 'copilot#AcceptWord("\\<CR>")', {
   silent = true
 })
 -- vim.g.copilot_no_tab_map = true
+
+vim.keymap.set("n", "<localleader>r", function()
+  local handle = io.popen("killall llama")
+  handle:close()
+  vim.cmd("FlutterRestart")
+end, { noremap = true })

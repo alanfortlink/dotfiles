@@ -4,12 +4,6 @@ return {
   config = function()
 
 
-    vim.keymap.set("n", "<localleader>r", function ()
-      local handle = io.popen("kill -9 $(lsof -ti :6666)")
-      handle:close()
-      vim.cmd("FlutterRestart")
-    end, { noremap = true })
-
     require("flutter-tools").setup {
       decorations = {
         statusline = {
