@@ -90,6 +90,14 @@ vim.keymap.set('n', '<localleader>q', ':KillTerminal<CR>', { noremap = true, sil
 
 vim.keymap.set('n', '<localleader><leader>', ':Codeium Chat<CR>', { noremap = true, silent = true })
 
+vim.keymap.set("n", "<localleader>r", function()
+  for line in io.popen("lsof -ti :6666"):lines() do
+    os.execute("kill -9 " .. line)
+  end
+  -- os.execute("killall llama")
+  vim.cmd("FlutterRestart")
+end, { noremap = true })
+
 vim.keymap.set('i', '<C-l>', 'copilot#Accept("\\<CR>")', {
   expr = true,
   replace_keycodes = false,
@@ -111,11 +119,3 @@ vim.keymap.set('i', '<C-h>', 'copilot#AcceptWord("\\<CR>")', {
   silent = true
 })
 -- vim.g.copilot_no_tab_map = true
-
-vim.keymap.set("n", "<localleader>r", function()
-  for line in io.popen("lsof -ti :6666"):lines() do
-    os.execute("kill -9 " .. line)
-  end
-  os.execute("killall llama")
-  vim.cmd("FlutterRestart")
-end, { noremap = true })
