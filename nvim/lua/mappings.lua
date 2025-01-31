@@ -91,9 +91,13 @@ vim.keymap.set('n', '<localleader>q', ':KillTerminal<CR>', { noremap = true, sil
 vim.keymap.set('n', '<localleader><leader>', ':Codeium Chat<CR>', { noremap = true, silent = true })
 
 vim.keymap.set("n", "<localleader>r", function()
+  vim.cmd("FlutterRestart")
+  -- sleep for 1 seconds
+  vim.cmd("sleep 1")
   for line in io.popen("lsof -ti :6666"):lines() do
     os.execute("kill -9 " .. line)
   end
+  vim.cmd("sleep 1")
   -- os.execute("killall llama")
   vim.cmd("FlutterRestart")
 end, { noremap = true })
