@@ -113,7 +113,9 @@ vim.keymap.set('i', '<C-h>', 'copilot#AcceptWord("\\<CR>")', {
 -- vim.g.copilot_no_tab_map = true
 
 vim.keymap.set("n", "<localleader>r", function()
-  local handle = io.popen("killall llama")
-  handle:close()
+  for line in io.popen("lsof -ti :6666"):lines() do
+    os.execute("kill -9 " .. line)
+  end
+  os.execute("killall llama")
   vim.cmd("FlutterRestart")
 end, { noremap = true })
