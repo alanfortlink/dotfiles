@@ -4,16 +4,6 @@ return {
   config = function()
     require("animatedbg-nvim").setup({ fps = 120 })
 
-    vim.keymap.set("n", "<localleader>R", function()
-      for name, _ in pairs(package.loaded) do
-        if vim.startswith(name, "animatedbg-nvim") then
-          package.loaded[name] = nil
-        end
-      end
-      local animated = require("animatedbg-nvim")
-      animated.setup({ fps = 120 })
-    end, {})
-
     vim.keymap.set("n", "<localleader>f", function()
       local animated = require("animatedbg-nvim")
       animated.play({ animation = "fireworks" })
