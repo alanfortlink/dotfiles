@@ -41,7 +41,7 @@ snippet stless
 				import 'package:flutter/material.dart';
 
 				class ${1:Name} extends StatelessWidget {
-					const $1({Key? key}) : super(key: key);
+					const $1({super.key});
 
 					@override
 					Widget build(BuildContext context) {
@@ -52,7 +52,7 @@ snippet stful
 				import 'package:flutter/material.dart';
 
 				class ${1:Name} extends StatefulWidget {
-					const $1({Key? key}) : super(key: key);
+					const $1({super.key});
 
 					@override
 					State<$1> createState() => _$1State();

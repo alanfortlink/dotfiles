@@ -2,8 +2,6 @@ return {
   "akinsho/flutter-tools.nvim",
   dependencies = { 'nvim-lua/plenary.nvim' },
   config = function()
-
-
     require("flutter-tools").setup {
       decorations = {
         statusline = {
@@ -33,6 +31,14 @@ return {
         open_cmd = "30vnew", -- command to use to open the outline buffer
         auto_open = false    -- if true this will open the outline automatically when it is first populated
       },
+      debugger = {
+        enabled = true,
+        register_configurations = function(_)
+          require("dap").configurations.dart = {}
+        end,
+      },
     }
+
+    require("telescope").load_extension("flutter")
   end,
 }
