@@ -20,7 +20,8 @@ require("lazy").setup({
   spec = {
     { import = "config.plugins" },
     { "tommcdo/vim-exchange",     lazy = false },
-    { "tpope/vim-surround",       lazy = false },
+    -- { "tpope/vim-surround",       lazy = false },
+    { "kylechui/nvim-surround", lazy = true },
     { "farmergreg/vim-lastplace", lazy = false },
     { "karb94/neoscroll.nvim",    opts = { easing_function = "quadratic" } },
     { 'numToStr/Comment.nvim' },
