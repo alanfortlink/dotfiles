@@ -36,8 +36,8 @@ return
               ["il"] = "@loop.inner",
               ["af"] = "@function.outer",
               ["if"] = "@function.inner",
-              ["is"] = "@local.scope.inner",
-              ["as"] = "@local.scope.outer",
+              ["as"] = "@selector",
+              ["is"] = "@selector",
               ["ac"] = "@class.outer",
               -- You can optionally set descriptions to the mappings (used in the desc parameter of
               -- nvim_buf_set_keymap) which plugins like which-key display
