@@ -19,9 +19,18 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
   spec = {
     { import = "config.plugins" },
-    { "tommcdo/vim-exchange",     lazy = false },
+    { "tommcdo/vim-exchange",   lazy = false },
     -- { "tpope/vim-surround",       lazy = false },
-    { "kylechui/nvim-surround", lazy = false, opts={} },
+    {
+      "kylechui/nvim-surround",
+      version = "*", -- Use for stability; omit to use `main` branch for the latest features
+      event = "VeryLazy",
+      config = function()
+        require("nvim-surround").setup({
+          -- Configuration here, or leave empty to use defaults
+        })
+      end
+    },
     { "farmergreg/vim-lastplace", lazy = false },
     { "karb94/neoscroll.nvim",    opts = { easing_function = "quadratic" } },
     { 'numToStr/Comment.nvim' },
