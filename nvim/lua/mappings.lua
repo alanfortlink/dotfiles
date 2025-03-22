@@ -91,7 +91,7 @@ vim.keymap.set('n', '<localleader>q', ':KillTerminal<CR>', { noremap = true, sil
 vim.keymap.set('n', '<localleader><leader>', ':Codeium Chat<CR>', { noremap = true, silent = true })
 
 vim.keymap.set("n", "<localleader>R", function()
-  vim.cmd("FlutterRun -d macos")
+  vim.cmd("FlutterRun -d iphone")
 end, { noremap = true })
 
 vim.keymap.set("n", "<localleader>r", function()
