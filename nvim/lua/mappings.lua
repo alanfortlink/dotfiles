@@ -38,6 +38,7 @@ vim.keymap.set("n", "<leader>d", '"+d', { noremap = true })
 vim.keymap.set("x", "<leader>y", '"+y', { noremap = true })
 vim.keymap.set("v", "<leader>y", '"+y', { noremap = true })
 vim.keymap.set("n", "<leader>y", '"+y', { noremap = true })
+vim.keymap.set("n", "<localleader>y", '"+y', { noremap = true })
 vim.keymap.set("n", "<leader>p", '"+p', { noremap = true })
 vim.keymap.set("n", "<leader>P", '"+P', { noremap = true })
 
@@ -87,6 +88,7 @@ vim.keymap.set({ "t" }, "<Esc><Esc><Esc>", "<C-\\><C-n>", { noremap = true })
 
 vim.keymap.set("n", "<localleader>t", ":ToggleTerminal<CR>", { noremap = true, silent = true })
 vim.keymap.set('n', '<localleader>q', ':KillTerminal<CR>', { noremap = true, silent = true })
+vim.keymap.set('n', '<localleader>l', ':ToggleFlutterLogs<CR>', { noremap = true, silent = true })
 
 vim.keymap.set('n', '<localleader><leader>', ':Codeium Chat<CR>', { noremap = true, silent = true })
 
