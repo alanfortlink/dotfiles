@@ -47,8 +47,8 @@ vim.keymap.set("n", "<localleader>/", ":noh<CR>", { noremap = true })
 -- Save / Restore a session.
 vim.keymap.set("n", "<localleader>Sj", ":mks! .sesj.vim<CR>", { noremap = true })
 vim.keymap.set("n", "<localleader>Sk", ":mks! .sesk.vim<CR>", { noremap = true })
-vim.keymap.set("n", "<localleader>lj", ":so .sesj.vim<CR>", { noremap = true })
-vim.keymap.set("n", "<localleader>lk", ":so .sesk.vim<CR>", { noremap = true })
+-- vim.keymap.set("n", "<localleader>lj", ":so .sesj.vim<CR>", { noremap = true })
+-- vim.keymap.set("n", "<localleader>lk", ":so .sesk.vim<CR>", { noremap = true })
 
 -- Run
 vim.keymap.set("n", "<leader>r", ":silent !make run<CR>", { noremap = true })
