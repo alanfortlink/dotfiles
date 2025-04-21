@@ -14,5 +14,10 @@ int somar(int a, int b){
 }
 
 int main(){
+  int c = 10;
+  int d = 20;
+
+  int e = somar(20, 10);
+
   return 0;
 }

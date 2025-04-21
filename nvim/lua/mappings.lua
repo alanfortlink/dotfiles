@@ -120,4 +120,4 @@ vim.keymap.set('i', '<C-h>', 'copilot#AcceptWord("\\<CR>")', {
   replace_keycodes = false,
   silent = true
 })
--- vim.g.copilot_no_tab_map = true
+vim.g.copilot_no_tab_map = true
