@@ -36,7 +36,7 @@ return {
           vim.keymap.set("n", "K", buf.hover, { noremap = true })
           vim.keymap.set("n", "gs", buf.signature_help, { noremap = true })
 
-          vim.keymap.set("n", "<leader><leader>", buf.format, { noremap = true })
+          -- vim.keymap.set("n", "<leader><leader>", buf.format, { noremap = true })
 
           vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { noremap = true })
           vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, { noremap = true })

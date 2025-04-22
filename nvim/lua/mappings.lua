@@ -90,8 +90,6 @@ vim.keymap.set("n", "<localleader>t", ":ToggleTerminal<CR>", { noremap = true, s
 vim.keymap.set('n', '<localleader>q', ':KillTerminal<CR>', { noremap = true, silent = true })
 vim.keymap.set('n', '<localleader>l', ':ToggleFlutterLogs<CR>', { noremap = true, silent = true })
 
-vim.keymap.set('n', '<localleader><leader>', ':Codeium Chat<CR>', { noremap = true, silent = true })
-
 vim.keymap.set("n", "<localleader>R", function()
   vim.cmd("FlutterRun -d iphone")
 end, { noremap = true })
