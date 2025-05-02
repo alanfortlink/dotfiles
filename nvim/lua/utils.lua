@@ -1,13 +1,34 @@
 local M = {}
 
+local get_project_root = function()
+  local file_dir = vim.fn.expand("%:p:h")
+  local git_root = vim.fn.finddir(".git", file_dir .. ";")
+  local project_root_dir = vim.fn.fnamemodify(git_root, ":h")
+
+  local abs_project_root_dir = vim.fn.fnamemodify(project_root_dir, ":p")
+  -- remove extra / at the end
+  abs_project_root_dir = abs_project_root_dir:gsub("/$", "")
+
+  if abs_project_root_dir == "" then
+    return file_dir
+  end
+  if abs_project_root_dir == nil then
+    return file_dir
+  end
+
+  return abs_project_root_dir
+end
+
 local function exec(command)
-  local output = vim.api.nvim_exec(command, true)
+  local project_root = get_project_root()
+  command = string.format("cd %s && %s", project_root, command)
+  local output = vim.fn.system(command)
   local table = vim.split(output, "\n")
   return table[#table - 1]
 end
 
 local parse_git_url = function()
-  local url = exec("!git config --get remote.origin.url")
+  local url = exec("git config --get remote.origin.url")
 
   local _ = nil
   local domain = nil
@@ -27,9 +48,9 @@ end
 
 M.get_github_link = function()
   local domain, org, repo = parse_git_url()
-  local branch = exec("!git branch --show-current")
+  local branch = exec("git branch --show-current")
   local file_path = vim.api.nvim_buf_get_name(0)
-  local cwd = vim.fn.getcwd()
+  local cwd = get_project_root()
 
   local r_path = file_path:gsub(cwd .. "/", "")
   local row, _ = unpack(vim.api.nvim_win_get_cursor(0))
