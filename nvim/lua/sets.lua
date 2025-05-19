@@ -39,4 +39,4 @@ vim.opt.smartindent = true
 vim.opt.tabstop = 2
 vim.opt.shiftwidth = 2
 
-vim.g.neovide_transparency = 0.8
+vim.g.neovide_transparency = 0.99
