@@ -41,7 +41,13 @@ require("lazy").setup({
       dependencies = { "nvim-tree/nvim-web-devicons" }
     },
     { 'alanfortlink/blackjack.nvim' },
-    { "danymat/neogen",             config = true, }
+    { "danymat/neogen",             config = true, },
+    -- {
+    --   "m4xshen/hardtime.nvim",
+    --   lazy = false,
+    --   dependencies = { "MunifTanjim/nui.nvim" },
+    --   opts = {},
+    -- },
 
   }
 })
