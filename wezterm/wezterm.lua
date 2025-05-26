@@ -1,15 +1,30 @@
 local wezterm = require 'wezterm'
 
+local session_manager = require 'wezterm-session-manager.session-manager'
+
+wezterm.on("save_session", function(window) session_manager.save_state(window) end)
+wezterm.on("load_session", function(window) session_manager.load_state(window) end)
+wezterm.on("restore_session", function(window) session_manager.restore_state(window) end)
+
 return {
   font = wezterm.font('Pragmasevka Nerd Font'), -- Replace with your desired font family
-  font_size = 18.0,
+  font_size = 20.0,
   window_background_image_hsb = {
     brightness = 0.010,
     hue = 1.0,
     saturation = 1.0,
   },
+  -- save and restore tabs/panes
+  enable_tab_bar = true,
+  window_close_confirmation = "NeverPrompt",
+  window_frame = {
+    -- this helps preserve title bar integration
+    font_size = 13.0,
+  },
 
-  window_background_opacity = 0.95, -- Adjust the opacity (0.0 - fully transparent, 1.0 - fully opaque)
+
+  window_background_opacity = 0.75, -- Adjust the opacity (0.0 - fully transparent, 1.0 - fully opaque)
+  macos_window_background_blur = 100,
 
   color_scheme = "onedark",
   enable_wayland = true,
@@ -17,9 +32,12 @@ return {
   keys = {
     -- Bind Ctrl+Shift+R to reload the configuration
     { key = "R", mods = "CTRL|SHIFT", action = wezterm.action.ReloadConfiguration },
-    { key = "n", mods = "ALT",        action = wezterm.action.SplitVertical },
-    { key = "v", mods = "ALT",        action = wezterm.action.SplitHorizontal },
-    { key = "q", mods = "ALT",        action = wezterm.action.CloseCurrentPane({ confirm = false }) },
+    { key = "n", mods = "OPT",        action = wezterm.action.SplitVertical },
+    { key = "v", mods = "OPT",        action = wezterm.action.SplitHorizontal },
+    { key = "q", mods = "OPT",        action = wezterm.action.CloseCurrentPane({ confirm = false }) },
+
+    { key = "w", mods = "OPT",        action = wezterm.action{EmitEvent = "save_session"} },
+    { key = "r", mods = "OPT",        action = wezterm.action{EmitEvent = "restore_session"} },
 
     { key = "h", mods = "OPT",        action = wezterm.action.ActivatePaneDirection "Left" },
     { key = "j", mods = "OPT",        action = wezterm.action.ActivatePaneDirection "Down" },
@@ -43,10 +61,42 @@ return {
     { key = "8", mods = "OPT",        action = wezterm.action.ActivateTab(7) },
     { key = "9", mods = "OPT",        action = wezterm.action.ActivateTab(8) },
 
-    { key = "u", mods = "OPT",        action = wezterm.action.Multiple { wezterm.action.ActivateCopyMode, wezterm.action.CopyMode("MoveUp") } },
-    { key = "d", mods = "OPT",        action = wezterm.action.Multiple { wezterm.action.ActivateCopyMode, wezterm.action.CopyMode("MoveDown") } },
+    {
+      key = "u",
+      mods = "OPT",
+      action = wezterm.action.Multiple {
+        wezterm.action.ActivateCopyMode,
+        wezterm.action.CopyMode("MoveUp"),
+        wezterm.action.CopyMode("MoveUp"),
+        wezterm.action.CopyMode("MoveUp"),
+        wezterm.action.CopyMode("MoveUp"),
+        wezterm.action.CopyMode("MoveUp"),
+        wezterm.action.CopyMode("MoveUp"),
+        wezterm.action.CopyMode("MoveUp"),
+        wezterm.action.CopyMode("MoveUp"),
+        wezterm.action.CopyMode("MoveUp"),
+        wezterm.action.CopyMode("MoveUp"),
+      },
+    },
+    {
+      key = "d",
+      mods = "OPT",
+      action = wezterm.action.Multiple {
+        wezterm.action.ActivateCopyMode,
+        wezterm.action.CopyMode("MoveDown"),
+        wezterm.action.CopyMode("MoveDown"),
+        wezterm.action.CopyMode("MoveDown"),
+        wezterm.action.CopyMode("MoveDown"),
+        wezterm.action.CopyMode("MoveDown"),
+        wezterm.action.CopyMode("MoveDown"),
+        wezterm.action.CopyMode("MoveDown"),
+        wezterm.action.CopyMode("MoveDown"),
+        wezterm.action.CopyMode("MoveDown"),
+        wezterm.action.CopyMode("MoveDown"),
+      }
+    },
 
     -- Enter copy mode
-    { key = "y", mods = "OPT",        action = wezterm.action.ActivateCopyMode },
+    { key = "y", mods = "OPT", action = wezterm.action.ActivateCopyMode },
   },
 }
