@@ -9,6 +9,8 @@ wezterm.on("restore_session", function(window) session_manager.restore_state(win
 return {
   font = wezterm.font('Pragmasevka Nerd Font'), -- Replace with your desired font family
   font_size = 20.0,
+  window_decorations = "RESIZE",
+  tab_bar_at_bottom = true,
   window_background_image_hsb = {
     brightness = 0.010,
     hue = 1.0,
