@@ -18,6 +18,12 @@ keybind = "opt+k=goto_split:up"
 keybind = "opt+l=goto_split:right"
 keybind = "opt+z=toggle_split_zoom"
 
+keybind = "opt+u=scroll_page_fractional:-0.5"
+keybind = "opt+d=scroll_page_fractional:0.5"
+
+keybind = "opt+shift+y=select_all"
+keybind = "opt+y=copy_to_clipboard"
+
 keybind = "opt+shift+h=resize_split:left,50"
 keybind = "opt+shift+j=resize_split:down,50"
 keybind = "opt+shift+k=resize_split:up,50"
