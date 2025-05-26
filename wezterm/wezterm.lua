@@ -47,10 +47,10 @@ return {
     { key = "l", mods = "OPT",        action = wezterm.action.ActivatePaneDirection "Right" },
     { key = "z", mods = "OPT",        action = wezterm.action.TogglePaneZoomState },
 
-    { key = "h", mods = "OPT|SHIFT",  action = wezterm.action.AdjustPaneSize { "Left", 50 } },
-    { key = "j", mods = "OPT|SHIFT",  action = wezterm.action.AdjustPaneSize { "Down", 50 } },
-    { key = "k", mods = "OPT|SHIFT",  action = wezterm.action.AdjustPaneSize { "Up", 50 } },
-    { key = "l", mods = "OPT|SHIFT",  action = wezterm.action.AdjustPaneSize { "Right", 50 } },
+    { key = "h", mods = "OPT|SHIFT",  action = wezterm.action.AdjustPaneSize { "Left", 5 } },
+    { key = "j", mods = "OPT|SHIFT",  action = wezterm.action.AdjustPaneSize { "Down", 5 } },
+    { key = "k", mods = "OPT|SHIFT",  action = wezterm.action.AdjustPaneSize { "Up", 5 } },
+    { key = "l", mods = "OPT|SHIFT",  action = wezterm.action.AdjustPaneSize { "Right", 5 } },
 
     { key = "c", mods = "OPT",        action = wezterm.action.SpawnTab "CurrentPaneDomain" },
     { key = "1", mods = "OPT",        action = wezterm.action.ActivateTab(0) },
