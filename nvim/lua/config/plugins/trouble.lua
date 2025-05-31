@@ -19,6 +19,11 @@ return {
         "<cmd>Trouble qflist toggle<cr>",
         desc = "Quickfix List (Trouble)",
       },
+      {
+        "<leader>xe",
+        "<cmd>Trouble diagnostics toggle filter.severity=vim.diagnostic.severity.ERROR<cr>",
+        desc = "Diagnostics (Errors only)",
+      },
     },
   },
 }

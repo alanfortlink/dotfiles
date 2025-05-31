@@ -107,6 +107,19 @@ return {
         }
       })
 
+      require('lspconfig').pyright.setup({
+        capabilities = capabilities,
+        settings = {
+          python = {
+            analysis = {
+              typeCheckingMode = 'basic',
+              autoSearchPaths = true,
+              useLibraryCodeForTypes = true,
+            },
+          },
+        },
+      })
+
       require('lspconfig').gdscript.setup(capabilities)
       require('mason').setup()
 

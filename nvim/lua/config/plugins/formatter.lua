@@ -34,7 +34,7 @@ return {
         lua = { "stylua" },
         cpp = { "clang-format" },
         c = { "clang-format" },
-        -- python = { "isort", "black" },
+        python = { "black", "isort", stop_after_first = true },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
