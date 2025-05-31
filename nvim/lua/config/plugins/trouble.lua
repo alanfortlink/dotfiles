@@ -15,14 +15,34 @@ return {
         desc = "Buffer Diagnostics (Trouble)",
       },
       {
+        "<leader>xe",
+        "<cmd>Trouble diagnostics toggle filter.severity=vim.diagnostic.severity.ERROR<cr>",
+        desc = "Diagnostics (Errors only)",
+      },
+      {
         "<localleader>q",
         "<cmd>Trouble qflist toggle<cr>",
         desc = "Quickfix List (Trouble)",
       },
       {
-        "<leader>xe",
-        "<cmd>Trouble diagnostics toggle filter.severity=vim.diagnostic.severity.ERROR<cr>",
-        desc = "Diagnostics (Errors only)",
+        "<leader>xl",
+        "<cmd>Trouble lsp toggle<cr>",
+        desc = "LSP Info (Trouble)",
+      },
+      {
+        "<leader>xl",
+        "<cmd>Trouble lsp_incoming_calls toggle<cr>",
+        desc = "LSP incoming Info (Trouble)",
+      },
+      {
+        "<leader>xr",
+        "<cmd>Trouble lsp_outgoing_calls toggle<cr>",
+        desc = "LSP outgoing Info (Trouble)",
+      },
+      {
+        "<leader>xd",
+        "<cmd>Trouble diagnostics toggle filter.severity=vim.diagnostic.severity.HINT<cr>",
+        desc = "Diagnostics (Hints only)",
       },
     },
   },
