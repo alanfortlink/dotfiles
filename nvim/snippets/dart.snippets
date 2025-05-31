@@ -92,3 +92,17 @@ snippet col
 					  ${3}
 					],
 				)${4}
+snippet fn
+        ${1:void} ${2:name}(${3}) {
+          ${4}
+        }
+snippet afn
+        Future<${1:void}> ${2:name}(${3}) async {
+          ${4}
+        }
+snippet arfn
+        Future<${1:void}> ${2:name}(${3}) async {
+          await run(() async {
+            ${4}
+          });
+        }
