@@ -48,8 +48,9 @@ return {
 
           -- vim.keymap.set("n", "<leader><leader>", buf.format, { noremap = true })
 
-          vim.keymap.set("n", "]d", vim.diagnostic.goto_next, { noremap = true })
-          vim.keymap.set("n", "[d", vim.diagnostic.goto_prev, { noremap = true })
+          vim.keymap.set("n", "]d", function() vim.diagnostic.jump({count = 1, wrap = false}) end, { noremap = true })
+          vim.keymap.set("n", "[d", function() vim.diagnostic.jump({count = -1, wrap = false}) end, { noremap = true })
+
           vim.keymap.set("n", "ge", vim.diagnostic.open_float, { noremap = true })
 
           vim.keymap.set("n", "gwc", utils.code_action_wrapper("container", buf), { noremap = true })
