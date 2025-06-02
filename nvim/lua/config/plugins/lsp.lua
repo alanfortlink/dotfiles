@@ -34,11 +34,13 @@ return {
           vim.keymap.set("n", "gr", buf.references, { noremap = true })
           vim.keymap.set("n", "gR", buf.rename, { noremap = true })
 
-          vim.keymap.set("n", "gd", buf.definition, { noremap = true })
-          vim.keymap.set("n", "gD", buf.declaration, { noremap = true })
+          vim.keymap.set("n", "gd", require('telescope.builtin').lsp_definitions, { noremap = true })
+          vim.keymap.set("n", "gD", require('telescope.builtin').lsp_implementations, { noremap = true })
 
-          -- vim.keymap.set("n", "gic", buf.incoming_calls, { noremap = true })
-          -- vim.keymap.set("n", "goc", buf.outgoing_calls, { noremap = true })
+          -- gt to get the type definition
+          vim.keymap.set("n", "gt", require('telescope.builtin').lsp_type_definitions, { noremap = true })
+          vim.keymap.set("n", "gic", require('telescope.builtin').lsp_incoming_calls, { noremap = true })
+          vim.keymap.set("n", "goc", require('telescope.builtin').lsp_outgoing_calls, { noremap = true })
 
           vim.keymap.set("n", "ga", buf.code_action, { noremap = true })
           vim.keymap.set("n", "K", buf.hover, { noremap = true })

@@ -30,16 +30,6 @@ return {
         desc = "LSP Info (Trouble)",
       },
       {
-        "<leader>xl",
-        "<cmd>Trouble lsp_incoming_calls toggle<cr>",
-        desc = "LSP incoming Info (Trouble)",
-      },
-      {
-        "<leader>xr",
-        "<cmd>Trouble lsp_outgoing_calls toggle<cr>",
-        desc = "LSP outgoing Info (Trouble)",
-      },
-      {
         "<leader>xd",
         "<cmd>Trouble diagnostics toggle filter.severity=vim.diagnostic.severity.HINT<cr>",
         desc = "Diagnostics (Hints only)",
