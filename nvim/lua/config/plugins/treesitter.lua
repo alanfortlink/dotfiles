@@ -38,10 +38,10 @@ return
               ["if"] = "@function.inner",
               ["as"] = "@selector",
               ["is"] = "@selector",
-              ["ac"] = "@class.outer",
+              ["ac"] = "@comment.outer",
               -- You can optionally set descriptions to the mappings (used in the desc parameter of
               -- nvim_buf_set_keymap) which plugins like which-key display
-              ["ic"] = { query = "@class.inner", desc = "Select inner part of a class region" },
+              ["ic"] = { query = "@comment.inner"},
               ["ip"] = { query = "@parameter.inner", },
               ["ap"] = { query = "@parameter.outer", },
             },

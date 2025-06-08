@@ -2,12 +2,14 @@ return {
   { -- Autoformat
     "stevearc/conform.nvim",
     event = { "BufWritePre" },
+    lazy = false,
     cmd = { "ConformInfo" },
     keys = {
       {
         "<leader><leader>",
         function()
-          require("conform").format({ async = false, lsp_format = "prefer" })
+          require("conform").format({ async = false, lsp_format = "fallback" })
+          print("Buffer formatted")
         end,
         mode = { "n", "x" },
         desc = "[F]ormat buffer",

@@ -31,8 +31,10 @@ return {
           local buf = vim.lsp.buf;
           local utils = require("utils")
 
-          vim.keymap.set("n", "gr", buf.references, { noremap = true })
+          -- vim.keymap.set("n", "gr", buf.references, { noremap = true })
           vim.keymap.set("n", "gR", buf.rename, { noremap = true })
+
+          vim.keymap.set("n", "gr", require('telescope.builtin').lsp_references, { noremap = true })
 
           vim.keymap.set("n", "gd", require('telescope.builtin').lsp_definitions, { noremap = true })
           vim.keymap.set("n", "gD", require('telescope.builtin').lsp_implementations, { noremap = true })
