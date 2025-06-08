@@ -72,6 +72,55 @@ end)
 
 hs.hotkey.bind(AC, "c", function()
 	local chrome = hs.application.launchOrFocus("Google Chrome")
-  -- send it to the main screen
-  chrome:mainWindow():moveToScreen(hs.screen.mainScreen())
+	-- send it to the main screen
+	chrome:mainWindow():moveToScreen(hs.screen.mainScreen())
 end)
+
+-----------------------------------------------------------
+-- 1. Remember which app started sound most recently
+-----------------------------------------------------------
+local lastAudioApp
+
+local function rememberFrontmost()
+	lastAudioApp = hs.application.frontmostApplication()
+end
+
+for _, dev in ipairs(hs.audiodevice.allOutputDevices()) do
+	dev:watcherCallback(function(_, event, scope)
+		-- device “in-use” status toggled (event = "gone")  [oai_citation:0‡hammerspoon.org](https://www.hammerspoon.org/docs/hs.audiodevice.html)
+		if event == "gone" and scope == "glob" and dev:inUse() then
+			rememberFrontmost()
+		end
+	end):watcherStart()
+end
+
+-----------------------------------------------------------
+-- 2. Intercept PLAY/PAUSE media-key presses
+-----------------------------------------------------------
+-- intercept media Play/Pause
+
+-- media-key Play/Pause interceptor
+local playTap = hs.eventtap.new(
+  { hs.eventtap.event.types.systemDefined },
+  function(e)
+      local sk = e:systemKey()
+      if not (sk and sk.key == "PLAY" and sk.down) then return false end
+
+      if (lastAudioApp and lastAudioApp:name():lower() == "stremio") then
+          local stremio = hs.application.get("stremio")      -- by bundle name
+          if not stremio then return false end
+
+          local prev = hs.application.frontmostApplication()
+          stremio:activate()                                 -- bring Stremio front
+
+          -- wait a tick so the web-view has focus, then send ␠
+          hs.timer.doAfter(0.05, function()
+              hs.eventtap.keyStroke({}, "space")             -- play/pause
+              if prev and prev ~= stremio then prev:activate() end
+          end)
+
+          return true        -- swallow: don’t let macOS handle media key
+      end
+
+      return false           -- different last-audio app → let OS handle it
+  end):start()
