@@ -60,6 +60,14 @@ frameSizeBind(AC, "l", 0.5, 0, 0.5, 1)
 frameSizeBind(ACS, "l", 0.75, 0, 0.25, 1)
 frameSizeBind(AC, "f", 0, 0, 1, 1)
 
+frameSizeBind(AC, "j", 0, 0.5, 1, 0.5)
+frameSizeBind(AC, "k", 0, 0, 1, 0.5)
+
+frameSizeBind(AC, ",", 0, 0.0, 0.5, 0.5)
+frameSizeBind(AC, "m", 0, 0.5, 0.5, 0.5)
+frameSizeBind(AC, ".", 0.5, 0.0, 0.5, 0.5)
+frameSizeBind(AC, "/", 0.5, 0.5, 0.5, 0.5)
+
 frameResizeBind(ACS, "-", 0, -0.1)
 frameResizeBind(ACS, "=", 0.0, 0.1)
 frameResizeBind(AC, "-", -0.1, 0)
@@ -71,9 +79,25 @@ hs.hotkey.bind(AC, "s", function()
 end)
 
 hs.hotkey.bind(AC, "c", function()
-	local chrome = hs.application.launchOrFocus("Google Chrome")
-	-- send it to the main screen
-	chrome:mainWindow():moveToScreen(hs.screen.mainScreen())
+  local win = hs.window.focusedWindow()
+  -- center the window on the current screen
+  local screenFrame = win:screen():frame()
+  local windowFrame = win:frame()
+  windowFrame.x = screenFrame.x + (screenFrame.w - windowFrame.w) / 2
+  windowFrame.y = screenFrame.y + (screenFrame.h - windowFrame.h) / 2
+  win:setFrame(windowFrame)
+end)
+
+hs.hotkey.bind(ACS, "c", function()
+  local win = hs.window.focusedWindow()
+  -- center the window on the current screen
+  local screenFrame = win:screen():frame()
+  local windowFrame = win:frame()
+  windowFrame.w = screenFrame.w * 0.5
+  windowFrame.h = screenFrame.h * 0.5
+  windowFrame.x = screenFrame.x + (screenFrame.w - windowFrame.w) / 2
+  windowFrame.y = screenFrame.y + (screenFrame.h - windowFrame.h) / 2
+  win:setFrame(windowFrame)
 end)
 
 -----------------------------------------------------------
