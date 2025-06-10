@@ -58,7 +58,6 @@ frameSizeBind(AC, "h", 0, 0, 0.5, 1)
 frameSizeBind(ACS, "h", 0, 0, 0.75, 1)
 frameSizeBind(AC, "l", 0.5, 0, 0.5, 1)
 frameSizeBind(ACS, "l", 0.75, 0, 0.25, 1)
-frameSizeBind(AC, "f", 0, 0, 1, 1)
 
 frameSizeBind(AC, "j", 0, 0.5, 1, 0.5)
 frameSizeBind(AC, "k", 0, 0, 1, 0.5)
@@ -79,25 +78,36 @@ hs.hotkey.bind(AC, "s", function()
 end)
 
 hs.hotkey.bind(AC, "c", function()
-  local win = hs.window.focusedWindow()
-  -- center the window on the current screen
-  local screenFrame = win:screen():frame()
-  local windowFrame = win:frame()
-  windowFrame.x = screenFrame.x + (screenFrame.w - windowFrame.w) / 2
-  windowFrame.y = screenFrame.y + (screenFrame.h - windowFrame.h) / 2
-  win:setFrame(windowFrame)
+	local win = hs.window.focusedWindow()
+	-- center the window on the current screen
+	local screenFrame = win:screen():frame()
+	local windowFrame = win:frame()
+
+	windowFrame.x = screenFrame.x + (screenFrame.w - windowFrame.w) / 2
+	windowFrame.y = screenFrame.y + (screenFrame.h - windowFrame.h) / 2
+	win:setFrame(windowFrame)
 end)
 
-hs.hotkey.bind(ACS, "c", function()
-  local win = hs.window.focusedWindow()
-  -- center the window on the current screen
-  local screenFrame = win:screen():frame()
-  local windowFrame = win:frame()
-  windowFrame.w = screenFrame.w * 0.5
-  windowFrame.h = screenFrame.h * 0.5
-  windowFrame.x = screenFrame.x + (screenFrame.w - windowFrame.w) / 2
-  windowFrame.y = screenFrame.y + (screenFrame.h - windowFrame.h) / 2
-  win:setFrame(windowFrame)
+hs.hotkey.bind(AC, "f", function()
+	local win = hs.window.focusedWindow()
+	-- center the window on the current screen
+	local screenFrame = win:screen():frame()
+	local windowFrame = win:frame()
+
+	local win_size_is_maxed = screenFrame.w == windowFrame.w and 0 == windowFrame.x
+
+	if win_size_is_maxed then
+		windowFrame.w = screenFrame.w * 0.5
+		windowFrame.h = screenFrame.h * 0.5
+		windowFrame.x = screenFrame.x + (screenFrame.w - windowFrame.w) / 2
+		windowFrame.y = screenFrame.y + (screenFrame.h - windowFrame.h) / 2
+	else
+		windowFrame.w = screenFrame.w
+		windowFrame.h = screenFrame.h
+		windowFrame.x = 0
+		windowFrame.y = 0
+	end
+	win:setFrame(windowFrame)
 end)
 
 -----------------------------------------------------------
@@ -124,27 +134,33 @@ end
 -- intercept media Play/Pause
 
 -- media-key Play/Pause interceptor
-local playTap = hs.eventtap.new(
-  { hs.eventtap.event.types.systemDefined },
-  function(e)
-      local sk = e:systemKey()
-      if not (sk and sk.key == "PLAY" and sk.down) then return false end
+local playTap = hs.eventtap
+	.new({ hs.eventtap.event.types.systemDefined }, function(e)
+		local sk = e:systemKey()
+		if not (sk and sk.key == "PLAY" and sk.down) then
+			return false
+		end
 
-      if (lastAudioApp and lastAudioApp:name():lower() == "stremio") then
-          local stremio = hs.application.get("stremio")      -- by bundle name
-          if not stremio then return false end
+		if lastAudioApp and lastAudioApp:name():lower() == "stremio" then
+			local stremio = hs.application.get("stremio") -- by bundle name
+			if not stremio then
+				return false
+			end
 
-          local prev = hs.application.frontmostApplication()
-          stremio:activate()                                 -- bring Stremio front
+			local prev = hs.application.frontmostApplication()
+			stremio:activate() -- bring Stremio front
 
-          -- wait a tick so the web-view has focus, then send ␠
-          hs.timer.doAfter(0.05, function()
-              hs.eventtap.keyStroke({}, "space")             -- play/pause
-              if prev and prev ~= stremio then prev:activate() end
-          end)
+			-- wait a tick so the web-view has focus, then send ␠
+			hs.timer.doAfter(0.05, function()
+				hs.eventtap.keyStroke({}, "space") -- play/pause
+				if prev and prev ~= stremio then
+					prev:activate()
+				end
+			end)
 
-          return true        -- swallow: don’t let macOS handle media key
-      end
+			return true -- swallow: don’t let macOS handle media key
+		end
 
-      return false           -- different last-audio app → let OS handle it
-  end):start()
+		return false -- different last-audio app → let OS handle it
+	end)
+	:start()
