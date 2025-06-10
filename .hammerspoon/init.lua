@@ -9,12 +9,18 @@ local setFrameSize = function(xf, yf, wf, hf, key)
 	local win = hs.window.focusedWindow()
 	local sf = win:screen():frame()
 
-	win:setFrame({
+  local newFrame = {
 		x = sf.x + sf.w * xf, -- <-- add the screen offset
 		y = sf.y + sf.h * yf,
 		w = sf.w * wf,
 		h = sf.h * hf,
-	})
+	}
+
+  if newFrame.w == win:frame().w then
+    newFrame.w = sf.w * (1 - wf)
+  end
+
+	win:setFrame(newFrame)
 end
 
 local setFrameResize = function(wf, hf)
