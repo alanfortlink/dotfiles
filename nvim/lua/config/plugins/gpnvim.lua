@@ -1,4 +1,4 @@
--- return {
+return {
 -- 	{
 -- 		"robitx/gp.nvim",
 -- 		config = function()
@@ -11,4 +11,4 @@
 -- 			vim.keymap.set("v", "<C-l>", ":GpRewrite<CR>", {})
 -- 		end,
 -- 	},
--- }
+}
