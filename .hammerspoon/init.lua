@@ -110,8 +110,8 @@ hs.hotkey.bind(AC, "f", function()
 	else
 		windowFrame.w = screenFrame.w
 		windowFrame.h = screenFrame.h
-		windowFrame.x = 0
-		windowFrame.y = 0
+		windowFrame.x = screenFrame.x
+		windowFrame.y = screenFrame.y
 	end
 	win:setFrame(windowFrame)
 end)
