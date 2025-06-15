@@ -117,29 +117,8 @@ hs.hotkey.bind(AC, "f", function()
 end)
 
 -----------------------------------------------------------
--- 1. Remember which app started sound most recently
------------------------------------------------------------
-local lastAudioApp
-
-local function rememberFrontmost()
-	lastAudioApp = hs.application.frontmostApplication()
-end
-
-for _, dev in ipairs(hs.audiodevice.allOutputDevices()) do
-	dev:watcherCallback(function(_, event, scope)
-		-- device “in-use” status toggled (event = "gone")  [oai_citation:0‡hammerspoon.org](https://www.hammerspoon.org/docs/hs.audiodevice.html)
-		if event == "gone" and scope == "glob" and dev:inUse() then
-			rememberFrontmost()
-		end
-	end):watcherStart()
-end
-
------------------------------------------------------------
 -- 2. Intercept PLAY/PAUSE media-key presses
 -----------------------------------------------------------
--- intercept media Play/Pause
-
--- media-key Play/Pause interceptor
 local playTap = hs.eventtap
 	.new({ hs.eventtap.event.types.systemDefined }, function(e)
 		local sk = e:systemKey()
@@ -147,12 +126,9 @@ local playTap = hs.eventtap
 			return false
 		end
 
-		if lastAudioApp and lastAudioApp:name():lower() == "stremio" then
-			local stremio = hs.application.get("stremio") -- by bundle name
-			if not stremio then
-				return false
-			end
+    local stremio = hs.application.get("stremio")
 
+		if stremio then
 			local prev = hs.application.frontmostApplication()
 			stremio:activate() -- bring Stremio front
 
