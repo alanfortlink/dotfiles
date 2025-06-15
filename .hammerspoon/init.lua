@@ -100,7 +100,7 @@ hs.hotkey.bind(AC, "f", function()
 	local screenFrame = win:screen():frame()
 	local windowFrame = win:frame()
 
-	local win_size_is_maxed = screenFrame.w == windowFrame.w and 0 == windowFrame.x
+	local win_size_is_maxed = screenFrame.w == windowFrame.w and (0 == windowFrame.x or screenFrame.x == windowFrame.x) 
 
 	if win_size_is_maxed then
 		windowFrame.w = screenFrame.w * 0.5

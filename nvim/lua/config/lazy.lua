@@ -34,6 +34,7 @@ require("lazy").setup({
     { "farmergreg/vim-lastplace", lazy = false },
     { "karb94/neoscroll.nvim",    opts = { easing_function = "quadratic" } },
     { 'numToStr/Comment.nvim' },
+    { 'tpope/vim-fugitive' },
     {
       'stevearc/oil.nvim',
       opts = {},
