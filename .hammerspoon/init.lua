@@ -1,7 +1,9 @@
+---@diagnostic disable: undefined-global
 hs.hotkey.bind({ "alt", "ctrl" }, "r", function()
 	hs.reload()
 end)
 
+local A = { "alt" }
 local AC = { "alt", "ctrl" }
 local ACS = { "alt", "ctrl", "shift" }
 
@@ -9,16 +11,16 @@ local setFrameSize = function(xf, yf, wf, hf, key)
 	local win = hs.window.focusedWindow()
 	local sf = win:screen():frame()
 
-  local newFrame = {
+	local newFrame = {
 		x = sf.x + sf.w * xf, -- <-- add the screen offset
 		y = sf.y + sf.h * yf,
 		w = sf.w * wf,
 		h = sf.h * hf,
 	}
 
-  if newFrame.w == win:frame().w then
-    newFrame.w = sf.w * (1 - wf)
-  end
+	if newFrame.w == win:frame().w then
+		newFrame.w = sf.w * (1 - wf)
+	end
 
 	win:setFrame(newFrame)
 end
@@ -100,7 +102,7 @@ hs.hotkey.bind(AC, "f", function()
 	local screenFrame = win:screen():frame()
 	local windowFrame = win:frame()
 
-	local win_size_is_maxed = screenFrame.w == windowFrame.w and (0 == windowFrame.x or screenFrame.x == windowFrame.x) 
+	local win_size_is_maxed = screenFrame.w == windowFrame.w and (0 == windowFrame.x or screenFrame.x == windowFrame.x)
 
 	if win_size_is_maxed then
 		windowFrame.w = screenFrame.w * 0.5
@@ -116,33 +118,140 @@ hs.hotkey.bind(AC, "f", function()
 	win:setFrame(windowFrame)
 end)
 
------------------------------------------------------------
--- 2. Intercept PLAY/PAUSE media-key presses
------------------------------------------------------------
-local playTap = hs.eventtap
-	.new({ hs.eventtap.event.types.systemDefined }, function(e)
-		local sk = e:systemKey()
-		if not (sk and sk.key == "PLAY" and sk.down) then
-			return false
+-- when f8 is pressed
+hs.hotkey.bind({}, "f8", function()
+	local stremio = hs.application.get("stremio")
+	if not stremio then
+		stremio = hs.application.get("Stremio")
+	end
+
+	if stremio then
+		local prev = hs.application.frontmostApplication()
+		stremio:activate()
+
+		-- wait a tick so the web-view has focus, then send ␠
+		hs.timer.doAfter(0.01, function()
+			hs.eventtap.keyStroke({}, "space")
+			if prev and prev ~= stremio then
+				prev:activate()
+			end
+		end)
+
+		return true
+	end
+
+	return false
+end)
+
+-- when f6 is pressed:
+-- 1. Set the terminal (ghostty) window to full height, 60% width
+-- 2. Move it to the left side of the screen
+-- 3. Bring up two Simulators and position them with equal size on the right side of the screen (last 40%)
+-- 4. Focus the terminal window
+
+hs.hotkey.bind({}, "f6", function()
+	local terminal = hs.application.get("iTerm2")
+	if not terminal then
+		terminal = hs.application.get("iTerm")
+	end
+
+	if terminal then
+		local screenFrame = hs.screen.mainScreen():frame()
+		local terminalFrame = {
+			x = screenFrame.x,
+			y = screenFrame.y,
+			w = screenFrame.w * 0.6,
+			h = screenFrame.h,
+		}
+		terminal:mainWindow():setFrame(terminalFrame)
+
+		-- launch or focus iphone 16 pro simulator
+		local simulatorApp = hs.application.launchOrFocus("Simulator")
+
+		if not simulatorApp then
+			return
 		end
 
-    local stremio = hs.application.get("stremio")
+		local sim = hs.application.get("Simulator")
+		if not sim then
+			sim = hs.application.get("simulator")
+		end
 
-		if stremio then
-			local prev = hs.application.frontmostApplication()
-			stremio:activate() -- bring Stremio front
+		if not sim then
+			return
+		end
 
-			-- wait a tick so the web-view has focus, then send ␠
-			hs.timer.doAfter(0.05, function()
-				hs.eventtap.keyStroke({}, "space") -- play/pause
-				if prev and prev ~= stremio then
-					prev:activate()
-				end
+		local numWindows = #sim:allWindows()
+		if numWindows < 2 then
+			hs.timer.doAfter(0.2, function()
+				sim:selectMenuItem({ "File", "Open Simulator", "iOS 18.0", "iPhone 16 Pro" })
+				sim:selectMenuItem({ "File", "Open Simulator", "iOS 17.5", "iPhone 15 Pro" })
 			end)
-
-			return true -- swallow: don’t let macOS handle media key
+			return
 		end
 
-		return false -- different last-audio app → let OS handle it
-	end)
-	:start()
+		-- get by title
+		local iphone15 = sim:findWindow("iPhone 15 Pro")
+		local iphone16 = sim:findWindow("iPhone 16 Pro")
+
+		if not iphone15 or not iphone16 then
+			return
+		end
+
+		local iphone15Frame = iphone15:frame()
+		local iphone16Frame = iphone16:frame()
+
+		hs.timer.doAfter(0.2, function()
+			iphone15Frame.x = screenFrame.x + screenFrame.w * 0.6
+			iphone15Frame.y = screenFrame.y
+			iphone15Frame.w = screenFrame.w * 0.2
+			iphone15Frame.h = screenFrame.h * 0.5
+
+			iphone16Frame.x = screenFrame.x + screenFrame.w * 0.8
+			iphone16Frame.y = screenFrame.y
+			iphone16Frame.w = screenFrame.w * 0.2
+			iphone16Frame.h = screenFrame.h * 0.5
+
+			iphone15:setFrame(iphone15Frame)
+			iphone16:setFrame(iphone16Frame)
+		end)
+
+		hs.timer.doAfter(0.2, function()
+			-- centralize vertically
+			iphone15Frame.y = screenFrame.y + (screenFrame.h - iphone15Frame.h) / 4
+			iphone16Frame.y = screenFrame.y + (screenFrame.h - iphone16Frame.h) / 4
+
+			iphone15:setFrame(iphone15Frame)
+			iphone16:setFrame(iphone16Frame)
+		end)
+
+		hs.timer.doAfter(0.2, function()
+			terminal:mainWindow():focus()
+			hs.eventtap.keyStroke({ "ctrl" }, "b")
+			hs.eventtap.keyStroke({}, "2")
+		end)
+	end
+end)
+
+hs.hotkey.bind({}, "f7", function()
+	local terminal = hs.application.get("iTerm2")
+	if not terminal then
+		terminal = hs.application.get("iTerm")
+	end
+
+	if terminal then
+		terminal:mainWindow():focus()
+
+		hs.timer.doAfter(0.1, function()
+			local screenFrame = hs.screen.mainScreen():frame()
+			local terminalFrame = terminal:mainWindow():frame()
+
+			terminalFrame.w = screenFrame.w
+
+			terminal:mainWindow():setFrame(terminalFrame)
+
+			hs.eventtap.keyStroke({ "ctrl" }, "b")
+			hs.eventtap.keyStroke({}, "1")
+		end)
+	end
+end)
