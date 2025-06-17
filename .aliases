@@ -29,6 +29,7 @@ alias p='python3'
 alias ppi='python3 -m pip install'
 alias ppt='python3 -m pytest'
 alias ll='ls -lh'
+alias lla='ls -lah'
 
 bindkey "^P" history-beginning-search-backward
 bindkey "^N" history-beginning-search-forward

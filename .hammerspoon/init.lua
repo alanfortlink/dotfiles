@@ -1,6 +1,9 @@
 ---@diagnostic disable: undefined-global
 hs.hotkey.bind({ "alt", "ctrl" }, "r", function()
-	hs.reload()
+	hs.alert.show("Reloading Hammerspoon config...")
+	hs.timer.doAfter(0.5, function()
+		hs.reload()
+	end)
 end)
 
 local A = { "alt" }
@@ -121,9 +124,6 @@ end)
 -- when f8 is pressed
 hs.hotkey.bind({}, "f8", function()
 	local stremio = hs.application.get("stremio")
-	if not stremio then
-		stremio = hs.application.get("Stremio")
-	end
 
 	if stremio then
 		local prev = hs.application.frontmostApplication()
@@ -140,7 +140,11 @@ hs.hotkey.bind({}, "f8", function()
 		return true
 	end
 
-	return false
+	-- send play/pause key
+	hs.eventtap.event.newSystemKeyEvent("PLAY", true):post()
+	hs.eventtap.event.newSystemKeyEvent("PLAY", false):post()
+
+	return true
 end)
 
 -- when f6 is pressed:
@@ -253,5 +257,13 @@ hs.hotkey.bind({}, "f7", function()
 			hs.eventtap.keyStroke({ "ctrl" }, "b")
 			hs.eventtap.keyStroke({}, "1")
 		end)
+	end
+end)
+
+hs.hotkey.bind({}, "f5", function()
+	-- kill simulators
+	local sim = hs.application.get("Simulator")
+	if sim then
+		sim:kill()
 	end
 end)
