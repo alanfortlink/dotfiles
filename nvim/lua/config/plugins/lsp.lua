@@ -110,6 +110,7 @@ return {
 				},
 			}
 
+      -- --resource-dir=/opt/bb/lib/llvm-18.1/lib64/clang/18
 			require("lspconfig").clangd.setup({
 				capabilities = capabilities,
 				cmd = {
