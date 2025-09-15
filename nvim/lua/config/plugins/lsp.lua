@@ -115,7 +115,7 @@ return {
 				cmd = {
 					-- '/usr/bin/clangd'
 					-- '/opt/homebrew/Cellar/llvm/19.1.4/bin/clangd',
-					"/opt/homebrew/Cellar/llvm/19.1.6/bin/clangd",
+					"/opt/homebrew/Cellar/llvm/20.1.8/bin/clangd"
 				},
 			})
 

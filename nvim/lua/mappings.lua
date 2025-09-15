@@ -83,8 +83,8 @@ vim.keymap.set("v", "<localleader>x", ":lua<CR>", { noremap = true })
 vim.keymap.set("v", "<localleader>", ":lua<CR>", { noremap = true })
 
 vim.keymap.set({ "n" }, "<Esc>", ":nohl<CR>", { noremap = true, silent = true })
-vim.keymap.set({ "t" }, "<Esc><Esc>", "<C-\\><C-n>:ToggleTerminal<CR>", { noremap = true, silent = true })
-vim.keymap.set({ "t" }, "<Esc><Esc><Esc>", "<C-\\><C-n>", { noremap = true })
+vim.keymap.set({ "t" }, "<Esc><Esc>", "<C-\\><C-n>", { noremap = true, silent = true })
+vim.keymap.set({ "t" }, "<Esc><Esc><Esc>", "<C-\\><C-n>:ToggleTerminal<CR>", { noremap = true })
 
 vim.keymap.set("n", "<localleader>t", ":ToggleTerminal<CR>", { noremap = true, silent = true })
 vim.keymap.set('n', '<localleader>q', ':KillTerminal<CR>', { noremap = true, silent = true })
@@ -94,7 +94,7 @@ vim.keymap.set('n', '<localleader>p', ':Oil<CR>', { noremap = true, silent = tru
 vim.keymap.set('n', '<localleader>P', ':Oil .<CR>', { noremap = true, silent = true })
 
 vim.keymap.set("n", "<localleader>R", function()
-  vim.cmd('FlutterRun -d "iphone 16"')
+  vim.cmd('FlutterRun -d "iPhone 15 Pro"')
 end, { noremap = true })
 
 vim.keymap.set("n", "<localleader>r", function()
