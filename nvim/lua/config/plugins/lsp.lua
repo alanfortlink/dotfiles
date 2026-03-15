@@ -103,24 +103,19 @@ return {
 								},
 							},
 							diagnostics = {
-                globals = { "hs", "vim" }, -- Add globals for Hammerspoon and Neovim
-              },
+								globals = { "hs", "vim" }, -- Add globals for Hammerspoon and Neovim
+							},
 						},
 					},
 				},
 			}
 
-      -- --resource-dir=/opt/bb/lib/llvm-18.1/lib64/clang/18
-			require("lspconfig").clangd.setup({
+			vim.lsp.config["clangd"] = {
+				cmd = { "/opt/homebrew/Cellar/llvm/20.1.8/bin/clangd" },
 				capabilities = capabilities,
-				cmd = {
-					-- '/usr/bin/clangd'
-					-- '/opt/homebrew/Cellar/llvm/19.1.4/bin/clangd',
-					"/opt/homebrew/Cellar/llvm/20.1.8/bin/clangd"
-				},
-			})
+			}
 
-			require("lspconfig").pyright.setup({
+			vim.lsp.config["pyright"] = {
 				capabilities = capabilities,
 				settings = {
 					python = {
@@ -131,15 +126,19 @@ return {
 						},
 					},
 				},
-			})
+			}
 
-			require("lspconfig").gdscript.setup(capabilities)
+			vim.lsp.config["gdscript"] = {
+				capabilities = capabilities,
+			}
+
 			require("mason").setup()
 
 			local ensure_installed = vim.tbl_keys(servers or {})
 			vim.list_extend(ensure_installed, {
-				"stylua", -- Used to format Lua code
+				"stylua",
 			})
+
 			require("mason-tool-installer").setup({ ensure_installed = ensure_installed })
 
 			require("mason-lspconfig").setup({
@@ -147,7 +146,7 @@ return {
 					function(server_name)
 						local server = servers[server_name] or {}
 						server.capabilities = vim.tbl_deep_extend("force", {}, capabilities, server.capabilities or {})
-						require("lspconfig")[server_name].setup(server)
+						vim.lsp.enable(server_name, server)
 					end,
 				},
 			})

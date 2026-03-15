@@ -65,64 +65,64 @@ local frameResizeBind = function(meta, key, wf, hf)
 	end)
 end
 
-frameSizeBind(AC, "h", 0, 0, 0.5, 1)
-frameSizeBind(ACS, "h", 0, 0, 0.75, 1)
-frameSizeBind(AC, "l", 0.5, 0, 0.5, 1)
-frameSizeBind(ACS, "l", 0.75, 0, 0.25, 1)
-
-frameSizeBind(AC, "j", 0, 0.5, 1, 0.5)
-frameSizeBind(AC, "k", 0, 0, 1, 0.5)
-
-frameSizeBind(AC, ",", 0, 0.0, 0.5, 0.5)
-frameSizeBind(AC, "m", 0, 0.5, 0.5, 0.5)
-frameSizeBind(AC, ".", 0.5, 0.0, 0.5, 0.5)
-frameSizeBind(AC, "/", 0.5, 0.5, 0.5, 0.5)
-
-frameResizeBind(ACS, "-", 0, -0.1)
-frameResizeBind(ACS, "=", 0.0, 0.1)
-frameResizeBind(AC, "-", -0.1, 0)
-frameResizeBind(AC, "=", 0.1, 0)
-
-hs.hotkey.bind(AC, "s", function()
-	local win = hs.window.focusedWindow()
-	win:moveToScreen(win:screen():next())
-end)
-
-hs.hotkey.bind(AC, "c", function()
-	local win = hs.window.focusedWindow()
-	-- center the window on the current screen
-	local screenFrame = win:screen():frame()
-	local windowFrame = win:frame()
-
-	windowFrame.x = screenFrame.x + (screenFrame.w - windowFrame.w) / 2
-	windowFrame.y = screenFrame.y + (screenFrame.h - windowFrame.h) / 2
-	win:setFrame(windowFrame)
-end)
-
-hs.hotkey.bind(AC, "f", function()
-	local win = hs.window.focusedWindow()
-	-- center the window on the current screen
-	local screenFrame = win:screen():frame()
-	local windowFrame = win:frame()
-
-	local win_size_is_maxed = screenFrame.w == windowFrame.w and (0 == windowFrame.x or screenFrame.x == windowFrame.x)
-
-	if win_size_is_maxed then
-		windowFrame.w = screenFrame.w * 0.5
-		windowFrame.h = screenFrame.h * 0.5
-		windowFrame.x = screenFrame.x + (screenFrame.w - windowFrame.w) / 2
-		windowFrame.y = screenFrame.y + (screenFrame.h - windowFrame.h) / 2
-	else
-		windowFrame.w = screenFrame.w
-		windowFrame.h = screenFrame.h
-		windowFrame.x = screenFrame.x
-		windowFrame.y = screenFrame.y
-	end
-	win:setFrame(windowFrame)
-end)
+-- frameSizeBind(AC, "h", 0, 0, 0.5, 1)
+-- frameSizeBind(ACS, "h", 0, 0, 0.75, 1)
+-- frameSizeBind(AC, "l", 0.5, 0, 0.5, 1)
+-- frameSizeBind(ACS, "l", 0.75, 0, 0.25, 1)
+-- 
+-- frameSizeBind(AC, "j", 0, 0.5, 1, 0.5)
+-- frameSizeBind(AC, "k", 0, 0, 1, 0.5)
+-- 
+-- frameSizeBind(AC, ",", 0, 0.0, 0.5, 0.5)
+-- frameSizeBind(AC, "m", 0, 0.5, 0.5, 0.5)
+-- frameSizeBind(AC, ".", 0.5, 0.0, 0.5, 0.5)
+-- frameSizeBind(AC, "/", 0.5, 0.5, 0.5, 0.5)
+-- 
+-- frameResizeBind(ACS, "-", 0, -0.1)
+-- frameResizeBind(ACS, "=", 0.0, 0.1)
+-- frameResizeBind(AC, "-", -0.1, 0)
+-- frameResizeBind(AC, "=", 0.1, 0)
+-- 
+-- hs.hotkey.bind(AC, "s", function()
+-- 	local win = hs.window.focusedWindow()
+-- 	win:moveToScreen(win:screen():next())
+-- end)
+-- 
+-- hs.hotkey.bind(AC, "c", function()
+-- 	local win = hs.window.focusedWindow()
+-- 	-- center the window on the current screen
+-- 	local screenFrame = win:screen():frame()
+-- 	local windowFrame = win:frame()
+-- 
+-- 	windowFrame.x = screenFrame.x + (screenFrame.w - windowFrame.w) / 2
+-- 	windowFrame.y = screenFrame.y + (screenFrame.h - windowFrame.h) / 2
+-- 	win:setFrame(windowFrame)
+-- end)
+-- 
+-- hs.hotkey.bind(AC, "f", function()
+-- 	local win = hs.window.focusedWindow()
+-- 	-- center the window on the current screen
+-- 	local screenFrame = win:screen():frame()
+-- 	local windowFrame = win:frame()
+-- 
+-- 	local win_size_is_maxed = screenFrame.w == windowFrame.w and (0 == windowFrame.x or screenFrame.x == windowFrame.x)
+-- 
+-- 	if win_size_is_maxed then
+-- 		windowFrame.w = screenFrame.w * 0.5
+-- 		windowFrame.h = screenFrame.h * 0.5
+-- 		windowFrame.x = screenFrame.x + (screenFrame.w - windowFrame.w) / 2
+-- 		windowFrame.y = screenFrame.y + (screenFrame.h - windowFrame.h) / 2
+-- 	else
+-- 		windowFrame.w = screenFrame.w
+-- 		windowFrame.h = screenFrame.h
+-- 		windowFrame.x = screenFrame.x
+-- 		windowFrame.y = screenFrame.y
+-- 	end
+-- 	win:setFrame(windowFrame)
+-- end)
 
 -- when f8 is pressed
-hs.hotkey.bind({}, "f8", function()
+hs.hotkey.bind({ "shift" }, "f8", function()
 	local stremio = hs.application.get("stremio")
 
 	if stremio then
@@ -153,117 +153,117 @@ end)
 -- 3. Bring up two Simulators and position them with equal size on the right side of the screen (last 40%)
 -- 4. Focus the terminal window
 
-hs.hotkey.bind({}, "f6", function()
-	local terminal = hs.application.get("iTerm2")
-	if not terminal then
-		terminal = hs.application.get("iTerm")
-	end
-
-	if terminal then
-		local screenFrame = hs.screen.mainScreen():frame()
-		local terminalFrame = {
-			x = screenFrame.x,
-			y = screenFrame.y,
-			w = screenFrame.w * 0.6,
-			h = screenFrame.h,
-		}
-		terminal:mainWindow():setFrame(terminalFrame)
-
-		-- launch or focus iphone 16 pro simulator
-		local simulatorApp = hs.application.launchOrFocus("Simulator")
-
-		if not simulatorApp then
-			return
-		end
-
-		local sim = hs.application.get("Simulator")
-		if not sim then
-			sim = hs.application.get("simulator")
-		end
-
-		if not sim then
-			return
-		end
-
-		local numWindows = #sim:allWindows()
-		if numWindows < 2 then
-			hs.timer.doAfter(0.2, function()
-				sim:selectMenuItem({ "File", "Open Simulator", "iOS 18.0", "iPhone 16 Pro" })
-				sim:selectMenuItem({ "File", "Open Simulator", "iOS 17.5", "iPhone 15 Pro" })
-			end)
-			return
-		end
-
-		-- get by title
-		local iphone15 = sim:findWindow("iPhone 15 Pro")
-		local iphone16 = sim:findWindow("iPhone 16 Pro")
-
-		if not iphone15 or not iphone16 then
-			return
-		end
-
-		local iphone15Frame = iphone15:frame()
-		local iphone16Frame = iphone16:frame()
-
-		hs.timer.doAfter(0.2, function()
-			iphone15Frame.x = screenFrame.x + screenFrame.w * 0.6
-			iphone15Frame.y = screenFrame.y
-			iphone15Frame.w = screenFrame.w * 0.2
-			iphone15Frame.h = screenFrame.h * 0.5
-
-			iphone16Frame.x = screenFrame.x + screenFrame.w * 0.8
-			iphone16Frame.y = screenFrame.y
-			iphone16Frame.w = screenFrame.w * 0.2
-			iphone16Frame.h = screenFrame.h * 0.5
-
-			iphone15:setFrame(iphone15Frame)
-			iphone16:setFrame(iphone16Frame)
-		end)
-
-		hs.timer.doAfter(0.2, function()
-			-- centralize vertically
-			iphone15Frame.y = screenFrame.y + (screenFrame.h - iphone15Frame.h) / 4
-			iphone16Frame.y = screenFrame.y + (screenFrame.h - iphone16Frame.h) / 4
-
-			iphone15:setFrame(iphone15Frame)
-			iphone16:setFrame(iphone16Frame)
-		end)
-
-		hs.timer.doAfter(0.2, function()
-			terminal:mainWindow():focus()
-			hs.eventtap.keyStroke({ "ctrl" }, "b")
-			hs.eventtap.keyStroke({}, "2")
-		end)
-	end
-end)
-
-hs.hotkey.bind({}, "f7", function()
-	local terminal = hs.application.get("iTerm2")
-	if not terminal then
-		terminal = hs.application.get("iTerm")
-	end
-
-	if terminal then
-		terminal:mainWindow():focus()
-
-		hs.timer.doAfter(0.1, function()
-			local screenFrame = hs.screen.mainScreen():frame()
-			local terminalFrame = terminal:mainWindow():frame()
-
-			terminalFrame.w = screenFrame.w
-
-			terminal:mainWindow():setFrame(terminalFrame)
-
-			hs.eventtap.keyStroke({ "ctrl" }, "b")
-			hs.eventtap.keyStroke({}, "1")
-		end)
-	end
-end)
-
-hs.hotkey.bind({}, "f5", function()
-	-- kill simulators
-	local sim = hs.application.get("Simulator")
-	if sim then
-		sim:kill()
-	end
-end)
+-- hs.hotkey.bind({}, "f6", function()
+-- 	local terminal = hs.application.get("iTerm2")
+-- 	if not terminal then
+-- 		terminal = hs.application.get("iTerm")
+-- 	end
+--
+-- 	if terminal then
+-- 		local screenFrame = hs.screen.mainScreen():frame()
+-- 		local terminalFrame = {
+-- 			x = screenFrame.x,
+-- 			y = screenFrame.y,
+-- 			w = screenFrame.w * 0.6,
+-- 			h = screenFrame.h,
+-- 		}
+-- 		terminal:mainWindow():setFrame(terminalFrame)
+--
+-- 		-- launch or focus iphone 16 pro simulator
+-- 		local simulatorApp = hs.application.launchOrFocus("Simulator")
+--
+-- 		if not simulatorApp then
+-- 			return
+-- 		end
+--
+-- 		local sim = hs.application.get("Simulator")
+-- 		if not sim then
+-- 			sim = hs.application.get("simulator")
+-- 		end
+--
+-- 		if not sim then
+-- 			return
+-- 		end
+--
+-- 		local numWindows = #sim:allWindows()
+-- 		if numWindows < 2 then
+-- 			hs.timer.doAfter(0.2, function()
+-- 				sim:selectMenuItem({ "File", "Open Simulator", "iOS 18.0", "iPhone 16 Pro" })
+-- 				sim:selectMenuItem({ "File", "Open Simulator", "iOS 17.5", "iPhone 15 Pro" })
+-- 			end)
+-- 			return
+-- 		end
+--
+-- 		-- get by title
+-- 		local iphone15 = sim:findWindow("iPhone 15 Pro")
+-- 		local iphone16 = sim:findWindow("iPhone 16 Pro")
+--
+-- 		if not iphone15 or not iphone16 then
+-- 			return
+-- 		end
+--
+-- 		local iphone15Frame = iphone15:frame()
+-- 		local iphone16Frame = iphone16:frame()
+--
+-- 		hs.timer.doAfter(0.2, function()
+-- 			iphone15Frame.x = screenFrame.x + screenFrame.w * 0.6
+-- 			iphone15Frame.y = screenFrame.y
+-- 			iphone15Frame.w = screenFrame.w * 0.2
+-- 			iphone15Frame.h = screenFrame.h * 0.5
+--
+-- 			iphone16Frame.x = screenFrame.x + screenFrame.w * 0.8
+-- 			iphone16Frame.y = screenFrame.y
+-- 			iphone16Frame.w = screenFrame.w * 0.2
+-- 			iphone16Frame.h = screenFrame.h * 0.5
+--
+-- 			iphone15:setFrame(iphone15Frame)
+-- 			iphone16:setFrame(iphone16Frame)
+-- 		end)
+--
+-- 		hs.timer.doAfter(0.2, function()
+-- 			-- centralize vertically
+-- 			iphone15Frame.y = screenFrame.y + (screenFrame.h - iphone15Frame.h) / 4
+-- 			iphone16Frame.y = screenFrame.y + (screenFrame.h - iphone16Frame.h) / 4
+--
+-- 			iphone15:setFrame(iphone15Frame)
+-- 			iphone16:setFrame(iphone16Frame)
+-- 		end)
+--
+-- 		hs.timer.doAfter(0.2, function()
+-- 			terminal:mainWindow():focus()
+-- 			hs.eventtap.keyStroke({ "ctrl" }, "b")
+-- 			hs.eventtap.keyStroke({}, "2")
+-- 		end)
+-- 	end
+-- end)
+--
+-- hs.hotkey.bind({}, "f7", function()
+-- 	local terminal = hs.application.get("iTerm2")
+-- 	if not terminal then
+-- 		terminal = hs.application.get("iTerm")
+-- 	end
+--
+-- 	if terminal then
+-- 		terminal:mainWindow():focus()
+--
+-- 		hs.timer.doAfter(0.1, function()
+-- 			local screenFrame = hs.screen.mainScreen():frame()
+-- 			local terminalFrame = terminal:mainWindow():frame()
+--
+-- 			terminalFrame.w = screenFrame.w
+--
+-- 			terminal:mainWindow():setFrame(terminalFrame)
+--
+-- 			hs.eventtap.keyStroke({ "ctrl" }, "b")
+-- 			hs.eventtap.keyStroke({}, "1")
+-- 		end)
+-- 	end
+-- end)
+--
+-- hs.hotkey.bind({}, "f5", function()
+-- 	-- kill simulators
+-- 	local sim = hs.application.get("Simulator")
+-- 	if sim then
+-- 		sim:kill()
+-- 	end
+-- end)

@@ -1,5 +1,5 @@
 alias g='git' 
-alias gs='git status' 
+# alias gs='git status' 
 alias gd='git diff'
 alias gld='git diff HEAD^1'
 alias gcm='git commit -m'
