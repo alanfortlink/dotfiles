@@ -34,7 +34,6 @@ return {
     vim.cmd.colorscheme "onedark"
 
     vim.cmd("highlight WinSeparator guibg=DarkGray")
-    vim.cmd("highlight WinSeparator guibg=DarkGray")
     vim.cmd("hi NormalNC guibg=NONE ctermbg=NONE")
     vim.cmd("hi Normal guibg=NONE ctermbg=NONE")
     vim.cmd("hi EndOfBuffer guibg=NONE ctermbg=NONE")
