@@ -1,19 +1,23 @@
-#include <vector>
+int op(int a, int b){
+  return a + b;
+}
 
-class Calculator {
-public:
-  int sum(int a, int b) { return a + b; }
-  int sub(int a, int b) { return a - b; }
-};
+int parse(int a) {
+  return a + 1;
+}
 
-int main() {
-  Calculator calc;
+int somar(int a, int b){
+  a = parse(a);
+  b = parse(b);
 
-  int a = 1, b = 2;
-  int result = calc.sum(a, b);
-  int c = calc.sum(10, 20);
+  return op(a, b);
+}
 
-  int k = calc.sub(1, 2);
+int main(){
+  int c = 10;
+  int d = 20;
+
+  int e = somar(20, 10);
 
   return 0;
 }
