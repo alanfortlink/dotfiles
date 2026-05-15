@@ -61,13 +61,13 @@
     "on-click-right": "alacritty"
   },
   "clock": {
-    "format": "{:L%A %H:%M}",
+    "format": "{:L%A, %b %d · %H:%M}",
     "format-alt": "{:L%d %B W%V %Y}",
     "tooltip": false,
     "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select"
   },
   "custom/weather": {
-    "exec": "$OMARCHY_PATH/default/waybar/weather.sh",
+    "exec": "/home/tank/.local/bin/weather-icon-temp",
     "return-type": "json",
     "interval": 60,
     "tooltip": false,
