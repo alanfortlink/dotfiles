@@ -16,3 +16,12 @@ set -o vi
 # Vi-mode default kills Ctrl+L clear-screen; put it back in both keymaps.
 bind -m vi-insert '"\C-l": clear-screen'
 bind -m vi-command '"\C-l": clear-screen'
+
+# Ctrl+P/Ctrl+N for history (emacs-style), in both vi keymaps.
+bind -m vi-insert '"\C-p": previous-history'
+bind -m vi-insert '"\C-n": next-history'
+bind -m vi-command '"\C-p": previous-history'
+bind -m vi-command '"\C-n": next-history'
+
+# zoxide: autojump replacement. `j <substring>` to jump, `ji` for interactive fzf pick.
+eval "$(zoxide init bash --cmd j)"
