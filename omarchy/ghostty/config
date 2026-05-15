@@ -17,5 +17,31 @@ theme = "3024 Night"
 keybind = shift+insert=paste_from_clipboard
 keybind = control+insert=copy_to_clipboard
 
+# --- Copy/scroll mode (tmux copy-mode-vi analogue) ---
+# alt+u / alt+d enter the "copy" key table and scroll one page.
+keybind = alt+u=activate_key_table:copy
+keybind = chain=scroll_page_up
+keybind = alt+d=activate_key_table:copy
+keybind = chain=scroll_page_down
+
+# Inside copy mode: scroll/navigate, select, copy, exit.
+keybind = copy/u=scroll_page_up
+keybind = copy/d=scroll_page_down
+keybind = copy/g=scroll_to_top
+keybind = copy/shift+g=scroll_to_bottom
+# Selection: v starts/extends a selection; hjkl adjust it.
+# (ghostty has no scrollback cursor, so v alone may be a no-op without
+#  an existing selection — extend with hjkl after starting a mouse drag,
+#  or use shift+arrow which works the same way.)
+keybind = copy/v=adjust_selection:right
+keybind = copy/h=adjust_selection:left
+keybind = copy/j=adjust_selection:down
+keybind = copy/k=adjust_selection:up
+keybind = copy/l=adjust_selection:right
+keybind = copy/y=copy_to_clipboard
+keybind = chain=deactivate_key_table
+keybind = copy/escape=deactivate_key_table
+keybind = copy/q=deactivate_key_table
+
 window-save-state = "always"
 shell-integration = "zsh"

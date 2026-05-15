@@ -46,11 +46,14 @@ set -o vi
 bindkey -M viins '^L' clear-screen
 bindkey -M vicmd '^L' clear-screen
 
-# Ctrl+P/Ctrl+N for history (emacs-style), in both vi keymaps.
-bindkey -M viins '^P' up-line-or-history
-bindkey -M viins '^N' down-line-or-history
-bindkey -M vicmd '^P' up-line-or-history
-bindkey -M vicmd '^N' down-line-or-history
+# Ctrl+P/Ctrl+N: prefix-search history with what's typed before the cursor.
+autoload -Uz history-search-end
+zle -N history-beginning-search-backward-end history-search-end
+zle -N history-beginning-search-forward-end history-search-end
+bindkey -M viins '^P' history-beginning-search-backward-end
+bindkey -M viins '^N' history-beginning-search-forward-end
+bindkey -M vicmd '^P' history-beginning-search-backward-end
+bindkey -M vicmd '^N' history-beginning-search-forward-end
 
 source ~/.aliases
 
