@@ -1,0 +1,18 @@
+#!/bin/bash
+# Prompt for a query via walker, then open it as a search in the default browser.
+# Usage: web-search <engine>
+# Engines: google, youtube
+engine="$1"
+case "$engine" in
+  google)  url_tmpl="https://www.google.com/search?q=%s"; label="Google" ;;
+  youtube) url_tmpl="https://www.youtube.com/results?search_query=%s"; label="YouTube" ;;
+  *) echo "unknown engine: $engine" >&2; exit 1 ;;
+esac
+
+query=$(echo | walker -d -I -p "Search $label") || exit 0
+query=$(echo -n "$query" | tr -d '\n')
+[ -z "$query" ] && exit 0
+
+encoded=$(jq -sRr @uri <<<"$query")
+url=$(printf "$url_tmpl" "$encoded")
+omarchy-launch-browser "$url"

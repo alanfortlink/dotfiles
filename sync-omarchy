@@ -1,0 +1,81 @@
+#!/bin/bash
+# Sync the live omarchy/system config from $HOME into this repo.
+# Run from anywhere; the repo location is derived from this script's path.
+set -euo pipefail
+
+REPO="$(cd "$(dirname "$0")" && pwd)"
+
+CONFIG_DIRS=(
+  alacritty
+  btop
+  fastfetch
+  ghostty
+  hypr
+  kitty
+  lazygit
+  mako
+  swayosd
+  walker
+  waybar
+)
+
+CONFIG_FILES=(
+  starship.toml
+)
+
+BIN_SCRIPTS=(
+  quit-app
+  web-search
+)
+
+HOME_FILES=(
+  .bashrc
+)
+
+RSYNC_EXCLUDES=(
+  --exclude='*.bak*'
+  --exclude='*.bak.*'
+  --exclude='config.bak-*'
+)
+
+mkdir -p "$REPO/omarchy/bin"
+
+for d in "${CONFIG_DIRS[@]}"; do
+  src="$HOME/.config/$d"
+  dst="$REPO/omarchy/$d"
+  if [ -d "$src" ]; then
+    mkdir -p "$dst"
+    rsync -a --delete "${RSYNC_EXCLUDES[@]}" "$src/" "$dst/"
+    echo "  config/$d"
+  fi
+done
+
+for f in "${CONFIG_FILES[@]}"; do
+  src="$HOME/.config/$f"
+  dst="$REPO/omarchy/$f"
+  if [ -f "$src" ]; then
+    cp "$src" "$dst"
+    echo "  config/$f"
+  fi
+done
+
+for s in "${BIN_SCRIPTS[@]}"; do
+  src="$HOME/.local/bin/$s"
+  dst="$REPO/omarchy/bin/$s"
+  if [ -f "$src" ]; then
+    cp "$src" "$dst"
+    echo "  bin/$s"
+  fi
+done
+
+for f in "${HOME_FILES[@]}"; do
+  src="$HOME/$f"
+  dst="$REPO/$f"
+  if [ -f "$src" ]; then
+    cp "$src" "$dst"
+    echo "  $f"
+  fi
+done
+
+echo
+echo "Done. Review with: git -C \"$REPO\" status"

@@ -1,0 +1,12 @@
+#!/bin/bash
+# Quit all windows of the focused app's class (macOS Cmd+Q analogue).
+class=$(hyprctl activewindow -j | jq -r '.class')
+[ -z "$class" ] || [ "$class" = "null" ] && exit 0
+
+choice=$(printf "No\nYes" | walker --dmenu -p "Quit ${class}?")
+[ "$choice" = "Yes" ] || exit 0
+
+hyprctl clients -j \
+  | jq -r --arg c "$class" '.[] | select(.class == $c) | .pid' \
+  | sort -u \
+  | xargs -r kill

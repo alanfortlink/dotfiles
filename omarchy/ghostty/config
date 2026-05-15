@@ -1,0 +1,21 @@
+# Dynamic theme colors from omarchy (overrides hardcoded theme below)
+config-file = ?"~/.config/omarchy/current/theme/ghostty.conf"
+
+font-family = PragmataPro Mono Liga
+font-style = Regular
+font-thicken = true
+font-size = 12
+
+background = "#000000"
+background-opacity = 0.8
+background-blur-radius = 100
+macos-titlebar-style = tabs
+theme = "3024 Night"
+
+# All opt+/M- pane and split bindings are owned by tmux (see ~/.tmux.conf).
+# Only non-conflicting clipboard binds remain here.
+keybind = shift+insert=paste_from_clipboard
+keybind = control+insert=copy_to_clipboard
+
+window-save-state = "always"
+shell-integration = "zsh"
