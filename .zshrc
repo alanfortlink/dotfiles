@@ -42,6 +42,16 @@ antigen apply
 
 set -o vi
 
+# Vi-mode default kills Ctrl+L clear-screen; put it back in both keymaps.
+bindkey -M viins '^L' clear-screen
+bindkey -M vicmd '^L' clear-screen
+
+# Ctrl+P/Ctrl+N for history (emacs-style), in both vi keymaps.
+bindkey -M viins '^P' up-line-or-history
+bindkey -M viins '^N' down-line-or-history
+bindkey -M vicmd '^P' up-line-or-history
+bindkey -M vicmd '^N' down-line-or-history
+
 source ~/.aliases
 
 # The next line updates PATH for the Google Cloud SDK.
@@ -49,3 +59,5 @@ if [ -f '/Users/alan/repos/quiz_server/temp/google-cloud-sdk/path.zsh.inc' ]; th
 
 # The next line enables shell command completion for gcloud.
 if [ -f '/Users/alan/repos/quiz_server/temp/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/alan/repos/quiz_server/temp/google-cloud-sdk/completion.zsh.inc'; fi
+
+source ~/.aliases
