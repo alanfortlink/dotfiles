@@ -34,5 +34,7 @@ alias ll='ls -lh'
 alias lla='ls -lah'
 alias ufbt="python3 -m ufbt"
 
-bindkey "^P" history-beginning-search-backward
-bindkey "^N" history-beginning-search-forward
+if [ -n "$ZSH_VERSION" ]; then
+  bindkey "^P" history-beginning-search-backward
+  bindkey "^N" history-beginning-search-forward
+fi
