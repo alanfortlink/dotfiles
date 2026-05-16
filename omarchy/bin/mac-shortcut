@@ -1,0 +1,26 @@
+#!/bin/bash
+# Translate an Alt+<token> press into the right Ctrl(+Shift)+<key> for the
+# focused window. Per-(app, token) routing table below.
+# Token examples: N, T, W, R, L, C, V, Shift+T, 0..9
+arg="$1"
+shift
+class=$(hyprctl activewindow -j | jq -r '.class // ""')
+echo "$(date +%H:%M:%S) class=$class arg=$arg" >> /tmp/mac-shortcut.log
+
+send()     { hyprctl dispatch sendshortcut "$1,$2,activewindow"; }
+fallback() { [ $# -gt 0 ] && hyprctl dispatch "$@"; }
+
+case "$class:$arg" in
+  google-chrome:N|google-chrome:T|google-chrome:W|google-chrome:R|google-chrome:L|\
+  google-chrome:0|google-chrome:1|google-chrome:2|google-chrome:3|google-chrome:4|\
+  google-chrome:5|google-chrome:6|google-chrome:7|google-chrome:8|google-chrome:9)
+    send "CTRL" "$arg" ;;
+  google-chrome:Shift+T)
+    send "CTRL SHIFT" "T" ;;
+  com.mitchellh.ghostty:W)
+    send "CTRL" "W" ;;
+  com.mitchellh.ghostty:N|com.mitchellh.ghostty:T|com.mitchellh.ghostty:C|com.mitchellh.ghostty:V)
+    send "CTRL SHIFT" "$arg" ;;
+  *)
+    fallback "$@" ;;
+esac

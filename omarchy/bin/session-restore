@@ -1,0 +1,40 @@
+#!/bin/bash
+# Restore a Hyprland window session via hyprflow.
+# Closes all currently-open windows first, then restores from scratch.
+
+sessions=$(hyprflow list 2>/dev/null | awk '/^[[:space:]]+[^[:space:]]/{print $1}')
+if [ -z "$sessions" ]; then
+  notify-send -u low "No saved sessions" "Use 'Save Session' first."
+  exit 0
+fi
+
+count=$(echo "$sessions" | wc -l)
+if [ "$count" -eq 1 ]; then
+  name="$sessions"
+else
+  name=$(echo "$sessions" | walker --dmenu -p "Restore which session?")
+  [ -z "$name" ] && exit 0
+fi
+
+choice=$(printf "No\nYes" | walker --dmenu -p "Restore '$name'? This closes all open windows.")
+[ "$choice" = "Yes" ] || exit 0
+
+# Close every client window. Use closewindow (graceful); apps with unsaved
+# state may prompt, but that's the user's call.
+addrs=$(hyprctl clients -j 2>/dev/null | jq -r '.[].address')
+for a in $addrs; do
+  hyprctl dispatch closewindow "address:$a" >/dev/null
+done
+
+# Give clients a moment to actually exit before hyprflow walks the tree.
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  remaining=$(hyprctl clients -j 2>/dev/null | jq 'length')
+  [ "$remaining" -eq 0 ] && break
+  sleep 0.2
+done
+
+if hyprflow restore "$name" 2>/tmp/hyprflow-restore.err; then
+  notify-send -u low "Session restored" "Restored '$name'."
+else
+  notify-send -u critical "Session restore failed" "$(cat /tmp/hyprflow-restore.err)"
+fi

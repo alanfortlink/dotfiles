@@ -2,6 +2,7 @@ return
 {
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
+    branch = 'master',
     build = ':TSUpdate',
     opts = {
       ensure_installed = {},
@@ -20,6 +21,7 @@ return
 
   {
     "nvim-treesitter/nvim-treesitter-textobjects",
+    branch = 'master',
     lazy = false,
     config = function()
       require 'nvim-treesitter.configs'.setup {

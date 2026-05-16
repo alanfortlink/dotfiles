@@ -1,10 +1,11 @@
 #!/bin/bash
-# Sync the live omarchy/system config from $HOME into this repo.
+# Sync the live system config from $HOME into this repo.
 # Run from anywhere; the repo location is derived from this script's path.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")" && pwd)"
 
+# ~/.config/<dir>  ->  repo/omarchy/<dir>
 CONFIG_DIRS=(
   alacritty
   btop
@@ -19,17 +20,33 @@ CONFIG_DIRS=(
   waybar
 )
 
+# ~/.config/<file>  ->  repo/omarchy/<file>
 CONFIG_FILES=(
   starship.toml
 )
 
+# ~/.local/bin/<script>  ->  repo/omarchy/bin/<script>
 BIN_SCRIPTS=(
+  codex
+  copilot
+  gemini
+  ghui
+  mac-shortcut
+  opencode
+  pi
+  playwright-cli
   quit-app
+  session-restore
+  session-save
+  weather-icon-temp
   web-search
 )
 
+# ~/<file>  ->  repo/<file>
 HOME_FILES=(
+  .aliases
   .bashrc
+  .tmux.conf
 )
 
 RSYNC_EXCLUDES=(
@@ -53,7 +70,7 @@ done
 for f in "${CONFIG_FILES[@]}"; do
   src="$HOME/.config/$f"
   dst="$REPO/omarchy/$f"
-  if [ -f "$src" ]; then
+  if [ -f "$src" ] && ! [ "$src" -ef "$dst" ]; then
     cp "$src" "$dst"
     echo "  config/$f"
   fi
@@ -62,7 +79,7 @@ done
 for s in "${BIN_SCRIPTS[@]}"; do
   src="$HOME/.local/bin/$s"
   dst="$REPO/omarchy/bin/$s"
-  if [ -f "$src" ]; then
+  if [ -f "$src" ] && ! [ "$src" -ef "$dst" ]; then
     cp "$src" "$dst"
     echo "  bin/$s"
   fi
@@ -71,11 +88,32 @@ done
 for f in "${HOME_FILES[@]}"; do
   src="$HOME/$f"
   dst="$REPO/$f"
-  if [ -f "$src" ]; then
+  if [ -f "$src" ] && ! [ "$src" -ef "$dst" ]; then
     cp "$src" "$dst"
     echo "  $f"
   fi
 done
+
+# nvim: ~/.config/nvim  ->  repo/nvim
+if [ -d "$HOME/.config/nvim" ]; then
+  mkdir -p "$REPO/nvim"
+  rsync -a --delete "${RSYNC_EXCLUDES[@]}" "$HOME/.config/nvim/" "$REPO/nvim/"
+  echo "  nvim/"
+fi
+
+# claude: only durable user content (no secrets, sessions, history, caches)
+if [ -d "$HOME/.claude" ]; then
+  mkdir -p "$REPO/claude"
+  rsync -a --delete \
+    --include='CLAUDE.md' \
+    --include='settings.json' \
+    --include='skills/***' \
+    --include='agents/***' \
+    --include='commands/***' \
+    --exclude='*' \
+    "$HOME/.claude/" "$REPO/claude/"
+  echo "  claude/"
+fi
 
 echo
 echo "Done. Review with: git -C \"$REPO\" status"

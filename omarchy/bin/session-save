@@ -1,0 +1,26 @@
+#!/bin/bash
+# Save current Hyprland window session via hyprflow.
+# Prompts for a name. If one already exists, the old one is copied to
+# <name>_<timestamp>.json as a backup before being overwritten.
+
+sessions_dir="$HOME/.local/share/hyprflow/sessions"
+
+# Offer existing names as suggestions; user can also type a fresh one.
+existing=$(ls "$sessions_dir" 2>/dev/null | sed -n 's/\.json$//p')
+name=$(printf "%s\n" "$existing" | walker --dmenu -p "Save session as…")
+[ -z "$name" ] && exit 0
+
+# Strip whitespace and reject empty/path-traversing names.
+name=$(echo "$name" | tr -d '[:space:]/')
+[ -z "$name" ] && exit 0
+
+if [ -f "$sessions_dir/$name.json" ]; then
+  ts=$(date +%Y-%m-%d_%H-%M-%S)
+  cp -a "$sessions_dir/$name.json" "$sessions_dir/${name}_${ts}.json"
+fi
+
+if hyprflow save -f "$name" 2>/tmp/hyprflow-save.err; then
+  notify-send -u low "Session saved" "Saved as '$name'."
+else
+  notify-send -u critical "Session save failed" "$(cat /tmp/hyprflow-save.err)"
+fi

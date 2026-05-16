@@ -1,0 +1,12 @@
+#!/bin/bash
+# Waybar custom module: weather icon + temperature.
+icon=$(omarchy-weather-icon 2>/dev/null)
+temp=$(curl -fsS --max-time 4 "https://wttr.in?format=%t" 2>/dev/null | tr -d '+\n ')
+
+if [[ -n $icon && -n $temp ]]; then
+  printf '{"text":"%s %s"}\n' "$icon" "$temp"
+elif [[ -n $icon ]]; then
+  printf '{"text":"%s"}\n' "$icon"
+else
+  printf '{"text":"","class":"unavailable"}\n'
+fi

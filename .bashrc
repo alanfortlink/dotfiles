@@ -19,11 +19,11 @@ set -o vi
 bind -m vi-insert '"\C-l": clear-screen'
 bind -m vi-command '"\C-l": clear-screen'
 
-# Ctrl+P/Ctrl+N for history (emacs-style), in both vi keymaps.
-bind -m vi-insert '"\C-p": previous-history'
-bind -m vi-insert '"\C-n": next-history'
-bind -m vi-command '"\C-p": previous-history'
-bind -m vi-command '"\C-n": next-history'
+# Ctrl+P/Ctrl+N: prefix-search history (matches what's typed before the cursor).
+bind -m vi-insert '"\C-p": history-search-backward'
+bind -m vi-insert '"\C-n": history-search-forward'
+bind -m vi-command '"\C-p": history-search-backward'
+bind -m vi-command '"\C-n": history-search-forward'
 
 # zoxide: autojump replacement. `j <substring>` to jump, `ji` for interactive fzf pick.
 eval "$(zoxide init bash --cmd j)"
