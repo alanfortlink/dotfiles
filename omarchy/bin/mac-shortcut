@@ -7,6 +7,13 @@ shift
 class=$(hyprctl activewindow -j | jq -r '.class // ""')
 echo "$(date +%H:%M:%S) class=$class arg=$arg" >> /tmp/mac-shortcut.log
 
+is_terminal() {
+  case "$1" in
+    com.mitchellh.ghostty|Alacritty|kitty|foot|WezTerm|wezterm|org.wezfurlong.wezterm) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 send()     { hyprctl dispatch sendshortcut "$1,$2,activewindow"; }
 fallback() { [ $# -gt 0 ] && hyprctl dispatch "$@"; }
 
@@ -19,8 +26,19 @@ case "$class:$arg" in
     send "CTRL SHIFT" "T" ;;
   com.mitchellh.ghostty:W)
     send "CTRL" "W" ;;
-  com.mitchellh.ghostty:N|com.mitchellh.ghostty:T|com.mitchellh.ghostty:C|com.mitchellh.ghostty:V)
+  com.mitchellh.ghostty:N|com.mitchellh.ghostty:T)
     send "CTRL SHIFT" "$arg" ;;
   *)
-    fallback "$@" ;;
+    case "$arg" in
+      C|V)
+        if is_terminal "$class"; then
+          send "CTRL SHIFT" "$arg"
+        else
+          send "CTRL" "$arg"
+        fi
+        ;;
+      *)
+        fallback "$@" ;;
+    esac
+    ;;
 esac

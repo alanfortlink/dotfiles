@@ -1,53 +1,19 @@
 #!/bin/bash
-# Sync the live system config from $HOME into this repo.
-# Run from anywhere; the repo location is derived from this script's path.
+# Sync live system config from $HOME into this repo.
+# Self-discovering: anything already tracked in the repo gets refreshed.
+# To start tracking something new, copy it into the repo once; this script
+# will keep it in sync from then on.
+#
+# Discovery rules:
+#   repo/omarchy/<dir>            <- ~/.config/<dir>           (rsync mirror)
+#   repo/omarchy/<file>           <- ~/.config/<file>          (cp)
+#   repo/omarchy/bin/<script>     <- ~/.local/bin/<script>     (cp)
+#   repo/<.dotfile>               <- ~/<.dotfile>              (cp)
+#   repo/nvim/                    <- ~/.config/nvim/           (rsync mirror)
+#   repo/claude/                  <- ~/.claude/ (curated subset)
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")" && pwd)"
-
-# ~/.config/<dir>  ->  repo/omarchy/<dir>
-CONFIG_DIRS=(
-  alacritty
-  btop
-  fastfetch
-  ghostty
-  hypr
-  kitty
-  lazygit
-  mako
-  swayosd
-  walker
-  waybar
-)
-
-# ~/.config/<file>  ->  repo/omarchy/<file>
-CONFIG_FILES=(
-  starship.toml
-)
-
-# ~/.local/bin/<script>  ->  repo/omarchy/bin/<script>
-BIN_SCRIPTS=(
-  codex
-  copilot
-  gemini
-  ghui
-  mac-shortcut
-  opencode
-  pi
-  playwright-cli
-  quit-app
-  session-restore
-  session-save
-  weather-icon-temp
-  web-search
-)
-
-# ~/<file>  ->  repo/<file>
-HOME_FILES=(
-  .aliases
-  .bashrc
-  .tmux.conf
-)
 
 RSYNC_EXCLUDES=(
   --exclude='*.bak*'
@@ -55,55 +21,60 @@ RSYNC_EXCLUDES=(
   --exclude='config.bak-*'
 )
 
-mkdir -p "$REPO/omarchy/bin"
+mirror_dir() { # src dst label
+  rsync -a --delete "${RSYNC_EXCLUDES[@]}" "$1/" "$2/"
+  echo "  $3"
+}
 
-for d in "${CONFIG_DIRS[@]}"; do
-  src="$HOME/.config/$d"
-  dst="$REPO/omarchy/$d"
-  if [ -d "$src" ]; then
-    mkdir -p "$dst"
-    rsync -a --delete "${RSYNC_EXCLUDES[@]}" "$src/" "$dst/"
-    echo "  config/$d"
-  fi
-done
+copy_file() { # src dst label
+  [ "$1" -ef "$2" ] && return 0
+  cp "$1" "$2"
+  echo "  $3"
+}
 
-for f in "${CONFIG_FILES[@]}"; do
-  src="$HOME/.config/$f"
-  dst="$REPO/omarchy/$f"
-  if [ -f "$src" ] && ! [ "$src" -ef "$dst" ]; then
-    cp "$src" "$dst"
-    echo "  config/$f"
-  fi
-done
-
-for s in "${BIN_SCRIPTS[@]}"; do
-  src="$HOME/.local/bin/$s"
-  dst="$REPO/omarchy/bin/$s"
-  if [ -f "$src" ] && ! [ "$src" -ef "$dst" ]; then
-    cp "$src" "$dst"
-    echo "  bin/$s"
-  fi
-done
-
-for f in "${HOME_FILES[@]}"; do
-  src="$HOME/$f"
-  dst="$REPO/$f"
-  if [ -f "$src" ] && ! [ "$src" -ef "$dst" ]; then
-    cp "$src" "$dst"
-    echo "  $f"
-  fi
-done
-
-# nvim: ~/.config/nvim  ->  repo/nvim
-if [ -d "$HOME/.config/nvim" ]; then
-  mkdir -p "$REPO/nvim"
-  rsync -a --delete "${RSYNC_EXCLUDES[@]}" "$HOME/.config/nvim/" "$REPO/nvim/"
-  echo "  nvim/"
+# ~/.config/<name>  ->  repo/omarchy/<name>  (skip bin/)
+if [ -d "$REPO/omarchy" ]; then
+  for entry in "$REPO/omarchy"/*; do
+    [ -e "$entry" ] || continue
+    name="$(basename "$entry")"
+    [ "$name" = "bin" ] && continue
+    src="$HOME/.config/$name"
+    if [ -d "$entry" ] && [ -d "$src" ]; then
+      mirror_dir "$src" "$entry" "config/$name"
+    elif [ -f "$entry" ] && [ -f "$src" ]; then
+      copy_file "$src" "$entry" "config/$name"
+    fi
+  done
 fi
 
-# claude: only durable user content (no secrets, sessions, history, caches)
-if [ -d "$HOME/.claude" ]; then
-  mkdir -p "$REPO/claude"
+# ~/.local/bin/<name>  ->  repo/omarchy/bin/<name>
+if [ -d "$REPO/omarchy/bin" ]; then
+  for entry in "$REPO/omarchy/bin"/*; do
+    [ -f "$entry" ] || continue
+    name="$(basename "$entry")"
+    src="$HOME/.local/bin/$name"
+    [ -f "$src" ] && copy_file "$src" "$entry" "bin/$name"
+  done
+fi
+
+# ~/<.dotfile>  ->  repo/<.dotfile>
+shopt -s dotglob nullglob
+for entry in "$REPO"/.*; do
+  name="$(basename "$entry")"
+  case "$name" in .|..|.git|.gitignore|.gitattributes|.github) continue ;; esac
+  [ -f "$entry" ] || continue
+  src="$HOME/$name"
+  [ -f "$src" ] && copy_file "$src" "$entry" "$name"
+done
+shopt -u dotglob nullglob
+
+# nvim: ~/.config/nvim  ->  repo/nvim
+if [ -d "$REPO/nvim" ] && [ -d "$HOME/.config/nvim" ]; then
+  mirror_dir "$HOME/.config/nvim" "$REPO/nvim" "nvim/"
+fi
+
+# claude: durable user content only (no secrets, sessions, history, caches)
+if [ -d "$REPO/claude" ] && [ -d "$HOME/.claude" ]; then
   rsync -a --delete \
     --include='CLAUDE.md' \
     --include='settings.json' \
