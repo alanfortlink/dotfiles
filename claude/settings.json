@@ -198,8 +198,7 @@
       "Bash(git clean -f*)",
       "Bash(git clean -fd*)",
       "Bash(git checkout -- *)",
-      "Bash(git restore --staged --worktree*)",
-      "Bash(:(){ :|:& };:)"
+      "Bash(git restore --staged --worktree*)"
     ]
   }
 }

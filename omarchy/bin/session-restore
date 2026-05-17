@@ -1,39 +1,103 @@
 #!/bin/bash
 # Restore a Hyprland window session via hyprflow.
 # Closes all currently-open windows first, then restores from scratch.
+#
+# hyprflow records the window class as the launch command, which fails for
+# reverse-DNS app IDs (com.mitchellh.ghostty, org.omarchy.nvim, Chrome PWAs,
+# etc). We rewrite launch.command/args in a temp copy before restoring.
 
-sessions=$(hyprflow list 2>/dev/null | awk '/^[[:space:]]+[^[:space:]]/{print $1}')
-if [ -z "$sessions" ]; then
+set -euo pipefail
+
+sessions_dir="$HOME/.local/share/hyprflow/sessions"
+
+# Map a window class to an argv JSON array. Add cases as new apps come up.
+resolve_argv() {
+  local class="$1"
+  case "$class" in
+    com.mitchellh.ghostty)             echo '["ghostty"]' ;;
+    org.telegram.desktop)              echo '["telegram-desktop"]' ;;
+    io.github.nozwock.Packet)          echo '["packet"]' ;;
+    org.omarchy.nvim)                  echo '["omarchy-launch-editor"]' ;;
+    org.omarchy.terminal)              echo '["xdg-terminal-exec","--app-id=org.omarchy.terminal"]' ;;
+    chrome-web.whatsapp.com__-Default) echo '["omarchy-launch-webapp","https://web.whatsapp.com/"]' ;;
+    chrome-web.*__-Default)
+      local d="${class#chrome-web.}"; d="${d%%__-Default}"
+      printf '["omarchy-launch-webapp","https://%s/"]\n' "$d"
+      ;;
+    *)
+      # Fallback: pass class through. Works if it happens to be a binary.
+      printf '["%s"]\n' "$class"
+      ;;
+  esac
+}
+
+if [ ! -d "$sessions_dir" ]; then
   notify-send -u low "No saved sessions" "Use 'Save Session' first."
   exit 0
 fi
 
-count=$(echo "$sessions" | wc -l)
-if [ "$count" -eq 1 ]; then
-  name="$sessions"
+# List session files directly. hyprflow list collapses backups by name field.
+mapfile -t files < <(find "$sessions_dir" -maxdepth 1 -name '*.json' -not -name '.restore-tmp-*.json' -printf '%f\n' | sort)
+if [ "${#files[@]}" -eq 0 ]; then
+  notify-send -u low "No saved sessions" "Use 'Save Session' first."
+  exit 0
+fi
+
+if [ "${#files[@]}" -eq 1 ]; then
+  name="${files[0]%.json}"
 else
-  name=$(echo "$sessions" | walker --dmenu -p "Restore which session?")
+  name=$(printf '%s\n' "${files[@]}" | sed 's/\.json$//' | walker --dmenu -p "Restore which session?")
   [ -z "$name" ] && exit 0
 fi
+
+src="$sessions_dir/$name.json"
+[ -f "$src" ] || { notify-send -u critical "Session not found" "$name.json"; exit 1; }
 
 choice=$(printf "No\nYes" | walker --dmenu -p "Restore '$name'? This closes all open windows.")
 [ "$choice" = "Yes" ] || exit 0
 
-# Close every client window. Use closewindow (graceful); apps with unsaved
-# state may prompt, but that's the user's call.
+# Stage a rewritten session in the same dir so `hyprflow restore` finds it.
+tmp_name=".restore-tmp-$$-$(date +%s)"
+tmp_file="$sessions_dir/$tmp_name.json"
+map_file="$sessions_dir/$tmp_name.map"
+trap 'rm -f "$tmp_file" "$map_file"' EXIT
+
+# Build a class → argv lookup as a JSON object.
+{
+  echo '{'
+  first=1
+  while IFS= read -r c; do
+    [ -z "$c" ] && continue
+    argv=$(resolve_argv "$c")
+    if [ $first -eq 1 ]; then first=0; else printf ',\n'; fi
+    printf '  %s: %s' "$(jq -nc --arg k "$c" '$k')" "$argv"
+  done < <(jq -r '.clients[].class' "$src" | sort -u)
+  printf '\n}\n'
+} > "$map_file"
+
+jq --slurpfile m "$map_file" --arg n "$tmp_name" '
+  .name = $n |
+  .clients |= map(
+    ($m[0][.class] // [.class]) as $argv
+    | .launch.command = $argv[0]
+    | .launch.args    = ($argv[1:])
+  )
+' "$src" > "$tmp_file"
+
+# Close every client window. Graceful; apps with unsaved state may prompt.
 addrs=$(hyprctl clients -j 2>/dev/null | jq -r '.[].address')
 for a in $addrs; do
   hyprctl dispatch closewindow "address:$a" >/dev/null
 done
 
-# Give clients a moment to actually exit before hyprflow walks the tree.
+# Wait briefly for clients to exit before hyprflow walks the tree.
 for _ in 1 2 3 4 5 6 7 8 9 10; do
   remaining=$(hyprctl clients -j 2>/dev/null | jq 'length')
   [ "$remaining" -eq 0 ] && break
   sleep 0.2
 done
 
-if hyprflow restore "$name" 2>/tmp/hyprflow-restore.err; then
+if hyprflow restore "$tmp_name" 2>/tmp/hyprflow-restore.err; then
   notify-send -u low "Session restored" "Restored '$name'."
 else
   notify-send -u critical "Session restore failed" "$(cat /tmp/hyprflow-restore.err)"
