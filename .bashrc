@@ -27,3 +27,10 @@ bind -m vi-command '"\C-n": history-search-forward'
 
 # zoxide: autojump replacement. `j <substring>` to jump, `ji` for interactive fzf pick.
 eval "$(zoxide init bash --cmd j)"
+
+# Unlimited shell history. -1 disables truncation in bash >= 4.3.
+HISTSIZE=-1
+HISTFILESIZE=-1
+HISTTIMEFORMAT='%F %T  '
+# Flush each command to disk immediately so nothing is lost on crash/poweroff.
+PROMPT_COMMAND="history -a${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
