@@ -40,10 +40,14 @@ require("lazy").setup({
 			opts = {},
 			dependencies = { "nvim-tree/nvim-web-devicons" },
 		},
-		{ "alanfortlink/blackjack.nvim", opts = {
-			card_style = "large",
-			suit_style = "black",
-		} },
+		{
+			dir = "/home/tank/repos/blackjack.nvim",
+			name = "blackjack.nvim",
+			opts = {
+				card_style = "large",
+				suit_style = "black",
+			},
+		},
 		{ "danymat/neogen", config = true },
 		-- {
 		--   "m4xshen/hardtime.nvim",

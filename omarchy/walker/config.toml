@@ -25,6 +25,21 @@ desktopapplications = [
   { action = "pinup", bind = "F23", after = "AsyncReload" },
   { action = "pindown", bind = "F22", after = "AsyncReload" },
 ]
+clipboard = [
+  { action = "copy", default = true, bind = "Return" },
+  { action = "remove", bind = "ctrl d", after = "AsyncClearReload" },
+  { action = "remove_all", label = "clear", bind = "ctrl shift d", after = "AsyncClearReload" },
+  { action = "show_images_only", label = "only images", bind = "ctrl i", after = "AsyncClearReload" },
+  { action = "show_text_only", label = "only text", bind = "ctrl i", after = "AsyncClearReload" },
+  { action = "show_combined", label = "show all", bind = "ctrl i", after = "AsyncClearReload" },
+  { action = "pause", bind = "ctrl shift p" },
+  { action = "unpause", bind = "ctrl shift p" },
+  # rebind pin/unpin off ctrl+p so it doesn't hijack previous-item navigation
+  { action = "unpin", bind = "F24", after = "AsyncClearReload" },
+  { action = "pin", bind = "F24", after = "AsyncClearReload" },
+  { action = "edit", bind = "ctrl o" },
+  { action = "localsend", bind = "ctrl l" },
+]
 
 [columns]
 symbols = 1 # providers to be queried by default
