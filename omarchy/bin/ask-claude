@@ -1,0 +1,8 @@
+#!/bin/bash
+# Pop a walker prompt and launch claude with the typed text in a new terminal.
+set -euo pipefail
+
+prompt=$(: | walker --dmenu --inputonly --placeholder "Ask Claude…" --width 720 2>/dev/null) || exit 0
+[ -z "$prompt" ] && exit 0
+
+setsid uwsm-app -- ghostty --class=claude-ask -e claude "$prompt" >/dev/null 2>&1 &

@@ -1,0 +1,15 @@
+#!/bin/bash
+# hypr-stash-restore: bring every window from special:stash back to the
+# current workspace. Pairs with hypr-fill.
+set -euo pipefail
+
+WS_NAME=$(hyprctl activeworkspace -j | jq -r '.name')
+addrs=$(hyprctl clients -j | jq -r '.[] | select(.workspace.name == "special:stash") | .address')
+
+count=0
+for a in $addrs; do
+  hyprctl dispatch movetoworkspacesilent "name:$WS_NAME,address:$a" >/dev/null
+  count=$((count + 1))
+done
+
+notify-send -t 1500 "hypr-fill" "Restored $count window(s) from stash"

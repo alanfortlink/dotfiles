@@ -1,0 +1,45 @@
+#!/bin/bash
+# gif-captioner launcher. Ensures a Giphy API key, then opens the TUI in a
+# floating terminal window. On omarchy/Hyprland it uses the standard
+# omarchy-launch-or-focus-tui chain; on plain systems it falls back to
+# xdg-terminal-exec → ghostty.
+set -euo pipefail
+
+CFG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/gif-captioner"
+CFG="$CFG_DIR/config"
+FONT="/usr/share/fonts/liberation/LiberationSans-Bold.ttf"
+
+notify() {
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send "gif-captioner" "$@"
+  else
+    printf 'gif-captioner: %s\n' "$*" >&2
+  fi
+}
+
+if [ ! -f "$FONT" ]; then
+  notify "Missing font: $FONT (install ttf-liberation)"
+  exit 1
+fi
+
+mkdir -p "$CFG_DIR"
+if [ ! -f "$CFG" ]; then
+  key=""
+  if command -v walker >/dev/null 2>&1; then
+    key=$(echo | walker -d -I -p "Giphy API key (developers.giphy.com)" 2>/dev/null) || true
+    key=$(printf '%s' "${key:-}" | tr -d '\n[:space:]')
+  fi
+  if [ -z "$key" ]; then
+    notify "No Giphy API key. Put one in $CFG: GIPHY_KEY=..."
+    exit 1
+  fi
+  ( umask 077 && printf 'GIPHY_KEY=%s\n' "$key" > "$CFG" )
+fi
+
+if command -v omarchy-launch-or-focus-tui >/dev/null 2>&1; then
+  exec omarchy-launch-or-focus-tui gif-captioner-tui
+elif command -v xdg-terminal-exec >/dev/null 2>&1; then
+  exec setsid xdg-terminal-exec --app-id=org.omarchy.gif-captioner-tui -e gif-captioner-tui
+else
+  exec gif-captioner-tui
+fi

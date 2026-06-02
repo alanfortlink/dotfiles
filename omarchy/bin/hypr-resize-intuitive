@@ -1,0 +1,54 @@
+#!/bin/bash
+# Intuitive resize for Hyprland dwindle.
+#
+# Hyprland's `resizeactive +X 0` means "move the parent H-split divider right
+# by X". When the active window is in the *right* subtree of that split, that
+# shrinks the active instead of growing it — which feels backwards.
+#
+# This script always grows/shrinks the active window in the requested
+# direction by detecting Hyprland's response and compensating when needed.
+#
+# Usage: hypr-resize-intuitive <wider|narrower|taller|shorter> [pixels]
+set -euo pipefail
+
+DIR="$1"
+PX="${2:-100}"
+
+active_size() {
+  hyprctl activewindow -j | jq -r '"\(.size[0]) \(.size[1])"'
+}
+
+apply() {
+  hyprctl dispatch resizeactive "$1" "$2" >/dev/null
+}
+
+case "$DIR" in
+  wider)     want_dx=$PX;        want_dy=0 ;;
+  narrower)  want_dx=$((-PX));   want_dy=0 ;;
+  taller)    want_dx=0;          want_dy=$PX ;;
+  shorter)   want_dx=0;          want_dy=$((-PX)) ;;
+  *)
+    echo "Usage: $(basename "$0") <wider|narrower|taller|shorter> [pixels]" >&2
+    exit 2
+    ;;
+esac
+
+read bw bh < <(active_size)
+apply "$want_dx" "$want_dy"
+read aw ah < <(active_size)
+diff_x=$((aw - bw))
+diff_y=$((ah - bh))
+
+# If Hyprland's response went opposite the intent, the active window's parent
+# split has the divider on the "wrong" side. Compensate so the net change is
+# `want_d{x,y}`.
+fix_x=0; fix_y=0
+if [ "$want_dx" -ne 0 ] && [ "$diff_x" -ne "$want_dx" ]; then
+  fix_x=$(( -(want_dx - diff_x) ))
+fi
+if [ "$want_dy" -ne 0 ] && [ "$diff_y" -ne "$want_dy" ]; then
+  fix_y=$(( -(want_dy - diff_y) ))
+fi
+if [ "$fix_x" -ne 0 ] || [ "$fix_y" -ne 0 ]; then
+  apply "$fix_x" "$fix_y"
+fi

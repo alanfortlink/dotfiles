@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# hypr-window-rearrange DIR
+#
+# Rearrange the focused window in direction DIR (l/r/u/d).
+# Tries `swapwindow` first (swap with adjacent neighbor — predictable, no
+# tree rewrite). If the window didn't actually move (no neighbor in that
+# direction), falls back to `movewindow` to re-parent across split boundaries.
+
+DIR=${1:?usage: hypr-window-rearrange l|r|u|d}
+
+w=$(hyprctl activewindow -j)
+addr=$(jq -r '.address' <<<"$w")
+[[ -z $addr || $addr == null ]] && exit 0
+
+before_at=$(jq -c '.at' <<<"$w")
+
+hyprctl dispatch swapwindow "$DIR" >/dev/null
+
+after_at=$(hyprctl clients -j | jq -c --arg a "$addr" '.[] | select(.address==$a) | .at')
+
+if [[ $before_at == "$after_at" ]]; then
+  hyprctl dispatch movewindow "$DIR" >/dev/null
+fi

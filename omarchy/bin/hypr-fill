@@ -1,0 +1,74 @@
+#!/bin/bash
+# hypr-fill: make the active window fill its column or row by stashing every
+# other tiled window that shares the same column (X-axis overlap) or row
+# (Y-axis overlap). Stashed windows go to a special:stash workspace so they
+# can be brought back with `hypr-stash-restore`.
+#
+# Uses geometric overlap on the workspace, not the dwindle tree — so it
+# catches every window in the column/row regardless of where it sits in the
+# tree (including across multiple parent splits).
+#
+# Usage: hypr-fill column|row [overlap-percent]
+#   column: stash every window whose X range overlaps the active's by ≥overlap%
+#   row:    stash every window whose Y range overlaps the active's by ≥overlap%
+#   overlap-percent default = 50
+
+set -euo pipefail
+
+AXIS="${1:-}"
+MIN_PCT="${2:-50}"
+STASH="special:stash"
+
+case "$AXIS" in
+  column|row) ;;
+  *)
+    echo "Usage: $(basename "$0") column|row [overlap-percent]" >&2
+    exit 2
+    ;;
+esac
+
+active=$(hyprctl activewindow -j)
+[[ -z $active || $active == "{}" ]] && { echo "no active window" >&2; exit 1; }
+addr=$(jq -r '.address' <<<"$active")
+ax=$(jq -r '.at[0]'   <<<"$active")
+ay=$(jq -r '.at[1]'   <<<"$active")
+aw=$(jq -r '.size[0]' <<<"$active")
+ah=$(jq -r '.size[1]' <<<"$active")
+ws=$(jq -r '.workspace.id' <<<"$active")
+
+if [[ "$AXIS" = "column" ]]; then
+  # Find every tiled window on the same workspace whose X range overlaps the
+  # active's X range by ≥ MIN_PCT of the smaller width.
+  mates=$(hyprctl clients -j | jq -r \
+    --arg me "$addr" --argjson ws "$ws" \
+    --argjson ax "$ax" --argjson aw "$aw" --argjson pct "$MIN_PCT" '
+    .[]
+    | select(.floating == false and .workspace.id == $ws and .address != $me)
+    | . as $c
+    | (([$c.at[0]+$c.size[0], $ax+$aw] | min) - ([$c.at[0], $ax] | max)) as $overlap
+    | (([$c.size[0], $aw] | min) * $pct / 100) as $needed
+    | select($overlap >= $needed)
+    | .address')
+else
+  mates=$(hyprctl clients -j | jq -r \
+    --arg me "$addr" --argjson ws "$ws" \
+    --argjson ay "$ay" --argjson ah "$ah" --argjson pct "$MIN_PCT" '
+    .[]
+    | select(.floating == false and .workspace.id == $ws and .address != $me)
+    | . as $c
+    | (([$c.at[1]+$c.size[1], $ay+$ah] | min) - ([$c.at[1], $ay] | max)) as $overlap
+    | (([$c.size[1], $ah] | min) * $pct / 100) as $needed
+    | select($overlap >= $needed)
+    | .address')
+fi
+
+count=0
+for a in $mates; do
+  hyprctl dispatch movetoworkspacesilent "$STASH,address:$a" >/dev/null
+  count=$((count + 1))
+done
+
+# Re-focus the active window in case the stash dispatch moved focus.
+hyprctl dispatch focuswindow "address:$addr" >/dev/null
+
+notify-send -t 1500 "hypr-fill" "Stashed $count window(s) from this $AXIS"

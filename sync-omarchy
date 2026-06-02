@@ -1,90 +1,43 @@
 #!/bin/bash
-# Sync live system config from $HOME into this repo.
-# Self-discovering: anything already tracked in the repo gets refreshed.
-# To start tracking something new, copy it into the repo once; this script
-# will keep it in sync from then on.
-#
-# Discovery rules:
-#   repo/omarchy/<dir>            <- ~/.config/<dir>           (rsync mirror)
-#   repo/omarchy/<file>           <- ~/.config/<file>          (cp)
-#   repo/omarchy/bin/<script>     <- ~/.local/bin/<script>     (cp)
-#   repo/<.dotfile>               <- ~/<.dotfile>              (cp)
-#   repo/nvim/                    <- ~/.config/nvim/           (rsync mirror)
-#   repo/claude/                  <- ~/.claude/ (curated subset)
+# Symlink ~/.config/<x> and ~/.local/bin/<x> to entries in repo/omarchy/.
+# Idempotent. The repo is the source of truth; edits in $HOME hit the repo
+# directly. Existing real files/dirs at the target are moved aside as
+# <target>.pre-link-<ts> before being replaced.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")" && pwd)"
+OUT="$REPO/omarchy"
+TS="$(date +%s)"
 
-RSYNC_EXCLUDES=(
-  --exclude='*.bak*'
-  --exclude='*.bak.*'
-  --exclude='config.bak-*'
-)
-
-mirror_dir() { # src dst label
-  rsync -a --delete "${RSYNC_EXCLUDES[@]}" "$1/" "$2/"
-  echo "  $3"
+link() { # src target
+  local src="$1" target="$2"
+  if [ -L "$target" ] && [ "$(readlink -f "$target")" = "$src" ]; then
+    return 0
+  fi
+  if [ -e "$target" ] || [ -L "$target" ]; then
+    mv "$target" "$target.pre-link-$TS"
+    echo "  moved aside: $target -> $target.pre-link-$TS"
+  fi
+  mkdir -p "$(dirname "$target")"
+  ln -s "$src" "$target"
+  echo "  linked: $target -> $src"
 }
 
-copy_file() { # src dst label
-  [ "$1" -ef "$2" ] && return 0
-  cp "$1" "$2"
-  echo "  $3"
-}
+# ~/.config/<x>  ->  repo/omarchy/<x>   (skip bin/)
+for entry in "$OUT"/*; do
+  name="$(basename "$entry")"
+  [ "$name" = "bin" ] && continue
+  link "$entry" "$HOME/.config/$name"
+done
 
-# ~/.config/<name>  ->  repo/omarchy/<name>  (skip bin/)
-if [ -d "$REPO/omarchy" ]; then
-  for entry in "$REPO/omarchy"/*; do
-    [ -e "$entry" ] || continue
-    name="$(basename "$entry")"
-    [ "$name" = "bin" ] && continue
-    src="$HOME/.config/$name"
-    if [ -d "$entry" ] && [ -d "$src" ]; then
-      mirror_dir "$src" "$entry" "config/$name"
-    elif [ -f "$entry" ] && [ -f "$src" ]; then
-      copy_file "$src" "$entry" "config/$name"
-    fi
-  done
-fi
-
-# ~/.local/bin/<name>  ->  repo/omarchy/bin/<name>
-if [ -d "$REPO/omarchy/bin" ]; then
-  for entry in "$REPO/omarchy/bin"/*; do
+# ~/.local/bin/<x>  ->  repo/omarchy/bin/<x>
+if [ -d "$OUT/bin" ]; then
+  for entry in "$OUT/bin"/*; do
     [ -f "$entry" ] || continue
     name="$(basename "$entry")"
-    src="$HOME/.local/bin/$name"
-    [ -f "$src" ] && copy_file "$src" "$entry" "bin/$name"
+    link "$entry" "$HOME/.local/bin/$name"
   done
-fi
-
-# ~/<.dotfile>  ->  repo/<.dotfile>
-shopt -s dotglob nullglob
-for entry in "$REPO"/.*; do
-  name="$(basename "$entry")"
-  case "$name" in .|..|.git|.gitignore|.gitattributes|.github) continue ;; esac
-  [ -f "$entry" ] || continue
-  src="$HOME/$name"
-  [ -f "$src" ] && copy_file "$src" "$entry" "$name"
-done
-shopt -u dotglob nullglob
-
-# nvim: ~/.config/nvim  ->  repo/nvim
-if [ -d "$REPO/nvim" ] && [ -d "$HOME/.config/nvim" ]; then
-  mirror_dir "$HOME/.config/nvim" "$REPO/nvim" "nvim/"
-fi
-
-# claude: durable user content only (no secrets, sessions, history, caches)
-if [ -d "$REPO/claude" ] && [ -d "$HOME/.claude" ]; then
-  rsync -a --delete \
-    --include='CLAUDE.md' \
-    --include='settings.json' \
-    --include='skills/***' \
-    --include='agents/***' \
-    --include='commands/***' \
-    --exclude='*' \
-    "$HOME/.claude/" "$REPO/claude/"
-  echo "  claude/"
 fi
 
 echo
-echo "Done. Review with: git -C \"$REPO\" status"
+echo "Done. Edits in \$HOME now write directly to the repo."
