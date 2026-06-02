@@ -1,5 +1,4 @@
 {
-  "theme": "dark",
   "permissions": {
     "allow": [
       "Read",
@@ -138,17 +137,6 @@
       "Bash(docker inspect*)",
       "Bash(fc-list*)"
     ],
-    "ask": [
-      "Bash(git commit*)",
-      "Bash(git rebase*)",
-      "Bash(git push*)",
-      "Bash(git reset*)",
-      "Bash(git revert*)",
-      "Bash(git merge*)",
-      "Bash(git cherry-pick*)",
-      "Bash(gh pr create*)",
-      "Bash(gh pr merge*)"
-    ],
     "deny": [
       "Read(~/.ssh/**)",
       "Read(~/.gnupg/**)",
@@ -199,6 +187,21 @@
       "Bash(git clean -fd*)",
       "Bash(git checkout -- *)",
       "Bash(git restore --staged --worktree*)"
-    ]
-  }
+    ],
+    "ask": [
+      "Bash(git commit*)",
+      "Bash(git rebase*)",
+      "Bash(git push*)",
+      "Bash(git reset*)",
+      "Bash(git revert*)",
+      "Bash(git merge*)",
+      "Bash(git cherry-pick*)",
+      "Bash(gh pr create*)",
+      "Bash(gh pr merge*)"
+    ],
+    "defaultMode": "auto"
+  },
+  "theme": "dark",
+  "skipAutoPermissionPrompt": true,
+  "disableRemoteControl": false
 }

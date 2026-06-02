@@ -45,3 +45,4 @@ keybind = copy/q=deactivate_key_table
 
 window-save-state = "always"
 shell-integration = "zsh"
+confirm-close-surface = false
