@@ -1,0 +1,16 @@
+#!/bin/bash
+# Toggle the focused window in/out of the scratchpad. If the window is on
+# the scratchpad, move it to the regular workspace visible on its monitor;
+# otherwise move it into the scratchpad.
+set -euo pipefail
+
+current=$(hyprctl activewindow -j | jq -r '.workspace.name // ""')
+[ -n "$current" ] || exit 0
+
+if [ "$current" = "special:scratchpad" ]; then
+  target=$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .activeWorkspace.name')
+  [ -n "$target" ] || exit 0
+  hyprctl dispatch movetoworkspace "name:$target"
+else
+  hyprctl dispatch movetoworkspacesilent special:scratchpad
+fi

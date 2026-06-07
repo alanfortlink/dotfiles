@@ -1,0 +1,63 @@
+#!/bin/bash
+# Symlink dotfiles from this repo into $HOME.
+# Idempotent. The repo is the source of truth; edits in $HOME hit the repo
+# directly. Existing real files/dirs at the target are moved aside as
+# <target>.pre-link-<ts> before being replaced.
+set -euo pipefail
+
+REPO="$(cd "$(dirname "$0")" && pwd)"
+TS="$(date +%s)"
+
+link() { # src target
+  local src="$1" target="$2"
+  if [ -L "$target" ] && [ "$(readlink -f "$target")" = "$src" ]; then
+    return 0
+  fi
+  if [ -e "$target" ] || [ -L "$target" ]; then
+    mv "$target" "$target.pre-link-$TS"
+    echo "  moved aside: $target -> $target.pre-link-$TS"
+  fi
+  mkdir -p "$(dirname "$target")"
+  ln -s "$src" "$target"
+  echo "  linked: $target -> $src"
+}
+
+echo "==> omarchy/* -> ~/.config/"
+for entry in "$REPO/omarchy"/*; do
+  name="$(basename "$entry")"
+  [ "$name" = "bin" ] && continue
+  link "$entry" "$HOME/.config/$name"
+done
+
+echo "==> omarchy/bin/* -> ~/.local/bin/"
+if [ -d "$REPO/omarchy/bin" ]; then
+  for entry in "$REPO/omarchy/bin"/*; do
+    [ -f "$entry" ] || continue
+    name="$(basename "$entry")"
+    link "$entry" "$HOME/.local/bin/$name"
+  done
+fi
+
+echo "==> XDG config dirs at repo root -> ~/.config/"
+for name in nvim wezterm claude; do
+  [ -e "$REPO/$name" ] || continue
+  link "$REPO/$name" "$HOME/.config/$name"
+done
+
+echo "==> home dotfiles -> ~"
+for name in \
+  .aliases \
+  .bashrc \
+  .zshrc \
+  .zpreztorc \
+  .tmux.conf \
+  .animatedbg.nvim \
+  .hammerspoon \
+  antigen.zsh
+do
+  [ -e "$REPO/$name" ] || continue
+  link "$REPO/$name" "$HOME/$name"
+done
+
+echo
+echo "Done. Edits in \$HOME now write directly to the repo."

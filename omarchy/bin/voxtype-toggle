@@ -1,0 +1,26 @@
+#!/bin/bash
+# Toggle voxtype recording (en or pt) and dynamically manage a global ESC
+# cancel binding so cancel costs nothing while idle.
+# Usage: voxtype-toggle [en|pt]
+set -euo pipefail
+
+case "${1:-en}" in
+  en) cmd=voxtype ;;
+  pt) cmd=voxtype-pt ;;
+  *)  echo "usage: $(basename "$0") en|pt" >&2; exit 2 ;;
+esac
+
+"$cmd" record toggle
+
+# Give daemons a moment to flush their state file.
+sleep 0.05
+
+base="/run/user/$(id -u)"
+en_state=$(cat "$base/voxtype/state" 2>/dev/null || echo idle)
+pt_state=$(cat "$base/voxtype-pt-runtime/voxtype/state" 2>/dev/null || echo idle)
+
+if [ "$en_state" = "recording" ] || [ "$pt_state" = "recording" ]; then
+  hyprctl keyword bindn ",ESCAPE,exec,voxtype-cancel-all" >/dev/null
+else
+  hyprctl keyword unbind ,ESCAPE >/dev/null 2>&1 || true
+fi

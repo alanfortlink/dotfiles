@@ -1,0 +1,18 @@
+# Extra packages this dotfiles repo depends on, beyond stock omarchy.
+# Configs that reference these: omarchy/hypr/bindings.conf,
+# omarchy/hypr/autostart.conf, omarchy/waybar/config.jsonc.
+
+# === pacman (extra) ===
+playerctl       # waybar mpris click handlers
+nvtop           # GPU TUI launched from waybar custom/gpu
+tailscale       # waybar custom/tailscale + on-click
+
+# === omarchy repo ===
+voxtype-bin     # F9 dictation toggle (voxtype-toggle wrapper)
+
+# === AUR ===
+vicinae         # autostart launcher + deeplinks (Alt+Space, clipboard, emoji, etc.)
+
+# Install:
+#   sudo pacman -S playerctl nvtop tailscale voxtype-bin
+#   paru -S vicinae    # or yay -S vicinae

@@ -30,7 +30,7 @@ case "$class:$arg" in
     send "CTRL SHIFT" "$arg" ;;
   *)
     case "$arg" in
-      C|V)
+      C|V|X)
         if is_terminal "$class"; then
           if [ "$arg" = "V" ] && wl-paste --list-types 2>/dev/null | grep -qi '^image/'; then
             send "CTRL" "V"

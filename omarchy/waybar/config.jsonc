@@ -4,14 +4,19 @@
   "position": "top",
   "spacing": 0,
   "height": 26,
-  "modules-left": ["custom/omarchy", "hyprland/workspaces"],
+  "modules-left": ["custom/omarchy", "hyprland/workspaces", "hyprland/language"],
   "modules-center": ["clock", "custom/weather", "custom/update", "custom/voxtype", "custom/screenrecording-indicator", "custom/idle-indicator", "custom/notification-silencing-indicator"],
   "modules-right": [
+    "privacy",
     "group/tray-expander",
     "bluetooth",
+    "custom/tailscale",
     "network",
     "pulseaudio",
+    "memory",
     "cpu",
+    "custom/gpu",
+    "temperature",
     "battery"
   ],
   "hyprland/workspaces": {
@@ -67,7 +72,7 @@
     "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select"
   },
   "custom/weather": {
-    "exec": "/home/tank/.local/bin/weather-icon-temp",
+    "exec": "weather-icon-temp",
     "return-type": "json",
     "interval": 60,
     "tooltip": false,
@@ -178,5 +183,59 @@
   "tray": {
     "icon-size": 12,
     "spacing": 17
+  },
+  "memory": {
+    "interval": 5,
+    "format": "{used:0.1f}G ",
+    "tooltip-format": "RAM: {used:0.1f} / {total:0.1f} GiB ({percentage}%)\nSwap: {swapUsed:0.1f} / {swapTotal:0.1f} GiB",
+    "on-click": "omarchy-launch-or-focus-tui btop"
+  },
+  "temperature": {
+    // Glob the chip path so renumbering across reboots doesn't break this.
+    // k10temp is AMD; swap to coretemp.0 on Intel.
+    "hwmon-path-abs": "/sys/devices/pci0000:00/0000:00:18.3/hwmon/hwmon*/temp1_input",
+    "input-filename": "temp1_input",
+    "critical-threshold": 85,
+    "format": "{temperatureC}° ",
+    "tooltip-format": "CPU package: {temperatureC}°C"
+  },
+  "custom/gpu": {
+    "exec": "waybar-gpu",
+    "return-type": "json",
+    "interval": 5,
+    "format": "{} 󰢮",
+    "on-click": "alacritty -e nvtop"
+  },
+  "custom/tailscale": {
+    "exec": "waybar-tailscale",
+    "return-type": "json",
+    "interval": 10,
+    "format": "{}",
+    "on-click": "alacritty -e tailscale status",
+    "on-click-right": "sudo tailscale up"
+  },
+  "hyprland/language": {
+    "format": "  {short}",
+    "format-en": "  US",
+    "format-brcustom": "  BR",
+    "tooltip-format": "Layout: {long}\nClick to cycle",
+    "on-click": "hyprctl switchxkblayout current next"
+  },
+  "cpu": {
+    "interval": 5,
+    "format": "{usage}% 󰍛",
+    "tooltip-format": "CPU usage: {usage}%\nLoad avg: {load}",
+    "on-click": "omarchy-launch-or-focus-tui btop",
+    "on-click-right": "alacritty"
+  },
+  "privacy": {
+    "icon-spacing": 4,
+    "icon-size": 12,
+    "transition-duration": 250,
+    "modules": [
+      { "type": "screenshare", "tooltip": true },
+      { "type": "audio-in",    "tooltip": true },
+      { "type": "audio-out",   "tooltip": false }
+    ]
   }
 }
