@@ -1,0 +1,70 @@
+#!/bin/bash
+# Headless restore of the "boot" hyprflow session, intended to run from an
+# exec-once on Hyprland startup. No prompts, no window-closing — boot has
+# nothing open yet. Reuses the class→argv rewrite from session-restore so
+# reverse-DNS classes (com.mitchellh.ghostty, org.omarchy.nvim, chrome-web.*)
+# launch with the right command.
+set -euo pipefail
+
+NAME="${1:-boot}"
+SESSIONS_DIR="$HOME/.local/share/hyprflow/sessions"
+SRC="$SESSIONS_DIR/$NAME.json"
+[ -f "$SRC" ] || { notify-send -u low "session-restore-boot" "No session '$NAME'."; exit 0; }
+
+resolve_argv() {
+  local class="$1"
+  case "$class" in
+    com.mitchellh.ghostty)             echo '["ghostty"]' ;;
+    org.telegram.desktop)              echo '["telegram-desktop"]' ;;
+    io.github.nozwock.Packet)          echo '["packet"]' ;;
+    org.omarchy.nvim)                  echo '["omarchy-launch-editor"]' ;;
+    org.omarchy.terminal)              echo '["xdg-terminal-exec","--app-id=org.omarchy.terminal"]' ;;
+    chrome-web.whatsapp.com__-Default) echo '["omarchy-launch-webapp","https://web.whatsapp.com/"]' ;;
+    chrome-web.*__-Default)
+      local d="${class#chrome-web.}"; d="${d%%__-Default}"
+      printf '["omarchy-launch-webapp","https://%s/"]\n' "$d"
+      ;;
+    *)
+      printf '["%s"]\n' "$class"
+      ;;
+  esac
+}
+
+# Wait briefly for the wayland socket + a monitor to appear, so we don't
+# race Hyprland's own startup.
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+  hyprctl monitors -j >/dev/null 2>&1 && break
+  sleep 0.3
+done
+
+tmp_name=".restore-boot-tmp-$$"
+tmp_file="$SESSIONS_DIR/$tmp_name.json"
+map_file="$SESSIONS_DIR/$tmp_name.map"
+trap 'rm -f "$tmp_file" "$map_file"' EXIT
+
+{
+  echo '{'
+  first=1
+  while IFS= read -r c; do
+    [ -z "$c" ] && continue
+    argv=$(resolve_argv "$c")
+    if [ $first -eq 1 ]; then first=0; else printf ',\n'; fi
+    printf '  %s: %s' "$(jq -nc --arg k "$c" '$k')" "$argv"
+  done < <(jq -r '.clients[].class' "$SRC" | sort -u)
+  printf '\n}\n'
+} > "$map_file"
+
+jq --slurpfile m "$map_file" --arg n "$tmp_name" '
+  .name = $n |
+  .clients |= map(
+    ($m[0][.class] // [.class]) as $argv
+    | .launch.command = $argv[0]
+    | .launch.args    = ($argv[1:])
+  )
+' "$SRC" > "$tmp_file"
+
+if hyprflow restore "$tmp_name" 2>/tmp/hyprflow-boot.err; then
+  notify-send -u low "Boot session restored" "'$NAME'"
+else
+  notify-send -u critical "Boot session restore failed" "$(cat /tmp/hyprflow-boot.err)"
+fi
