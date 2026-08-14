@@ -1,23 +1,22 @@
 #!/bin/bash
-# hypr-fill: make the active window fill its column or row by stashing every
+# hypr-fill: make the active window fill its column or row by pushing every
 # other tiled window that shares the same column (X-axis overlap) or row
-# (Y-axis overlap). Stashed windows go to a special:stash workspace so they
-# can be brought back with `hypr-stash-restore`.
+# (Y-axis overlap) into the adjacent column/row. Nothing is hidden: the
+# displaced windows re-tile on the other side of the split, so everything
+# stays on screen.
 #
 # Uses geometric overlap on the workspace, not the dwindle tree — so it
 # catches every window in the column/row regardless of where it sits in the
 # tree (including across multiple parent splits).
 #
 # Usage: hypr-fill column|row [overlap-percent]
-#   column: stash every window whose X range overlaps the active's by ≥overlap%
-#   row:    stash every window whose Y range overlaps the active's by ≥overlap%
+#   column: push every window whose X range overlaps the active's by ≥overlap%
+#   row:    push every window whose Y range overlaps the active's by ≥overlap%
 #   overlap-percent default = 50
-
 set -euo pipefail
 
 AXIS="${1:-}"
 MIN_PCT="${2:-50}"
-STASH="special:stash"
 
 case "$AXIS" in
   column|row) ;;
@@ -36,10 +35,12 @@ aw=$(jq -r '.size[0]' <<<"$active")
 ah=$(jq -r '.size[1]' <<<"$active")
 ws=$(jq -r '.workspace.id' <<<"$active")
 
+clients=$(hyprctl clients -j)
+
 if [[ "$AXIS" = "column" ]]; then
-  # Find every tiled window on the same workspace whose X range overlaps the
+  # Every tiled window on the same workspace whose X range overlaps the
   # active's X range by ≥ MIN_PCT of the smaller width.
-  mates=$(hyprctl clients -j | jq -r \
+  mates=$(jq -r \
     --arg me "$addr" --argjson ws "$ws" \
     --argjson ax "$ax" --argjson aw "$aw" --argjson pct "$MIN_PCT" '
     .[]
@@ -48,9 +49,15 @@ if [[ "$AXIS" = "column" ]]; then
     | (([$c.at[0]+$c.size[0], $ax+$aw] | min) - ([$c.at[0], $ax] | max)) as $overlap
     | (([$c.size[0], $aw] | min) * $pct / 100) as $needed
     | select($overlap >= $needed)
-    | .address')
+    | .address' <<<"$clients")
+  # Push toward the side that already has windows (merge into the existing
+  # neighbor column); if the active column is the only one, push right so the
+  # mates form a single new column and the active still fills its own.
+  has_left=$(jq -r --argjson ws "$ws" --argjson ax "$ax" \
+    '[.[] | select(.floating == false and .workspace.id == $ws and (.at[0] + .size[0]) <= $ax)] | length' <<<"$clients")
+  if [[ "$has_left" -gt 0 ]]; then dir="l"; else dir="r"; fi
 else
-  mates=$(hyprctl clients -j | jq -r \
+  mates=$(jq -r \
     --arg me "$addr" --argjson ws "$ws" \
     --argjson ay "$ay" --argjson ah "$ah" --argjson pct "$MIN_PCT" '
     .[]
@@ -59,16 +66,19 @@ else
     | (([$c.at[1]+$c.size[1], $ay+$ah] | min) - ([$c.at[1], $ay] | max)) as $overlap
     | (([$c.size[1], $ah] | min) * $pct / 100) as $needed
     | select($overlap >= $needed)
-    | .address')
+    | .address' <<<"$clients")
+  has_up=$(jq -r --argjson ws "$ws" --argjson ay "$ay" \
+    '[.[] | select(.floating == false and .workspace.id == $ws and (.at[1] + .size[1]) <= $ay)] | length' <<<"$clients")
+  if [[ "$has_up" -gt 0 ]]; then dir="u"; else dir="d"; fi
 fi
 
 count=0
 for a in $mates; do
-  hyprctl dispatch movetoworkspacesilent "$STASH,address:$a" >/dev/null
+  hyprctl dispatch "hl.dsp.window.move({ direction = \"$dir\", window = \"address:$a\" })" >/dev/null
   count=$((count + 1))
 done
 
-# Re-focus the active window in case the stash dispatch moved focus.
-hyprctl dispatch focuswindow "address:$addr" >/dev/null
+# Re-focus the active window in case a move dispatch shifted focus.
+hyprctl dispatch "hl.dsp.focus({ window = \"address:$addr\" })" >/dev/null
 
-notify-send -t 1500 "hypr-fill" "Stashed $count window(s) from this $AXIS"
+notify-send -t 1500 "hypr-fill" "Moved $count window(s) out of this $AXIS"

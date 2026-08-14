@@ -3,7 +3,16 @@
 
 # All the default Omarchy aliases and functions
 # (don't mess with these directly, just overwrite them here!)
-source ~/.local/share/omarchy/default/bash/rc
+# /etc/omarchy.conf is written by omarchy-dev-link. When absent, force the
+# package default instead of preserving a stale inherited dev-link value before
+# we decide which rc file to source.
+if [[ -f /etc/omarchy.conf ]]; then
+  source /etc/omarchy.conf
+  export OMARCHY_PATH="${OMARCHY_PATH:-/usr/share/omarchy}"
+else
+  export OMARCHY_PATH=/usr/share/omarchy
+fi
+source "$OMARCHY_PATH/default/bash/rc"
 
 # Add your own exports, aliases, and functions here.
 #
@@ -34,3 +43,26 @@ HISTFILESIZE=-1
 HISTTIMEFORMAT='%F %T  '
 # Flush each command to disk immediately so nothing is lost on crash/poweroff.
 PROMPT_COMMAND="history -a${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
+
+# Go binaries on PATH. Mirrors the export in ~/.zshrc (which only runs on the
+# Mac); on Linux the shell is bash, so .zshrc is never sourced. Guarded so a
+# missing dir doesn't pollute PATH — these only take effect once go is installed.
+for _godir in "$HOME/.local/go/bin" "$HOME/go/bin"; do
+  [ -d "$_godir" ] && PATH="$PATH:$_godir"
+done
+unset _godir
+export PATH
+
+# fzf: use fd (respects .gitignore, includes dotfiles) and bat previews.
+if command -v fd &> /dev/null; then
+  export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+  export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
+fi
+command -v bat &> /dev/null && export FZF_CTRL_T_OPTS="--preview 'bat --style=numbers --color=always {}'"
+
+export PATH="$PATH:/home/tank/.local/bin/go/bin/"
+
+# leetcode TUI
+export PATH="$HOME/.local/bin/leetcode/bin:$PATH"
+export PATH="$HOME/flutter/bin:$PATH"

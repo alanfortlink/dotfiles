@@ -14,21 +14,28 @@ sessions_dir="$HOME/.local/share/hyprflow/sessions"
 resolve_argv() {
   local class="$1"
   case "$class" in
-    com.mitchellh.ghostty)             echo '["ghostty"]' ;;
-    org.telegram.desktop)              echo '["telegram-desktop"]' ;;
-    io.github.nozwock.Packet)          echo '["packet"]' ;;
-    org.omarchy.nvim)                  echo '["omarchy-launch-editor"]' ;;
-    org.omarchy.terminal)              echo '["xdg-terminal-exec","--app-id=org.omarchy.terminal"]' ;;
-    chrome-web.whatsapp.com__-Default) echo '["omarchy-launch-webapp","https://web.whatsapp.com/"]' ;;
+    com.mitchellh.ghostty)             echo '["ghostty"]'; return ;;
+    org.telegram.desktop)              echo '["telegram-desktop"]'; return ;;
+    io.github.nozwock.Packet)          echo '["packet"]'; return ;;
+    org.omarchy.nvim)                  echo '["omarchy-launch-editor"]'; return ;;
+    org.omarchy.terminal)              echo '["xdg-terminal-exec","--app-id=org.omarchy.terminal"]'; return ;;
+    chrome-web.whatsapp.com__-Default) echo '["omarchy-launch-webapp","https://web.whatsapp.com/"]'; return ;;
     chrome-web.*__-Default)
       local d="${class#chrome-web.}"; d="${d%%__-Default}"
-      printf '["omarchy-launch-webapp","https://%s/"]\n' "$d"
-      ;;
-    *)
-      # Fallback: pass class through. Works if it happens to be a binary.
-      printf '["%s"]\n' "$class"
-      ;;
+      printf '["omarchy-launch-webapp","https://%s/"]\n' "$d"; return ;;
   esac
+
+  # Fallback 1: any .desktop with this basename → gtk-launch handles it.
+  # Covers google-chrome (binary is google-chrome-stable), BambuStudio
+  # (binary is bambu-studio), and most other classic apps.
+  for dir in "$HOME/.local/share/applications" /usr/share/applications; do
+    if [ -f "$dir/$class.desktop" ]; then
+      printf '["gtk-launch","%s"]\n' "$class"; return
+    fi
+  done
+
+  # Fallback 2: assume class is the binary name (works for steam, mpv, etc).
+  printf '["%s"]\n' "$class"
 }
 
 if [ ! -d "$sessions_dir" ]; then

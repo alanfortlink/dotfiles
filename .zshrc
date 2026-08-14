@@ -5,17 +5,8 @@ else
 fi
 
 [ -f /usr/local/etc/profile.d/autojump.sh ] && . /usr/local/etc/profile.d/autojump.sh
-# source $(brew --prefix nvm)/nvm.sh
 
-export JAVA_HOME="/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home"
-
-export PATH="$PATH:/Users/alansilva/.cargo/bin"
-export PATH="$PATH:/Users/alan/development/bin"
-export PATH="$PATH:/Users/alan/development/flutter/bin"
-export PATH="$PATH:/Users/alansilva/Library/Android/sdk"
-export PATH="$PATH:/Users/alansilva/Library/Android/sdk/cmdline-tools/latest/bin"
-export PATH="$PATH:/Users/alansilva/Library/Android/sdk/platform-tools"
-export PATH="$JAVA_HOME/bin:$PATH"
+export PATH="$PATH:/home/tank/.local/go/bin"
 
 source ~/antigen.zsh
 

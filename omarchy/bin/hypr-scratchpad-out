@@ -10,7 +10,7 @@ current=$(hyprctl activewindow -j | jq -r '.workspace.name // ""')
 if [ "$current" = "special:scratchpad" ]; then
   target=$(hyprctl monitors -j | jq -r '.[] | select(.focused) | .activeWorkspace.name')
   [ -n "$target" ] || exit 0
-  hyprctl dispatch movetoworkspace "name:$target"
+  hyprctl dispatch "hl.dsp.window.move({ workspace = \"name:$target\" })"
 else
-  hyprctl dispatch movetoworkspacesilent special:scratchpad
+  hyprctl dispatch 'hl.dsp.window.move({ workspace = "special:scratchpad", follow = false })'
 fi

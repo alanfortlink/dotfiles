@@ -111,7 +111,7 @@ return {
 			}
 
 			vim.lsp.config["clangd"] = {
-				cmd = { "/opt/homebrew/Cellar/llvm/20.1.8/bin/clangd" },
+				-- Use clangd from PATH (mason shim or system /usr/bin/clangd)
 				capabilities = capabilities,
 			}
 
@@ -146,7 +146,10 @@ return {
 					function(server_name)
 						local server = servers[server_name] or {}
 						server.capabilities = vim.tbl_deep_extend("force", {}, capabilities, server.capabilities or {})
-						vim.lsp.enable(server_name, server)
+						-- enable's 2nd arg is a boolean, not a config — register the
+						-- config separately so per-server settings actually apply.
+						vim.lsp.config(server_name, server)
+						vim.lsp.enable(server_name)
 					end,
 				},
 			})

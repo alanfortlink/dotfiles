@@ -72,7 +72,7 @@
     "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select"
   },
   "custom/weather": {
-    "exec": "weather-icon-temp",
+    "exec": "weather-icon-temp | waybar-json-guard",
     "return-type": "json",
     "interval": 60,
     "tooltip": false,
@@ -151,24 +151,24 @@
   },
   "custom/screenrecording-indicator": {
     "on-click": "omarchy-capture-screenrecording",
-    "exec": "$OMARCHY_PATH/default/waybar/indicators/screen-recording.sh",
+    "exec": "$OMARCHY_PATH/default/waybar/indicators/screen-recording.sh | waybar-json-guard",
     "signal": 8,
     "return-type": "json"
   },
   "custom/idle-indicator": {
     "on-click": "omarchy-toggle-idle",
-    "exec": "$OMARCHY_PATH/default/waybar/indicators/idle.sh",
+    "exec": "$OMARCHY_PATH/default/waybar/indicators/idle.sh | waybar-json-guard",
     "signal": 9,
     "return-type": "json"
   },
   "custom/notification-silencing-indicator": {
     "on-click": "omarchy-toggle-notification-silencing",
-    "exec": "$OMARCHY_PATH/default/waybar/indicators/notification-silencing.sh",
+    "exec": "$OMARCHY_PATH/default/waybar/indicators/notification-silencing.sh | waybar-json-guard",
     "signal": 10,
     "return-type": "json"
   },
   "custom/voxtype": {
-    "exec": "omarchy-voxtype-status",
+    "exec": "omarchy-voxtype-status | waybar-json-guard",
     "return-type": "json",
     "format": "{icon}",
     "format-icons": {
@@ -200,14 +200,14 @@
     "tooltip-format": "CPU package: {temperatureC}°C"
   },
   "custom/gpu": {
-    "exec": "waybar-gpu",
+    "exec": "waybar-gpu | waybar-json-guard",
     "return-type": "json",
     "interval": 5,
     "format": "{} 󰢮",
     "on-click": "alacritty -e nvtop"
   },
   "custom/tailscale": {
-    "exec": "waybar-tailscale",
+    "exec": "waybar-tailscale | waybar-json-guard",
     "return-type": "json",
     "interval": 10,
     "format": "{}",

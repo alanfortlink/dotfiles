@@ -8,7 +8,7 @@ addrs=$(hyprctl clients -j | jq -r '.[] | select(.workspace.name == "special:sta
 
 count=0
 for a in $addrs; do
-  hyprctl dispatch movetoworkspacesilent "name:$WS_NAME,address:$a" >/dev/null
+  hyprctl dispatch "hl.dsp.window.move({ workspace = \"name:$WS_NAME\", follow = false, window = \"address:$a\" })" >/dev/null
   count=$((count + 1))
 done
 

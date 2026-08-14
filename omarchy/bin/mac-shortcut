@@ -5,6 +5,8 @@
 arg="$1"
 shift
 class=$(hyprctl activewindow -j | jq -r '.class // ""')
+# Chromium is Chrome under the hood -> route its shortcuts identically.
+case "$class" in chromium|Chromium|chromium-browser) class=google-chrome ;; esac
 echo "$(date +%H:%M:%S) class=$class arg=$arg" >> /tmp/mac-shortcut.log
 
 is_terminal() {
@@ -14,8 +16,27 @@ is_terminal() {
   esac
 }
 
-send()     { hyprctl dispatch sendshortcut "$1,$2,activewindow"; }
-fallback() { [ $# -gt 0 ] && hyprctl dispatch "$@"; }
+# Inject via wtype, releasing the physically-held Alt first: sendshortcut
+# fired from an exec bind leaks the held Alt into the combo, so Chrome saw
+# Ctrl+Alt+N and ignored it (same trick as the reopen-tab bind).
+send() {
+  local key
+  key=$(printf '%s' "$2" | tr '[:upper:]' '[:lower:]')
+  case "$1" in
+    "CTRL")       wtype -m alt -M ctrl -k "$key" -m ctrl ;;
+    "CTRL SHIFT") wtype -m alt -M ctrl -M shift -k "$key" -m shift -m ctrl ;;
+    "SHIFT")      wtype -m alt -M shift -k "$key" -m shift ;;
+    *)            hyprctl dispatch "hl.dsp.send_shortcut({ mods = \"$1\", key = \"$2\" })" ;;
+  esac
+}
+# Hyprland 0.56: hyprctl dispatch args are lua, legacy dispatcher names fail.
+fallback() {
+  case "${1:-}" in
+    "") ;;
+    killactive) hyprctl dispatch "hl.dsp.window.close()" ;;
+    *) hyprctl dispatch "$@" ;;
+  esac
+}
 
 case "$class:$arg" in
   google-chrome:N|google-chrome:T|google-chrome:W|google-chrome:R|google-chrome:L|\

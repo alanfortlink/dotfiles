@@ -1,5 +1,5 @@
 # Dynamic theme colors from omarchy (overrides hardcoded theme below)
-config-file = ?"~/.config/omarchy/current/theme/ghostty.conf"
+config-file = ?"~/.local/state/omarchy/current/theme/ghostty.conf"
 
 font-family = PragmataPro Mono Liga
 font-style = Regular
@@ -7,7 +7,7 @@ font-thicken = true
 font-size = 12
 
 background = "#000000"
-background-opacity = 0.8
+background-opacity = 0.97
 background-blur-radius = 100
 macos-titlebar-style = tabs
 theme = "3024 Night"
@@ -16,15 +16,19 @@ theme = "3024 Night"
 # Only non-conflicting clipboard binds remain here.
 keybind = shift+insert=paste_from_clipboard
 keybind = control+insert=copy_to_clipboard
+# Send Shift+Enter as CSI-u so TUIs can distinguish it from Enter.
+keybind = shift+enter=csi:13;2u
+# Legacy encoding sends Alt+Shift+Enter the same as Alt+Enter; send CSI-u so tmux can match M-S-Enter.
+keybind = alt+shift+enter=csi:13;4u
 
-# --- Copy/scroll mode (tmux copy-mode-vi analogue) ---
-# alt+u / alt+d enter the "copy" key table and scroll one page.
-keybind = alt+u=activate_key_table:copy
+# --- Copy/scroll mode ---
+# super+u / super+d enter the "copy" key table and scroll one page.
+keybind = super+u=activate_key_table:copy
 keybind = chain=scroll_page_up
-keybind = alt+d=activate_key_table:copy
+keybind = super+d=activate_key_table:copy
 keybind = chain=scroll_page_down
 
-# Inside copy mode: scroll/navigate, select, copy, exit.
+# Inside copy mode: scroll/navigate, extend an existing selection, copy, exit.
 keybind = copy/u=scroll_page_up
 keybind = copy/d=scroll_page_down
 keybind = copy/g=scroll_to_top
@@ -44,5 +48,5 @@ keybind = copy/escape=deactivate_key_table
 keybind = copy/q=deactivate_key_table
 
 window-save-state = "always"
-shell-integration = "zsh"
+shell-integration = "bash"
 confirm-close-surface = false

@@ -19,7 +19,7 @@ active_size() {
 }
 
 apply() {
-  hyprctl dispatch resizeactive "$1" "$2" >/dev/null
+  hyprctl dispatch "hl.dsp.window.resize({ x = $1, y = $2, relative = true })" >/dev/null
 }
 
 case "$DIR" in

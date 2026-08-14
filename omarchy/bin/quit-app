@@ -3,7 +3,7 @@
 class=$(hyprctl activewindow -j | jq -r '.class')
 [ -z "$class" ] || [ "$class" = "null" ] && exit 0
 
-choice=$(printf "No\nYes" | walker --dmenu -p "Quit ${class}?")
+choice=$(omarchy menu select "Quit ${class}?" No Yes)
 [ "$choice" = "Yes" ] || exit 0
 
 hyprctl clients -j \

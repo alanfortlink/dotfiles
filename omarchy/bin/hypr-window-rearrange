@@ -16,10 +16,10 @@ addr=$(jq -r '.address' <<<"$w")
 
 before_at=$(jq -c '.at' <<<"$w")
 
-hyprctl dispatch swapwindow "$DIR" >/dev/null
+hyprctl dispatch "hl.dsp.window.swap({ direction = \"$DIR\" })" >/dev/null
 
 after_at=$(hyprctl clients -j | jq -c --arg a "$addr" '.[] | select(.address==$a) | .at')
 
 if [[ $before_at == "$after_at" ]]; then
-  hyprctl dispatch movewindow "$DIR" >/dev/null
+  hyprctl dispatch "hl.dsp.window.move({ direction = \"$DIR\" })" >/dev/null
 fi
