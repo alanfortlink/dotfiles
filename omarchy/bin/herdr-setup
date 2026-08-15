@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Install/refresh herdr plugins declared in dotfiles/omarchy/herdr/plugins/.
+# Each plugins/<name>/ dir has a SOURCE file ("<git-url> <ref>") and optional
+# NNNN-*.patch files (local commits on top of <ref>). The plugin is cloned to
+# ~/repos/<name>, checked out at <ref> on branch "local" with patches applied,
+# then `herdr plugin link`ed. Idempotent; re-run after changing SOURCE/patches.
+set -euo pipefail
+
+REPO="$(cd "$(dirname "$(readlink -f "$0")")/../.." && pwd)"
+PLUGINS="$REPO/omarchy/herdr/plugins"
+DEST_ROOT="${HERDR_PLUGIN_REPOS:-$HOME/repos}"
+
+for dir in "$PLUGINS"/*/; do
+  name="$(basename "$dir")"
+  [ -f "$dir/SOURCE" ] || continue
+  read -r url ref < "$dir/SOURCE"
+  dest="$DEST_ROOT/$name"
+
+  if [ ! -d "$dest/.git" ]; then
+    echo "==> cloning $name"
+    git clone -q "$url" "$dest"
+  else
+    git -C "$dest" fetch -q --tags origin
+  fi
+
+  echo "==> $name: checkout $ref -> branch local"
+  git -C "$dest" checkout -q -B local "$ref"
+  shopt -s nullglob
+  patches=("$dir"/*.patch)
+  shopt -u nullglob
+  if [ ${#patches[@]} -gt 0 ]; then
+    git -C "$dest" am -q "${patches[@]}"
+  fi
+
+  if ! herdr plugin list 2>/dev/null | grep -q "$name"; then
+    echo "==> linking $name"
+    herdr plugin link "$dest"
+  fi
+done
+
+herdr server reload-config 2>/dev/null || true
+echo "Done."

@@ -10,10 +10,12 @@
 --   SUPER + ALT + hjkl          -> swap with the adjacent neighbor
 --   SUPER + CTRL + SHIFT + hjkl -> merge: re-parent across split boundaries
 
-o.bind("ALT + H", "Focus left", hl.dsp.focus({ direction = "l" }))
-o.bind("ALT + J", "Focus down", hl.dsp.focus({ direction = "d" }))
-o.bind("ALT + K", "Focus up", hl.dsp.focus({ direction = "u" }))
-o.bind("ALT + L", "Focus right", hl.dsp.focus({ direction = "r" }))
+-- hypr-herdr-focus: if the active window hosts herdr and a pane exists in
+-- that direction, focus the pane; otherwise plain Hyprland movefocus.
+o.bind("ALT + H", "Focus left", "hypr-herdr-focus l")
+o.bind("ALT + J", "Focus down", "hypr-herdr-focus d")
+o.bind("ALT + K", "Focus up", "hypr-herdr-focus u")
+o.bind("ALT + L", "Focus right", "hypr-herdr-focus r")
 
 -- hypr-resize-intuitive flips the sign when dwindle would otherwise resize
 -- the wrong edge (active in right subtree of its parent H-split).
@@ -39,8 +41,53 @@ o.bind("SUPER + CTRL + SHIFT + L", "Merge right", hl.dsp.window.move({ direction
 
 -- === Fullscreen ===
 o.bind("ALT + F", "Maximize (full width)", hl.dsp.window.fullscreen({ mode = "maximized" }))
-o.bind("ALT + Z", "Maximize (full width)", hl.dsp.window.fullscreen({ mode = "maximized" }))
-o.bind("ALT + SHIFT + F", "Full screen", hl.dsp.window.fullscreen({ mode = "fullscreen" }))
+-- In herdr (with >1 pane) this toggles pane zoom instead.
+o.bind("ALT + Z", "Maximize / herdr pane zoom", "hypr-herdr-zoom")
+-- Hyprland only hides the bar (top layer) when the monitor's *regular*
+-- workspace has a fullscreen window — fullscreen inside a special workspace
+-- keeps the bar visible. So hop the window out of its scratchpad before
+-- fullscreening, and send it back (and re-show the scratchpad) on toggle off.
+local fullscreen_scratch_origin = {}
+
+local function special_visible(name)
+  for _, m in ipairs(hl.get_monitors()) do
+    local sw = m.active_special_workspace
+    if sw and sw.name == name then
+      return true
+    end
+  end
+  return false
+end
+
+o.bind("ALT + SHIFT + F", "Full screen", function()
+  local w = hl.get_active_window()
+  if not w then
+    return
+  end
+
+  if w.fullscreen == 2 then
+    hl.dispatch(hl.dsp.window.fullscreen({ mode = "fullscreen" }))
+    local origin = fullscreen_scratch_origin[w.address]
+    if origin then
+      fullscreen_scratch_origin[w.address] = nil
+      hl.dispatch(hl.dsp.window.move({ workspace = origin, follow = false }))
+      if not special_visible(origin) then
+        hl.dispatch(hl.dsp.workspace.toggle_special(origin:gsub("^special:", "")))
+      end
+    end
+    return
+  end
+
+  local ws = w.workspace
+  if ws and ws.special then
+    fullscreen_scratch_origin[w.address] = ws.name
+    local target = w.monitor and w.monitor.active_workspace
+    if target then
+      hl.dispatch(hl.dsp.window.move({ workspace = "name:" .. target.name }))
+    end
+  end
+  hl.dispatch(hl.dsp.window.fullscreen({ mode = "fullscreen" }))
+end)
 
 -- === Fill column / row ===
 -- Push every window sharing the active's column (or row) into the adjacent
@@ -51,9 +98,19 @@ o.bind("ALT + SHIFT + R", "Fill row", "hypr-fill row")
 -- === Monitors ===
 o.bind("CTRL + SHIFT + S", "Move window to next monitor", hl.dsp.window.move({ monitor = "+1", follow = true }))
 
+-- === Launcher ===
+-- ALT+SPACE mirrors SUPER+SPACE and opens the Omarchy menu.
+hl.unbind("ALT + SPACE")  -- was: Vicinae toggle
+
+o.bind("ALT + SPACE", "Omarchy menu", "omarchy-menu toggle")
+
 -- === Vicinae ===
-o.bind("ALT + SPACE", "Vicinae", "vicinae toggle")
+-- Toggle moved here from ALT+SPACE.
+o.bind("ALT + SHIFT + SPACE", "Vicinae", "vicinae toggle")
 o.bind("ALT + SHIFT + V", "Clipboard manager (vicinae)", "vicinae deeplink vicinae://launch/clipboard/history")
+
+-- Omarchy's default clipboard history (same action as SUPER+CTRL+V).
+o.bind("SUPER + SHIFT + V", "Clipboard manager", "omarchy-shell shell toggle omarchy.clipboard")
 o.bind("CTRL + SHIFT + A", "Browser tab switcher", "vicinae deeplink vicinae://launch/browser-extension/browse-tabs")
 o.bind("CTRL + ALT + SPACE", "Emoji picker", "vicinae deeplink vicinae://launch/core/search-emojis")
 o.bind("CTRL + ALT + F", "Fuzzy file search", "vicinae deeplink 'vicinae://launch/@sameoldlab/store.vicinae.fuzzy-files/find'")
@@ -138,9 +195,17 @@ o.bind("ALT + W", "Close tab in browser / window elsewhere", function()
   if class:match("chrome") or class:match("hromium") then
     send_once("CTRL", "W")
   else
-    hl.dispatch(hl.dsp.window.close())
+    -- Closes a herdr pane (with confirmation) when herdr is active.
+    hl.dispatch(hl.dsp.exec_cmd("hypr-herdr-close"))
   end
 end)
+
+-- Small floating confirm dialog used by hypr-herdr-close.
+o.window("^(org\\.omarchy\\.confirm)$", {
+  float = true,
+  size = "700 160",
+  center = true,
+})
 o.bind("SUPER + Q", "Close window", hl.dsp.window.close())
 
 o.bind("ALT + N", "New window", mac_routed("N"))

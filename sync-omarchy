@@ -24,9 +24,21 @@ link() { # src target
 }
 
 # ~/.config/<x>  ->  repo/omarchy/<x>   (skip bin/)
+# If repo/omarchy/<x>/.link-files exists, the live dir holds runtime state
+# (sockets, logs, sessions — e.g. herdr) so it is not replaced wholesale;
+# each git-tracked file is linked individually into it instead.
 for entry in "$OUT"/*; do
   name="$(basename "$entry")"
   [ "$name" = "bin" ] && continue
+  if [ -f "$entry/.link-files" ]; then
+    git -C "$REPO" ls-files "omarchy/$name" | while read -r rel; do
+      f="$REPO/$rel"
+      sub="${rel#omarchy/$name/}"
+      case "$sub" in .link-files|plugins/*/SOURCE|plugins/*/*.patch) continue ;; esac
+      link "$f" "$HOME/.config/$name/$sub"
+    done
+    continue
+  fi
   link "$entry" "$HOME/.config/$name"
 done
 

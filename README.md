@@ -22,6 +22,8 @@ Remotes: `origin` (github.com/alanfortlink/dotfiles) and `deck` (self-hosted Git
 - `nvim/` — full `~/.config/nvim` mirror (init.lua, lua/, snippets, ftplugin, lazy-lock)
 - `omarchy/` — mirror of `~/.config/<name>` for: `hypr`, `waybar`, `walker`, `mako`, `swayosd`, `ghostty`, `alacritty`, `kitty`, `btop`, `fastfetch`, `lazygit`, `starship.toml`
 - `omarchy/bin/` — scripts from `~/.local/bin` (codex, copilot, gemini, ghui, opencode, session-save/restore, web-search, etc.)
+- `omarchy/herdr/` — herdr `config.toml`, plugin configs (`plugins/config/<plugin>/`), and plugin sources (`plugins/<plugin>/SOURCE` = upstream url + ref, plus `*.patch` for local commits). Not dir-linked: `~/.config/herdr` holds the server's sockets/session state, so `.link-files` makes `sync-omarchy` link each tracked file individually. `herdr-setup` (in `omarchy/bin`) clones/patches/links the plugins.
+- `omarchy/bin/hypr-herdr-*` — ALT+hjkl / ALT+Z / ALT+W route into herdr panes (local, or over ssh / `herdr --remote`) and fall through to Hyprland; wired in `omarchy/hypr/bindings.lua`.
 - `claude/` — curated `~/.claude` subset: `CLAUDE.md`, `settings.json`, `skills/`, `agents/`, `commands/` (no secrets/sessions/history)
 - `sync-omarchy` — the sync script
 - `rr` — tmux helper: send a command to every other pane in the current window
@@ -38,4 +40,5 @@ No bootstrap script yet. To adopt on a new machine:
    - `omarchy/bin/<script>` → `~/.local/bin/<script>` (chmod +x)
    - `claude/` contents → `~/.claude/` (selective)
 3. Install runtime deps used by configs: `zoxide`, `tmux` + tpm, `nvim` (with lazy.nvim), starship, plus the omarchy-managed Hyprland stack.
-4. From then on, run `./sync-omarchy` after editing live configs to pull changes back into the repo, then commit.
+4. herdr: install `herdr`, then run `herdr-setup` to clone + link the plugins listed in `omarchy/herdr/plugins/`.
+5. From then on, run `./sync-omarchy` after editing live configs to pull changes back into the repo, then commit.

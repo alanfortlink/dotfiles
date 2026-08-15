@@ -1,0 +1,75 @@
+# herdr config — herdr defaults + a ctrl+shift "direct" layer replacing the old
+# tmux alt+ shortcuts (alt is Hyprland's mod on this box, so alt+ never reaches herdr).
+# ghostty: ctrl+shift+{j,t,o,e} are unbound in ~/.config/ghostty/config so they pass through.
+
+[theme]
+# Follows the ghostty/omarchy palette; switches with `omarchy theme set`
+name = "terminal"
+
+[theme.custom]
+# Active tab is drawn as panel_bg text on the accent background — needs to be dark
+panel_bg = "black"
+# Active pane border (also active tab/highlights)
+accent = "white"
+# Inactive pane borders — match terminal bg so they disappear
+surface_dim = "#3a3a3a"
+overlay0 = "#3a3a3a"
+surface1 = "#3a3a3a"
+
+[terminal]
+new_cwd = "follow"
+
+[keys]
+# prefix = ctrl+b (herdr default)
+goto = ["prefix+g", "ctrl+shift+g"]   # built-in session navigator
+
+# Panes — herdr defaults + ctrl+shift direct layer
+focus_pane_left  = ["prefix+h", "ctrl+shift+h"]
+focus_pane_down  = ["prefix+j", "ctrl+shift+j"]
+focus_pane_up    = ["prefix+k", "ctrl+shift+k"]
+focus_pane_right = ["prefix+l", "ctrl+shift+l"]
+split_vertical   = ["prefix+v", "ctrl+shift+o"]        # side by side
+split_horizontal = ["prefix+minus", "prefix+n", "ctrl+shift+e"]    # stacked (prefix+n as in old tmux)
+close_pane       = ["prefix+x", "ctrl+shift+x"]
+zoom             = ["prefix+z", "ctrl+shift+z"]
+copy_mode        = ["prefix+[", "ctrl+shift+y"]
+# resize_mode = prefix+r (default); direct resize without the mode:
+resize_pane_left  = "ctrl+alt+shift+left"
+resize_pane_down  = "ctrl+alt+shift+down"
+resize_pane_up    = "ctrl+alt+shift+up"
+resize_pane_right = "ctrl+alt+shift+right"
+
+# Tabs
+new_tab    = ["prefix+c", "ctrl+shift+t"]
+switch_tab = ["prefix+1..9", "ctrl+1..9", "ctrl+shift+1..9"]
+# prefix+n is taken by split; tab nav moved off prefix+n/p
+previous_tab = ["prefix+left", "ctrl+shift+left"]
+next_tab     = ["prefix+right", "ctrl+shift+right"]
+
+[ui]
+pane_gaps = true
+pane_outer_borders = true
+accent = "blue"
+tab_bar_right = [{ type = "zoom" }, { type = "hostname" }]
+
+[ui.toast]
+delivery = "herdr"
+
+[ui.sound]
+enabled = true
+
+[experimental]
+pane_history = true
+
+# herdr-navigator: omni fuzzy jump (workspaces, agents, zoxide dirs, sessions, actions)
+[[keys.command]]
+key = "prefix+t"
+type = "plugin_action"
+command = "herdr-navigator.open"
+description = "jump to anything"
+
+[[keys.command]]
+key = "ctrl+shift+p"
+type = "plugin_action"
+command = "herdr-navigator.open"
+description = "jump to anything"

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# ALT+W handler: if the active window hosts herdr (local or via ssh), confirm
+# and close the focused *pane* (herdr handles the last pane -> tab/workspace);
+# otherwise close the Hyprland window.
+set -u
+source "$(dirname "$(readlink -f "$0")")/hypr-herdr-lib.sh"
+
+# Internal: run inside the confirm terminal.
+if [[ ${1:-} == __confirm ]]; then
+  target=$2 pane_id=$3 label=$4
+  source omarchy-restart-gum
+  gum confirm --default=true "Close pane? $label" && hh "$target" pane close "$pane_id"
+  exit
+fi
+
+if hh_resolve_targets; then
+  for t in "${HH_TARGETS[@]}"; do
+    pane_json=$(hh "$t" pane current --current 2>/dev/null)
+    pane_id=$(jq -r '.result.pane.pane_id // empty' <<<"$pane_json")
+    [[ -n $pane_id ]] || continue
+    title=$(jq -r '.result.pane.terminal_title_stripped // .result.pane.terminal_title // ""' <<<"$pane_json")
+    agent=$(jq -r '.result.pane.agent // empty' <<<"$pane_json")
+    label="$pane_id"
+    [[ $t != local ]] && label="$t $label"
+    [[ -n $agent ]] && label="$agent — $label"
+    [[ -n $title ]] && label="$label: $title"
+    exec setsid uwsm-app -- xdg-terminal-exec --app-id=org.omarchy.confirm --title="Close pane" \
+      -e "$0" __confirm "$t" "$pane_id" "$label"
+  done
+fi
+
+exec hyprctl dispatch 'hl.dsp.window.close()'
