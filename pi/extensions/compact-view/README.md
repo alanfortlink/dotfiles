@@ -3,31 +3,24 @@
 Keeps the pi transcript short. Display-only; the session and what the model
 sees are unchanged.
 
-- **Thinking** streams inside a fixed-height window: the last `THINKING_LINES`
-  (4) visual lines, scrolling in place, with a `... (N earlier lines, ctrl+o to
-  expand)` hint above. As soon as thinking is over (a tool call or text
-  follows, or the message ends) it collapses to one line:
-  `🧠 5.2s` (`🧠` when the timing is unknown, e.g. a session
-  recorded before this extension was installed).
-- **Tool blocks** are capped at `TOOL_LINES` (10) visual lines while running
-  (head kept, `... (N more lines, ctrl+o to expand)` line for the rest). When
-  the tool finishes they collapse to one line: a tool icon (`💻 bash`, `📖
-  read`, `📄 write`, `📝 edit`, `🔍 grep`, `🔎 find`, `📁 ls`, `🌐 web*`, `🤖
-  delegate*`, `❓ ask`, `🧩` other extension tools — `TOOL_ICONS`; all plain
-  2-cell emoji, no VS16 so terminal and pi agree on width) + the tool title
-  (`$ cmd`, `edit path`, ...) on the left, and `error` / `120ms` flush right —
-  every collapsed line (🧠 too) goes through one `collapsedLine()` so columns
-  line up. Errors
-  collapse too, as `title · error · 120ms` on pi's error background.
-- **Grouping**: pi puts a blank line above every tool block and every thinking
-  block. That line is dropped when the previous chat sibling is a collapsed
-  tool or a message that ends in thinking, so `🧠 → $ cmd → $ cmd →
-  🧠` reads as one tight run. Text keeps its normal spacing.
-- **Quiet + boundary**: collapsed thinking/tool lines are drawn in the theme's
-  `dim` color (`COLLAPSED_FG`) on a full-width background bar (tools: pi's
-  success/error bg; 🧠: `THINKING_DONE_BG`), and a muted `─` rule (`SEPARATOR_CHAR`/`SEPARATOR_WIDTH`) sits
-  between the run and the answer text that follows it — the "done thinking,
-  now answering" mark. All of it reverts to pi's normal look when expanded.
+- **One line per run.** A run is a stretch of thinking blocks and tool calls
+  (across assistant messages) up to the answer text. Instead of one block per
+  call you get one summary line:
+
+  ```text
+   🧠 3.2s  💻 4  📝 2  ❌ 1                                        12.4s
+  ```
+
+  thinking time · tool icon × count (`💻 bash`, `📖 read`, `📄 write`, `📝
+  edit`, `🔍 grep`, `🔎 find`, `📁 ls`, `🌐 web*`, `🤖 delegate*`, `❓ ask`,
+  `🧩` other extension tools — `TOOL_ICONS`) · error count · total time flush
+  right. While the run is going the line updates live and ends with the
+  current activity (`⏳ thinking…` / `⏳ 💻 $ npm test`). Thinking text and
+  tool output are **not streamed** while collapsed. No background bars — just
+  bold/colored text (accent 🧠, error-colored ❌ count, muted times).
+- **Boundary.** A muted `─` rule (`SEPARATOR_CHAR`/`SEPARATOR_WIDTH`) sits
+  between the run and the answer text that follows — the "done thinking, now
+  answering" mark. Text keeps its normal spacing.
 
 `ctrl+o` (pi's `app.tools.expand`) shows everything in full, exactly as before,
 and collapses again on the next press. Thinking hide/show (`/settings` →
@@ -38,15 +31,18 @@ hide thinking) still works on top of this.
 pi has no hook for any of this, so `AssistantMessageComponent.updateContent`
 / `.render` and `ToolExecutionComponent.render` (exported from the pi package)
 are patched on their prototypes at load, plus pi-tui's `Container.addChild`
-to record a parent pointer for the sibling lookup. Thinking Markdown children are wrapped in
-a tail-window/summary component; tool render output is sliced or
-reduced to its title line. Durations are measured live (thinking: first
-thinking delta → first non-thinking content; tools: `tool_execution_start` →
-`tool_execution_end`) and persisted once per turn as a `compact-view-timings`
-custom session entry (TUI-only, never sent to the model), restored on
-`session_start` so they survive `/reload`, restart and `--resume`. Expanded state comes
-from `ctx.ui.getToolsExpanded()` at render time. Tune the constants at the top
-of `index.ts` (`THINKING_DONE_ICON` for the 🧠).
+to record a parent pointer. At render time a component looks at its chat
+siblings: if the previous one continues a run (a collapsed tool, or a message
+ending in thinking) it is *absorbed* and renders nothing; otherwise it *starts*
+a run, walks forward over the run's members and renders the summary. Thinking
+Markdown children are wrapped in a component that does the same; the Spacer
+between thinking and answer text becomes the rule. Durations are measured live
+(thinking: first thinking delta → first non-thinking content; tools:
+`tool_execution_start` → `tool_execution_end`) and persisted once per turn as
+a `compact-view-timings` custom session entry (TUI-only, never sent to the
+model), restored on `session_start` so they survive `/reload`, restart and
+`--resume`. Expanded state comes from `ctx.ui.getToolsExpanded()` at render
+time. Tune the constants at the top of `index.ts`.
 
 ## Install
 
