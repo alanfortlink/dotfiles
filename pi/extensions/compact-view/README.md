@@ -12,14 +12,14 @@ sees are unchanged.
   (head kept, `... (N more lines, ctrl+o to expand)` line for the rest). When
   the tool finishes they collapse to one line: the tool title (`$ cmd`,
   `edit path`, ...) with ` · 120ms` appended when the timing is known. Errors
-  collapse too, as `title · error · 120ms` on pi's error background.
+  collapse too, as `title · error · 120ms` (the `error` in the error color).
 - **Grouping**: pi puts a blank line above every tool block and every thinking
   block. That line is dropped when the previous chat sibling is a collapsed
   tool or a message that ends in thinking, so `🧠 → $ cmd → $ cmd →
   🧠` reads as one tight run. Text keeps its normal spacing.
 - **Quiet + boundary**: collapsed thinking/tool lines are drawn in the theme's
-  `dim` color with no background (`COLLAPSED_FG`; errors keep pi's error
-  background), and a muted `─` rule (`SEPARATOR_CHAR`/`SEPARATOR_WIDTH`) sits
+  `dim` color with no background (`COLLAPSED_FG`; on errors only the word
+  `error` is drawn in the error color), and a muted `─` rule (`SEPARATOR_CHAR`/`SEPARATOR_WIDTH`) sits
   between the run and the answer text that follows it — the "done thinking,
   now answering" mark. All of it reverts to pi's normal look when expanded.
 

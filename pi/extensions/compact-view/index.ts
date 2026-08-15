@@ -14,7 +14,7 @@
  * 2. Tool blocks, while running, are capped at TOOL_LINES visual lines (head
  *    kept, hint line for the rest). Once finished they collapse to one line:
  *    the tool's title (`$ cmd`, `edit path`, ...) with ` · 120ms` appended.
- *    Errors collapse too (` · error`), keeping pi's error background.
+ *    Errors collapse too (` · error`, the word in the error color).
  *
  * 3. Runs of tool calls / thinking are drawn tight: the blank line pi puts
  *    before each tool block and before a thinking block is dropped when the
@@ -23,7 +23,7 @@
  *    group. Text keeps its spacing.
  *
  * 4. Collapsed thinking/tool lines are drawn in COLLAPSED_FG (dim) without
- *    pi's backgrounds (errors keep theirs), and a muted rule separates the run
+ *    pi's backgrounds (errors: red "error" word), and a muted rule separates the run
  *    from the answer text that follows — the "done thinking, now answering"
  *    boundary.
  *
@@ -59,8 +59,8 @@ const THINKING_DONE_ICON = "🧠";
 /**
  * Collapsed (finished, not expanded) thinking/tool lines are re-styled in this
  * theme color instead of pi's own colors + background, so the run reads as
- * quiet metadata under the answer. Errors keep pi's error background. Set to
- * undefined to keep pi's styling.
+ * quiet metadata under the answer (errors: only the word "error" is colored).
+ * Set to undefined to keep pi's styling.
  */
 const COLLAPSED_FG: "dim" | "muted" | undefined = "dim";
 /** Separator drawn between a thinking/tool run and the answer text that follows it. */
@@ -337,9 +337,11 @@ function patchToolExecution(): void {
 			const ellipsis = textWidth > maxTitle ? "…" : "";
 			const isError = this.result?.isError === true;
 			let line = truncateToWidth(title, maxTitle, ellipsis);
-			if (COLLAPSED_FG && !isError) {
-				// Quiet: plain dimmed text, no background bar.
-				line = dimmed(line) + (dur ? dimmed(dur) : "");
+			if (COLLAPSED_FG) {
+				// Quiet: plain dimmed text, no background bar; only the word "error" keeps color.
+				const errFg = (t: string) => ui?.theme.fg("error", t) ?? t;
+				const durStyled = isError ? dimmed(" ·") + " " + errFg("error") + dimmed(dur.replace(" · error", "")) : dimmed(dur);
+				line = dimmed(line) + (dur ? durStyled : "");
 			} else if (dur) {
 				const seg = muted(dur) + " ".repeat(Math.max(0, width - visibleWidth(line) - durWidth));
 				line += bg ? bg(seg) : seg;
