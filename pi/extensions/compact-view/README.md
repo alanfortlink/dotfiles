@@ -6,7 +6,7 @@ sees are unchanged.
 - **Thinking** streams inside a fixed-height window: the last `THINKING_LINES`
   (4) visual lines, scrolling in place, with a `... (N earlier lines, ctrl+o to
   expand)` hint above. When the message finishes it collapses to one line:
-  `Thought for 5.2s` (`Thought` when the timing is unknown, e.g. a session
+  `🧠 5.2s` (`🧠` when the timing is unknown, e.g. a session
   recorded before this extension was installed).
 - **Tool blocks** are capped at `TOOL_LINES` (10) visual lines while running
   (head kept, `... (N more lines, ctrl+o to expand)` line for the rest). When
@@ -15,8 +15,8 @@ sees are unchanged.
   collapse too, as `title · error · 120ms` on pi's error background.
 - **Grouping**: pi puts a blank line above every tool block and every thinking
   block. That line is dropped when the previous chat sibling is a collapsed
-  tool or a message that ends in thinking, so `Thought → $ cmd → $ cmd →
-  Thought` reads as one tight run. Text keeps its normal spacing.
+  tool or a message that ends in thinking, so `🧠 → $ cmd → $ cmd →
+  🧠` reads as one tight run. Text keeps its normal spacing.
 
 `ctrl+o` (pi's `app.tools.expand`) shows everything in full, exactly as before,
 and collapses again on the next press. Thinking hide/show (`/settings` →
@@ -34,8 +34,8 @@ thinking delta → first non-thinking content; tools: `tool_execution_start` →
 `tool_execution_end`) and persisted once per turn as a `compact-view-timings`
 custom session entry (TUI-only, never sent to the model), restored on
 `session_start` so they survive `/reload`, restart and `--resume`. Expanded state comes
-from `ctx.ui.getToolsExpanded()` at render time. Tune the two constants at the
-top of `index.ts`.
+from `ctx.ui.getToolsExpanded()` at render time. Tune the constants at the top
+of `index.ts` (`THINKING_DONE_ICON` for the 🧠).
 
 ## Install
 

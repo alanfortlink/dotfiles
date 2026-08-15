@@ -8,8 +8,8 @@
  * 1. Thinking, while streaming, renders inside a fixed-height window: only
  *    the last THINKING_LINES visual lines are shown, so the block scrolls in
  *    place instead of pushing the transcript up. Once the message is done it
- *    collapses to one line: `Thought for 5.2s` (or `Thought` when the timing
- *    is unknown, e.g. a restored session).
+ *    collapses to one line: `🧠 5.2s` (or `🧠` when the timing is unknown,
+ *    e.g. a restored session).
  *
  * 2. Tool blocks, while running, are capped at TOOL_LINES visual lines (head
  *    kept, hint line for the rest). Once finished they collapse to one line:
@@ -49,6 +49,8 @@ const THINKING_LINES = 4;
 const TOOL_LINES = 10;
 /** Theme color token for the bold finished-thinking summary line. */
 const THINKING_DONE_FG = "accent" as const;
+/** Prefix of the finished-thinking summary line (`🧠 5.2s`, or just `🧠` when the timing is unknown). */
+const THINKING_DONE_ICON = "🧠";
 
 let ui: ExtensionUIContext | undefined;
 
@@ -144,7 +146,7 @@ function isCompactTool(c: any): boolean {
 	return c instanceof ToolExecutionComponent && !(c as any).expanded && ((c as any).imageComponents?.length ?? 0) === 0 && !(c as any).hideComponent;
 }
 
-/** An assistant message whose last visible block is thinking (drawn as a Thought line / window). */
+/** An assistant message whose last visible block is thinking (drawn as a 🧠 line / window). */
 function endsWithThinking(c: any): boolean {
 	if (!(c instanceof AssistantMessageComponent)) return false;
 	const blocks = visibleBlocks((c as any).lastMessage);
@@ -174,7 +176,7 @@ class ThinkingWindow {
 		if (isExpanded()) return this.inner.render(width);
 		if (!this.isStreaming()) {
 			const ms = durationOf(this.timing());
-			const label = ms === undefined ? "Thought" : `Thought for ${formatDuration(ms)}`;
+			const label = ms === undefined ? THINKING_DONE_ICON : `${THINKING_DONE_ICON} ${formatDuration(ms)}`;
 			const styled = ui ? ui.theme.bold(ui.theme.fg(THINKING_DONE_FG, label)) : label;
 			return [truncateToWidth(" ".repeat(this.pad) + styled, width, "...")];
 		}
