@@ -3,24 +3,26 @@
 Keeps the pi transcript short. Display-only; the session and what the model
 sees are unchanged.
 
-- **One line per run.** A run is a stretch of thinking blocks and tool calls
-  (across assistant messages) up to the answer text. Instead of one block per
-  call you get one summary line:
+- **One line per run, and it is the divider.** A run is a stretch of thinking
+  blocks and tool calls (across assistant messages) up to the answer text.
+  Instead of one block per call you get one line that doubles as the rule
+  before the answer:
 
   ```text
-   🧠 3.2s  💻 4  📝 2  ❌ 1                                        12.4s
+   🧠 0.4s · 💻 5 (2✗) ls, echo, cat… · 📖 1 ─────────────────────── 3.7s
   ```
 
-  thinking time · tool icon × count (`💻 bash`, `📖 read`, `📄 write`, `📝
-  edit`, `🔍 grep`, `🔎 find`, `📁 ls`, `🌐 web*`, `🤖 delegate*`, `❓ ask`,
-  `🧩` other extension tools — `TOOL_ICONS`) · error count · total time flush
-  right. While the run is going the line updates live and ends with the
-  current activity (`⏳ thinking…` / `⏳ 💻 $ npm test`). Thinking text and
-  tool output are **not streamed** while collapsed. No background bars — just
-  bold/colored text (accent 🧠, error-colored ❌ count, muted times).
-- **Boundary.** A muted `─` rule (`SEPARATOR_CHAR`/`SEPARATOR_WIDTH`) sits
-  between the run and the answer text that follows — the "done thinking, now
-  answering" mark. Text keeps its normal spacing.
+  🧠 + thinking time (only when ≥ 1s or ≥ 30% of the run, or when the run is
+  thinking-only — otherwise just 🧠); per tool: icon (`💻 bash`, `📖 read`,
+  `📄 write`, `📝 edit`, `🔍 grep`, `🔎 find`, `📁 ls`, `🌐 web*`, `🤖
+  delegate*`, `❓ ask`, `🧩` other extension tools — `TOOL_ICONS`) × bold
+  count, failures bound to their tool as `(2✗)` in the error color, and up to
+  `HINTS_PER_TOOL` muted hints of what ran (command names, file basenames,
+  grep patterns); a muted `─` rule fills the rest; total time flush right
+  (omitted when it would just repeat the thinking time). While the run is
+  going the line updates live and ends with the current activity (`⏳
+  thinking…` / `⏳ 💻 $ npm test`). Thinking text and tool output are **not
+  streamed** while collapsed. No background bars — bold/colored text only.
 
 `ctrl+o` (pi's `app.tools.expand`) shows everything in full, exactly as before,
 and collapses again on the next press. Thinking hide/show (`/settings` →
@@ -35,8 +37,7 @@ to record a parent pointer. At render time a component looks at its chat
 siblings: if the previous one continues a run (a collapsed tool, or a message
 ending in thinking) it is *absorbed* and renders nothing; otherwise it *starts*
 a run, walks forward over the run's members and renders the summary. Thinking
-Markdown children are wrapped in a component that does the same; the Spacer
-between thinking and answer text becomes the rule. Durations are measured live
+Markdown children are wrapped in a component that does the same. Durations are measured live
 (thinking: first thinking delta → first non-thinking content; tools:
 `tool_execution_start` → `tool_execution_end`) and persisted once per turn as
 a `compact-view-timings` custom session entry (TUI-only, never sent to the

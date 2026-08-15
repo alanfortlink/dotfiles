@@ -6,18 +6,16 @@
  * every chat component:
  *
  * 1. A *run* — consecutive thinking blocks and tool calls, across assistant
- *    messages, up to the answer text — is drawn as ONE summary line instead of
- *    one block per call:
+ *    messages, up to the answer text — is drawn as ONE line that doubles as
+ *    the divider before the answer:
  *
- *        🧠 3.2s  💻 4  📝 2  ❌ 1                                   12.4s
+ *        🧠 0.4s · 💻 5 (2✗) ls, echo, cat… · 📖 1 ───────────────── 3.7s
  *
- *    (thinking time, tool icon × count, error count, total time). While the
- *    run is going the line updates live and shows the current activity
- *    (`⏳ $ npm test`). Thinking text and tool output are not streamed at all
- *    when collapsed — only when expanded.
- *
- * 2. A muted rule separates the run from the answer text that follows it —
- *    the "done thinking, now answering" boundary.
+ *    thinking time (only when it matters), tool icon × count with failures
+ *    bound to their tool and a short hint of what ran, a rule filling the
+ *    rest, total time flush right. While the run is going the line updates
+ *    live and shows the current activity (`⏳ 💻 $ npm test`). Thinking text
+ *    and tool output are not streamed at all when collapsed — only expanded.
  *
  * pi has no hook for any of this, so components are patched on their
  * prototypes: AssistantMessageComponent.updateContent / .render and
@@ -32,7 +30,7 @@
  */
 
 import { AssistantMessageComponent, type ExtensionAPI, type ExtensionUIContext, ToolExecutionComponent } from "@earendil-works/pi-coding-agent";
-import { Container, Markdown, Spacer, stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { Container, Markdown, stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
 // ---- look ----
 
@@ -40,14 +38,15 @@ import { Container, Markdown, Spacer, stripTerminalSequences, truncateToWidth, v
 const THINKING_ICON = "🧠";
 /** Icon shown in front of the current activity while a run is still going. */
 const RUNNING_ICON = "⏳";
-/** Icon + count for tools that returned an error. */
-const ERROR_ICON = "❌";
 /** Separator between the summary's groups. */
-const GROUP_GAP = "  ";
-/** Separator drawn between a run and the answer text that follows it. */
-const SEPARATOR_CHAR = "─";
-/** Separator width in cells; 0 = full width (minus padding). */
-const SEPARATOR_WIDTH = 0;
+const GROUP_GAP = " · ";
+/** Rule character that fills the summary line up to the total time. */
+const RULE_CHAR = "─";
+/** Max distinct hints (command names / file names) shown per tool group; 0 disables. */
+const HINTS_PER_TOOL = 3;
+/** Show the thinking time only when it is at least this long or this share of the run. */
+const THINKING_MIN_MS = 1000;
+const THINKING_MIN_SHARE = 0.3;
 /**
  * Icon shown for a tool in the summary, matched against the tool name in
  * order (first hit wins). Extension tools not listed get TOOL_ICON_DEFAULT.
@@ -76,25 +75,22 @@ const bold = (text: string): string => ui?.theme.bold(text) ?? text;
 const muted = (text: string): string => fg("muted", text);
 
 function formatDuration(ms: number): string {
-	if (ms < 1000) return `${Math.round(ms)}ms`;
-	if (ms < 10_000) return `${(ms / 1000).toFixed(1)}s`;
+	if (ms < 10_000) return `${Math.max(0.1, ms / 1000).toFixed(1)}s`;
 	if (ms < 60_000) return `${Math.round(ms / 1000)}s`;
 	const m = Math.floor(ms / 60_000);
 	return `${m}m ${Math.round((ms - m * 60_000) / 1000)}s`;
 }
 
-function separatorLine(width: number, pad: number): string {
-	const n = SEPARATOR_WIDTH > 0 ? Math.min(SEPARATOR_WIDTH, width - pad * 2) : width - pad * 2;
-	return " ".repeat(pad) + muted(SEPARATOR_CHAR.repeat(Math.max(1, n)));
-}
-
-/** `left` flush left, `right` flush right, inside `pad`, truncated to width. */
-function alignedLine(width: number, pad: number, left: string, right: string): string {
+/** `left` then a muted rule filling to `right` (flush right), inside `pad`, truncated to width. */
+function ruleLine(width: number, pad: number, left: string, right: string): string {
 	const rightWidth = visibleWidth(right);
-	const maxLeft = Math.max(1, width - pad * 2 - (rightWidth ? rightWidth + 1 : 0));
+	const inner = width - pad * 2;
+	// Keep at least a short rule visible even when the left part is long.
+	const minRule = 4;
+	const maxLeft = Math.max(1, inner - minRule - 1 - (rightWidth ? rightWidth + 1 : 0));
 	const leftText = truncateToWidth(left, maxLeft, "…");
-	const gap = Math.max(0, width - pad * 2 - visibleWidth(leftText) - rightWidth);
-	return " ".repeat(pad) + leftText + " ".repeat(gap) + right;
+	const ruleWidth = Math.max(minRule, inner - visibleWidth(leftText) - 1 - (rightWidth ? rightWidth + 1 : 0));
+	return " ".repeat(pad) + leftText + " " + muted(RULE_CHAR.repeat(ruleWidth)) + (rightWidth ? " " + right : "");
 }
 
 // ---- timings ----
@@ -231,11 +227,15 @@ function absorbedInRun(component: any): boolean {
 
 // ---- run summary ----
 
+interface ToolGroup {
+	count: number;
+	errors: number;
+	hints: string[]; // distinct, in order of first appearance
+}
 interface RunSummary {
 	thinking: number; // thinking blocks seen
 	thinkingMs: number;
-	tools: Map<string, number>; // icon -> count
-	errors: number;
+	tools: Map<string, ToolGroup>; // icon -> group
 	totalMs: number;
 	running: boolean;
 	/** Current activity while running: "thinking" or a tool title. */
@@ -244,7 +244,7 @@ interface RunSummary {
 
 /** Walk the chat from `start` over the run it begins and total it up. */
 function summarizeRun(start: any): RunSummary {
-	const sum: RunSummary = { thinking: 0, thinkingMs: 0, tools: new Map(), errors: 0, totalMs: 0, running: false };
+	const sum: RunSummary = { thinking: 0, thinkingMs: 0, tools: new Map(), totalMs: 0, running: false };
 	const s = siblings(start);
 	const list = s ? s.list : [start];
 	let i = s ? s.index : 0;
@@ -252,9 +252,13 @@ function summarizeRun(start: any): RunSummary {
 		const c: any = list[i];
 		if (isCompactTool(c)) {
 			const icon = toolIcon(String(c.toolName ?? ""));
-			sum.tools.set(icon, (sum.tools.get(icon) ?? 0) + 1);
+			let group = sum.tools.get(icon);
+			if (!group) sum.tools.set(icon, (group = { count: 0, errors: 0, hints: [] }));
+			group.count++;
 			const finished = c.result !== undefined && !c.isPartial;
-			if (finished && c.result?.isError) sum.errors++;
+			if (finished && c.result?.isError) group.errors++;
+			const hint = toolHint(String(c.toolName ?? ""), c.args);
+			if (hint && !group.hints.includes(hint)) group.hints.push(hint);
 			const t = toolTimings.get(c.toolCallId);
 			const ms = finished ? durationOf(t) : elapsedOf(t);
 			if (ms !== undefined) sum.totalMs += ms;
@@ -284,6 +288,31 @@ function summarizeRun(start: any): RunSummary {
 	return sum;
 }
 
+/** Short "what ran" hint for a call: bash → command name, file tools → basename, grep/find → pattern. */
+function toolHint(name: string, args: any): string | undefined {
+	if (!args || typeof args !== "object") return undefined;
+	const base = (p: unknown) => (typeof p === "string" && p ? p.replace(/\/+$/, "").split("/").pop() || p : undefined);
+	switch (name) {
+		case "bash": {
+			const cmd = typeof args.command === "string" ? args.command.trim() : "";
+			// Skip env assignments and a leading `cd dir &&`; take the first word of the real command.
+			const rest = cmd.replace(/^(?:cd\s+\S+\s*&&\s*)?(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*/, "");
+			const word = rest.split(/\s+/)[0]?.replace(/^\.\//, "");
+			return word || undefined;
+		}
+		case "read":
+		case "write":
+		case "edit":
+		case "ls":
+			return base(args.path);
+		case "grep":
+		case "find":
+			return typeof args.pattern === "string" ? args.pattern : undefined;
+		default:
+			return undefined;
+	}
+}
+
 /** First non-blank line of pi's own tool rendering, stripped — `$ cmd`, `edit path`, ... */
 function toolTitle(c: any): string {
 	const original = (ToolExecutionComponent.prototype as any).__compactViewOriginalRender;
@@ -295,18 +324,28 @@ function toolTitle(c: any): string {
 
 function renderRunSummary(sum: RunSummary, width: number, pad: number): string {
 	const groups: string[] = [];
+	const hasTools = sum.tools.size > 0;
 	if (sum.thinking > 0) {
-		const t = sum.thinkingMs > 0 ? ` ${muted(formatDuration(sum.thinkingMs))}` : "";
-		groups.push(bold(fg("accent", THINKING_ICON)) + t);
+		// Thinking time only when it matters (long, or a big share of the run) — or when it's all there is.
+		const show = sum.thinkingMs > 0 && (!hasTools || sum.thinkingMs >= THINKING_MIN_MS || sum.thinkingMs >= THINKING_MIN_SHARE * sum.totalMs);
+		groups.push(bold(fg("accent", THINKING_ICON)) + (show ? ` ${muted(formatDuration(sum.thinkingMs))}` : ""));
 	}
-	for (const [icon, n] of sum.tools) groups.push(`${icon} ${bold(String(n))}`);
-	if (sum.errors > 0) groups.push(`${ERROR_ICON} ${bold(fg("error", String(sum.errors)))}`);
+	for (const [icon, g] of sum.tools) {
+		let text = `${icon} ${bold(String(g.count))}`;
+		if (g.errors > 0) text += ` ${fg("error", `(${g.errors}✗)`)}`;
+		if (HINTS_PER_TOOL > 0 && g.hints.length > 0) {
+			const shown = g.hints.slice(0, HINTS_PER_TOOL).join(", ") + (g.hints.length > HINTS_PER_TOOL ? "…" : "");
+			text += ` ${muted(shown)}`;
+		}
+		groups.push(text);
+	}
 	if (sum.running && sum.activity) {
 		groups.push(`${RUNNING_ICON} ${fg("warning", sum.activity === "thinking" ? "thinking…" : sum.activity)}`);
 	}
-	const left = groups.join(GROUP_GAP);
-	const right = sum.totalMs > 0 ? muted(formatDuration(sum.totalMs)) : "";
-	return alignedLine(width, pad, left, right);
+	const left = groups.join(muted(GROUP_GAP));
+	// Total flush right — but not when it would just repeat the thinking time.
+	const right = hasTools && sum.totalMs > 0 ? muted(formatDuration(sum.totalMs)) : "";
+	return ruleLine(width, pad, left, right);
 }
 
 // ---- thinking ----
@@ -330,15 +369,6 @@ class ThinkingWindow {
 	}
 }
 
-/** Replaces the Spacer pi puts between thinking and the answer text: a rule when collapsed, blank when expanded. */
-class Separator {
-	constructor(private readonly pad: number) {}
-	render(width: number): string[] {
-		return [isExpanded() ? "" : separatorLine(width, this.pad)];
-	}
-	invalidate(): void {}
-}
-
 const isBlankLine = (l: string | undefined): boolean => l !== undefined && stripTerminalSequences(l).trim() === "";
 
 function patchAssistantMessage(): void {
@@ -354,12 +384,6 @@ function patchAssistantMessage(): void {
 			// Thinking blocks are the only Markdown children rendered with a default italic style.
 			if (child instanceof Markdown && (child as any).defaultTextStyle?.italic === true) {
 				children[i] = new ThinkingWindow(child, this.outputPad ?? 1, this);
-			}
-		}
-		// thinking → text inside one message: pi separates them with a Spacer; make it the rule.
-		for (let i = 1; i < children.length - 1; i++) {
-			if (children[i] instanceof Spacer && children[i - 1] instanceof ThinkingWindow && children[i + 1] instanceof Markdown) {
-				children[i] = new Separator(this.outputPad ?? 1);
 			}
 		}
 	};
@@ -383,8 +407,6 @@ function patchAssistantMessage(): void {
 		// lines[0] may carry OSC 133 zone markers (no visible text); keep them on the new first line.
 		// thinking(+text) after a run: its thinking is absorbed, drop the blank line above.
 		if (absorbed && first === "thinking") return [lines[0] + lines[1], ...lines.slice(2)];
-		// text-only message right after a run: the blank line becomes the separator.
-		if (absorbed && first === "text") return [lines[0] + separatorLine(width, this.outputPad ?? 1), ...lines.slice(1)];
 		return lines;
 	};
 }
