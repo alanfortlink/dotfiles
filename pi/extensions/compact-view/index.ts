@@ -166,10 +166,22 @@ interface TimingEntry {
 let pendingEntry: TimingEntry = {};
 let appendEntry: ((customType: string, data: unknown) => void) | undefined;
 
-function flushTimings(): void {
-	if (!appendEntry || (!pendingEntry.thinking && !pendingEntry.tools)) return;
-	appendEntry(TIMING_ENTRY, pendingEntry);
+function flushTimings(ctx?: any): void {
+	if (!pendingEntry.thinking && !pendingEntry.tools) return;
+	const entry = pendingEntry;
 	pendingEntry = {};
+	try {
+		appendEntry?.(TIMING_ENTRY, entry);
+	} catch {
+		// The captured `pi` is stale once the session was replaced/reloaded mid-turn
+		// (pi throws on any API call then). The event ctx is always current, so
+		// write straight through its session manager instead of dropping the timings.
+		try {
+			ctx?.sessionManager?.appendCustomEntry?.(TIMING_ENTRY, entry);
+		} catch {
+			// Display-only data; losing one turn of durations is fine.
+		}
+	}
 }
 
 function restoreTimings(entries: Iterable<any>): void {
@@ -404,6 +416,6 @@ export default function (pi: ExtensionAPI): void {
 		t.end = Date.now();
 		(pendingEntry.tools ??= {})[event.toolCallId] = t.end - t.start;
 	});
-	pi.on("turn_end", () => flushTimings());
-	pi.on("agent_end", () => flushTimings());
+	pi.on("turn_end", (_event, ctx) => flushTimings(ctx));
+	pi.on("agent_end", (_event, ctx) => flushTimings(ctx));
 }
