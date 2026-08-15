@@ -1,0 +1,66 @@
+/**
+ * Smoke test: render a long thinking block and a long tool block through the
+ * patched components with a fake UI context, collapsed and expanded.
+ *
+ *   PI=~/.local/share/mise/installs/node/25.9.0/lib/node_modules/@earendil-works/pi-coding-agent
+ *   node $PI/node_modules/jiti/lib/jiti-cli.mjs test.ts
+ */
+import { AssistantMessageComponent, initTheme, ToolExecutionComponent } from "@earendil-works/pi-coding-agent";
+import compactView from "./index.ts";
+
+initTheme("dark");
+let expanded = false;
+const fakeUi = { getToolsExpanded: () => expanded, theme: { fg: (_c: string, t: string) => t, bold: (t: string) => `*${t}*` } };
+const handlers: Record<string, (e: unknown, ctx: unknown) => void> = {};
+const entries: any[] = [];
+const fakePi = {
+	on: (name: string, fn: (e: unknown, ctx: unknown) => void) => (handlers[name] = fn),
+	appendEntry: (customType: string, data: unknown) => entries.push({ type: "custom", customType, data }),
+};
+compactView(fakePi as never);
+handlers.session_start({}, { hasUI: true, ui: fakeUi, sessionManager: { getEntries: () => entries } });
+
+const thinking = Array.from({ length: 40 }, (_, i) => `thought line ${i + 1}`).join("\n\n");
+const msg = {
+	timestamp: 123,
+	role: "assistant",
+	content: [
+		{ type: "thinking", thinking },
+		{ type: "text", text: "done" },
+	],
+	stopReason: "stop",
+} as never;
+const am = new AssistantMessageComponent();
+am.updateContent(msg, true);
+console.log("--- thinking streaming ---");
+console.log(am.render(60).map((l) => l.replace(/\x1b\[[0-9;]*m/g, "")).join("\n"));
+am.updateContent(msg, false);
+const strip = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, "");
+console.log("--- thinking finished ---");
+console.log(am.render(60).map(strip).join("\n"));
+expanded = true;
+console.log(`--- thinking expanded: ${am.render(60).length} lines ---`);
+expanded = false;
+
+const fakeTui = { requestRender() {} } as never;
+handlers.tool_execution_start({ toolCallId: "id1" }, {});
+const te = new ToolExecutionComponent("edit", "id1", { path: "/tmp/x", oldText: "a", newText: "b" }, {}, undefined, fakeTui, "/tmp");
+console.log("--- tool running ---");
+console.log(te.render(60).map(strip).join("\n"));
+handlers.tool_execution_end({ toolCallId: "id1" }, {});
+te.updateResult(
+	{
+		content: [{ type: "text", text: "ok" }],
+		details: { diff: Array.from({ length: 30 }, (_, i) => `${i % 2 ? "+" : "-"} line ${i}`).join("\n"), firstChangedLine: 1 },
+	} as never,
+	false,
+);
+console.log("--- tool finished ---");
+console.log(te.render(60).map(strip).join("\n"));
+te.setExpanded(true);
+console.log(`--- tool expanded: ${te.render(60).length} lines ---`);
+
+// ---- persistence: flush, then "reload" (fresh module state via a second registration) ----
+handlers.turn_end({}, {});
+console.log("--- persisted entries ---");
+console.log(JSON.stringify(entries));

@@ -51,5 +51,22 @@ if [ -d "$OUT/bin" ]; then
   done
 fi
 
+# ~/.pi/agent/<file>            ->  repo/pi/<file>
+# ~/.pi/agent/extensions/<x>    ->  repo/pi/extensions/<x>
+# (~/.pi/agent itself stays a real dir: sessions, auth, models-store, and
+# omarchy-managed extensions/themes live there.)
+if [ -d "$REPO/pi" ]; then
+  for entry in "$REPO/pi"/*; do
+    name="$(basename "$entry")"
+    if [ "$name" = "extensions" ]; then
+      for ext in "$entry"/*; do
+        link "$ext" "$HOME/.pi/agent/extensions/$(basename "$ext")"
+      done
+      continue
+    fi
+    link "$entry" "$HOME/.pi/agent/$name"
+  done
+fi
+
 echo
 echo "Done. Edits in \$HOME now write directly to the repo."

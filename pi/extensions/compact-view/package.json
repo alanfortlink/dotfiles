@@ -1,0 +1,6 @@
+{
+  "name": "pi-compact-view",
+  "version": "1.0.0",
+  "description": "Fixed-height scrolling thinking window and capped tool blocks for pi",
+  "private": true
+}

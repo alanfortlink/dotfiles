@@ -24,6 +24,7 @@ Remotes: `origin` (github.com/alanfortlink/dotfiles) and `deck` (self-hosted Git
 - `omarchy/bin/` — scripts from `~/.local/bin` (codex, copilot, gemini, ghui, opencode, session-save/restore, web-search, etc.)
 - `omarchy/herdr/` — herdr `config.toml`, plugin configs (`plugins/config/<plugin>/`), and plugin sources (`plugins/<plugin>/SOURCE` = upstream url + ref, plus `*.patch` for local commits). Not dir-linked: `~/.config/herdr` holds the server's sockets/session state, so `.link-files` makes `sync-omarchy` link each tracked file individually. `herdr-setup` (in `omarchy/bin`) clones/patches/links the plugins.
 - `omarchy/bin/hypr-herdr-*` — ALT+hjkl / ALT+Z / ALT+W route into herdr panes (local, or over ssh / `herdr --remote`) and fall through to Hyprland; wired in `omarchy/hypr/bindings.lua`.
+- `pi/` — pi coding agent: `settings.json`, `keybindings.json`, `APPEND_SYSTEM.md`, and `extensions/<name>/` (ask, claude-footer, compact-view, delegate, ollama-provider, web-tools). `sync-omarchy` links these into `~/.pi/agent/` individually (auth, sessions, models-store, and omarchy-managed extension/theme stay local). `web-tools` needs `npm install` in its dir; the `tsconfig.json` paths are editor-only.
 - `claude/` — curated `~/.claude` subset: `CLAUDE.md`, `settings.json`, `skills/`, `agents/`, `commands/` (no secrets/sessions/history)
 - `sync-omarchy` — the sync script
 - `rr` — tmux helper: send a command to every other pane in the current window
@@ -39,6 +40,7 @@ No bootstrap script yet. To adopt on a new machine:
    - `omarchy/<name>/` → `~/.config/<name>/`
    - `omarchy/bin/<script>` → `~/.local/bin/<script>` (chmod +x)
    - `claude/` contents → `~/.claude/` (selective)
+   - `pi/` → `~/.pi/agent/` (files + `extensions/<name>`; or just run `./sync-omarchy`)
 3. Install runtime deps used by configs: `zoxide`, `tmux` + tpm, `nvim` (with lazy.nvim), starship, plus the omarchy-managed Hyprland stack.
 4. herdr: install `herdr`, then run `herdr-setup` to clone + link the plugins listed in `omarchy/herdr/plugins/`.
 5. From then on, run `./sync-omarchy` after editing live configs to pull changes back into the repo, then commit.
