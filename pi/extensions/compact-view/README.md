@@ -3,31 +3,32 @@
 Keeps the pi transcript short. Display-only; the session and what the model
 sees are unchanged.
 
-- **One line per run, and it is the divider.** A run is a stretch of thinking
-  blocks and tool calls (across assistant messages; tool-call-only messages
-  are transparent) up to the answer text. Instead of one block per call you
-  get one line that doubles as the rule, with the answer hanging directly
-  under it:
+- **One line per interaction.** An interaction is a user prompt and
+  everything the agent does until the next prompt. All of its thinking and
+  tool calls are consolidated into a single line, anchored at the bottom of
+  the activity — right above the final answer (interim answer text is left
+  alone):
 
   ```text
-   3.3s · 🧠 · 💻 6 (1✗) ls, echo, false +3 · 📖 sample.txt ─────────────
+   1m 24s · 🧠 12s · 💻 6 (1✗) ls, echo, cat +3 · 🤖 2 t23, t24 ──────────
 
-   Now some tool calls:
+   All 3 delegates finished. Results: …
   ```
 
-  Total time first (bold, the one featured number); 🧠 as just another item,
-  with its own time only when ≥ 2s or ≥ 30% of the run; per tool: icon (`💻
-  bash`, `📖 read`, `📄 write`, `📝 edit`, `🔍 grep`, `🔎 find`, `📁 ls`, `🌐
-  web*`, `🤖 delegate*`, `❓ ask`, `🧩` other extension tools — `TOOL_ICONS`),
-  bold count (dropped when it's 1 and there's a hint), failures bound to
-  their tool as `(2✗)` in the error color, up to `HINTS_PER_TOOL` muted hints
-  of what ran (command names, file basenames, grep patterns, hostnames,
-  quoted search queries, delegate labels/ids; unknown tools show their name)
-  with `+n` for the rest; a dim `─` rule fills the line. One blank line, then
-  the answer. While the run is going the line updates live and ends with the
-  current activity (`⏳ thinking…` / `⏳ 💻 $ npm test`). Thinking text and
-  tool output are **not streamed** while collapsed. No background bars —
-  bold/colored text only.
+  Wall-clock time first (bold; falls back to the sum of durations when
+  starts are unknown); 🧠 as just another item, with its own time only when
+  ≥ 2s or ≥ 30% of the interaction; per tool: icon (`💻 bash`, `📖 read`,
+  `📄 write`, `📝 edit`, `🔍 grep`, `🔎 find`, `📁 ls`, `🌐 web*`, `🤖
+  delegate*`, `❓ ask`, `🧩` other extension tools — `TOOL_ICONS`), bold
+  count (dropped when it's 1 and there's a hint), failures bound to their
+  tool as `(2✗)` in the error color, up to `HINTS_PER_TOOL` muted hints of
+  what ran (command names, file basenames, grep patterns, hostnames, quoted
+  search queries, delegate labels/ids; unknown tools show their name) with
+  `+n` for the rest; a dim `─` rule fills the line. While the interaction is
+  going the line updates live and a second line under it shows the current
+  activity (`⏳ thinking…` / `⏳ 💻 $ npm test`), gone once the turn ends.
+  Thinking text and tool output are **not streamed** while collapsed. No
+  background bars by default (`RUN_BG` to opt in) — bold/colored text only.
 
 `ctrl+o` (pi's `app.tools.expand`) shows everything in full, exactly as before,
 and collapses again on the next press. Thinking hide/show (`/settings` →
@@ -39,14 +40,15 @@ pi has no hook for any of this, so `AssistantMessageComponent.updateContent`
 / `.render` and `ToolExecutionComponent.render` (exported from the pi package)
 are patched on their prototypes at load, plus pi-tui's `Container.addChild`
 to record a parent pointer. At render time a component looks at its chat
-siblings: if the previous one continues a run (a collapsed tool, or a message
-ending in thinking) it is *absorbed* and renders nothing; otherwise it *starts*
-a run, walks forward over the run's members and renders the summary. Thinking
-Markdown children are wrapped in a component that does the same. Durations are measured live
+siblings: if any later sibling before the next user message is an activity
+(a collapsed tool, or a message with thinking) it renders nothing; otherwise
+it is the interaction's *anchor* and renders the consolidated line for
+everything since the previous user message. Thinking Markdown children are
+wrapped in a component that does the same. Durations are measured live
 (thinking: first thinking delta → first non-thinking content; tools:
 `tool_execution_start` → `tool_execution_end`) and persisted once per turn as
-a `compact-view-timings` custom session entry (TUI-only, never sent to the
-model), restored on `session_start` so they survive `/reload`, restart and
+a `compact-view-timings` custom session entry (`[start, ms]` per item; TUI-only,
+never sent to the model), restored on `session_start` so they survive `/reload`, restart and
 `--resume`. Expanded state comes from `ctx.ui.getToolsExpanded()` at render
 time. Tune the constants at the top of `index.ts`.
 

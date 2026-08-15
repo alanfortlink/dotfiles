@@ -5,24 +5,27 @@
  * (`app.tools.expand`, ctrl+o by default), which pi already propagates to
  * every chat component:
  *
- * 1. A *run* — consecutive thinking blocks and tool calls, across assistant
- *    messages, up to the answer text — is drawn as ONE line that doubles as
- *    the divider before the answer:
+ * 1. One line per *interaction* (a user prompt and everything the agent does
+ *    until the next prompt). All thinking and tool calls of the interaction
+ *    are consolidated into a single line, anchored at the bottom of the
+ *    activity — right above the final answer:
  *
- *        3.7s · 🧠 · 💻 5 (2✗) ls, echo, cat +2 · 📖 sample.txt ─────────
+ *        1m 24s · 🧠 12s · 💻 6 (1✗) ls, echo, cat +3 · 🤖 2 t23, t24 ─────
  *
- *    total time first, then 🧠 (with its own time only when it matters),
+ *    wall-clock time first, then 🧠 (with its own time only when it matters),
  *    tool icon × count with failures bound to their tool and a short hint of
- *    what ran, and a rule filling the rest. While the run is going the line updates
- *    live and shows the current activity (`⏳ 💻 $ npm test`). Thinking text
- *    and tool output are not streamed at all when collapsed — only expanded.
+ *    what ran, and a rule filling the rest. While the interaction is going the
+ *    line updates live and a second line under it shows the current activity
+ *    (`⏳ 💻 $ npm test`); it disappears when the turn ends. Interim answer
+ *    text is left alone. Thinking text and tool output are not streamed at
+ *    all when collapsed — only expanded.
  *
  * pi has no hook for any of this, so components are patched on their
  * prototypes: AssistantMessageComponent.updateContent / .render and
  * ToolExecutionComponent.render (post-process the rendered lines), plus
  * pi-tui Container.addChild to record a parent pointer, since a component
- * needs to look at its chat siblings to know whether it starts a run or is
- * absorbed into one. Session, LLM context and the expanded view are
+ * needs to look at its chat siblings to know whether it is the last activity
+ * of its interaction (and so draws the line) or not (draws nothing). Session, LLM context and the expanded view are
  * untouched. Durations are measured live (thinking: first thinking delta →
  * first non-thinking content; tools: tool_execution_start →
  * tool_execution_end) and persisted per turn as a custom session entry so
@@ -30,7 +33,7 @@
  */
 
 import { AssistantMessageComponent, type ExtensionAPI, type ExtensionUIContext, ToolExecutionComponent } from "@earendil-works/pi-coding-agent";
-import { Container, Markdown, stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { Container, Markdown, Spacer, stripTerminalSequences, Text, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
 // ---- look ----
 
@@ -125,10 +128,14 @@ const toolTimings = new Map<string, Timing>();
 // model) and read back on session_start. One entry per turn keeps the file small.
 
 const TIMING_ENTRY = "compact-view-timings";
+/** Persisted value: `[startEpochMs, durationMs]`; older entries are a bare durationMs. */
+type PersistedTiming = number | [number, number];
 interface TimingEntry {
-	thinking?: Record<string, number>; // assistant message timestamp -> ms
-	tools?: Record<string, number>; // toolCallId -> ms
+	thinking?: Record<string, PersistedTiming>; // assistant message timestamp -> timing
+	tools?: Record<string, PersistedTiming>; // toolCallId -> timing
 }
+const persisted = (t: Timing): PersistedTiming => [t.start!, t.end! - t.start!];
+const unpersist = (v: PersistedTiming): Timing => (Array.isArray(v) ? { start: v[0], end: v[0] + v[1] } : { start: 0, end: v });
 let pendingEntry: TimingEntry = {};
 let appendEntry: ((customType: string, data: unknown) => void) | undefined;
 
@@ -154,12 +161,8 @@ function restoreTimings(entries: Iterable<any>): void {
 	for (const entry of entries) {
 		if (entry?.type !== "custom" || entry.customType !== TIMING_ENTRY) continue;
 		const data = entry.data as TimingEntry | undefined;
-		for (const [key, ms] of Object.entries(data?.thinking ?? {})) {
-			thinkingTimings.set(Number(key), { start: 0, end: ms });
-		}
-		for (const [key, ms] of Object.entries(data?.tools ?? {})) {
-			toolTimings.set(key, { start: 0, end: ms });
-		}
+		for (const [key, v] of Object.entries(data?.thinking ?? {})) thinkingTimings.set(Number(key), unpersist(v));
+		for (const [key, v] of Object.entries(data?.tools ?? {})) toolTimings.set(key, unpersist(v));
 	}
 }
 
@@ -181,7 +184,7 @@ function trackThinking(message: any, isStreaming: boolean): void {
 		!isStreaming || content.slice(lastThinking + 1).some((c) => c.type === "toolCall" || (c.type === "text" && c.text?.trim()));
 	if (doneThinking) {
 		t.end = Date.now();
-		(pendingEntry.thinking ??= {})[String(key)] = t.end - t.start;
+		(pendingEntry.thinking ??= {})[String(key)] = persisted(t);
 	}
 }
 
@@ -210,60 +213,76 @@ function siblings(component: any): { list: any[]; index: number } | undefined {
 const isVisibleBlock = (c: any): boolean =>
 	(c?.type === "text" && c.text?.trim()) || (c?.type === "thinking" && c.thinking?.trim());
 const visibleBlocks = (message: any): any[] => (message?.content ?? []).filter(isVisibleBlock);
+const hasThinking = (c: any): boolean => visibleBlocks(c?.lastMessage).some((b) => b.type === "thinking");
 
 /** A collapsed (non-expanded, image-free) tool block — running or finished. */
 function isCompactTool(c: any): boolean {
 	return c instanceof ToolExecutionComponent && !(c as any).expanded && ((c as any).imageComponents?.length ?? 0) === 0 && !(c as any).hideComponent;
 }
-/** An assistant message that starts with thinking (its thinking belongs to a run). */
-function startsWithThinking(c: any): boolean {
-	return c instanceof AssistantMessageComponent && visibleBlocks((c as any).lastMessage)[0]?.type === "thinking";
-}
-/** An assistant message whose last visible block is thinking — the run continues after it. */
-function endsWithThinking(c: any): boolean {
-	if (!(c instanceof AssistantMessageComponent)) return false;
-	const blocks = visibleBlocks((c as any).lastMessage);
-	return blocks.length > 0 && blocks[blocks.length - 1].type === "thinking";
-}
-/** An assistant message with nothing visible (tool calls only, or still empty) — invisible to the run logic. */
-const isTransparent = (c: any): boolean => c instanceof AssistantMessageComponent && visibleBlocks((c as any).lastMessage).length === 0;
-/** Does the run continue *past* this component (so the next sibling is absorbed)? */
-const continuesRun = (c: any): boolean => isCompactTool(c) || endsWithThinking(c);
+/** Something the summary accounts for: a collapsed tool, or a message with thinking. */
+const isActivity = (c: any): boolean => isCompactTool(c) || (c instanceof AssistantMessageComponent && hasThinking(c));
+/** Neither activity nor a boundary: answer text, empty messages, spacers, status texts, self-rendered tools. */
+const isTransparent = (c: any): boolean =>
+	c instanceof AssistantMessageComponent || c instanceof ToolExecutionComponent || c instanceof Spacer || c instanceof Text;
+/** Starts a new interaction: user messages and everything else pi puts in the chat. */
+const isBoundary = (c: any): boolean => !isActivity(c) && !isTransparent(c);
 
-/** True when `component`'s run part is absorbed into a summary drawn by an earlier sibling. */
-function absorbedInRun(component: any): boolean {
+/**
+ * The anchor of an interaction is its last activity — the component that draws
+ * the consolidated line. Cheap: for anything but the last activity the walk
+ * stops at the very next activity.
+ */
+function isAnchor(component: any): boolean {
 	if (isExpanded()) return false;
 	const s = siblings(component);
-	if (!s) return false;
-	let i = s.index - 1;
-	while (i >= 0 && isTransparent(s.list[i])) i--;
-	return i >= 0 && continuesRun(s.list[i]);
+	if (!s) return true;
+	for (let j = s.index + 1; j < s.list.length; j++) {
+		const c = s.list[j];
+		if (isActivity(c)) return false;
+		if (isBoundary(c)) return true;
+	}
+	return true;
 }
 
-// ---- run summary ----
+// ---- interaction summary ----
 
 interface ToolGroup {
 	count: number;
 	errors: number;
 	hints: string[]; // distinct, in order of first appearance
 }
-interface RunSummary {
+interface Summary {
 	thinking: number; // thinking blocks seen
 	thinkingMs: number;
 	tools: Map<string, ToolGroup>; // icon -> group
-	totalMs: number;
+	totalMs: number; // wall clock when every start is known, else the sum of durations
 	running: boolean;
 	/** Current activity while running: "thinking" or a tool title. */
 	activity?: string;
 }
 
-/** Walk the chat from `start` over the run it begins and total it up. */
-function summarizeRun(start: any): RunSummary {
-	const sum: RunSummary = { thinking: 0, thinkingMs: 0, tools: new Map(), totalMs: 0, running: false };
-	const s = siblings(start);
-	const list = s ? s.list : [start];
-	let i = s ? s.index : 0;
-	for (; i < list.length; i++) {
+/** Total up everything from the start of `anchor`'s interaction to the anchor. */
+function summarizeInteraction(anchor: any): Summary {
+	const sum: Summary = { thinking: 0, thinkingMs: 0, tools: new Map(), totalMs: 0, running: false };
+	const s = siblings(anchor);
+	const list = s ? s.list : [anchor];
+	let sumMs = 0;
+	let minStart = Infinity;
+	let maxEnd = -Infinity;
+	let wall = true;
+	const account = (t: Timing | undefined, live: boolean) => {
+		const ms = live ? elapsedOf(t) : durationOf(t);
+		if (ms === undefined) return;
+		sumMs += ms;
+		if (t?.start) {
+			minStart = Math.min(minStart, t.start);
+			maxEnd = Math.max(maxEnd, live ? Date.now() : t.end!);
+		} else wall = false;
+	};
+	// Find the interaction's start, then account chronologically.
+	let first = s ? s.index : 0;
+	while (first > 0 && !isBoundary(list[first - 1])) first--;
+	for (let i = first; i <= (s ? s.index : 0); i++) {
 		const c: any = list[i];
 		if (isCompactTool(c)) {
 			const icon = toolIcon(String(c.toolName ?? ""));
@@ -274,33 +293,25 @@ function summarizeRun(start: any): RunSummary {
 			if (finished && c.result?.isError) group.errors++;
 			const hint = toolHint(String(c.toolName ?? ""), c.args);
 			if (hint && !group.hints.includes(hint)) group.hints.push(hint);
-			const t = toolTimings.get(c.toolCallId);
-			const ms = finished ? durationOf(t) : elapsedOf(t);
-			if (ms !== undefined) sum.totalMs += ms;
+			account(toolTimings.get(c.toolCallId), !finished);
 			if (!finished) {
 				sum.running = true;
-				sum.activity ??= `${icon} ${toolTitle(c)}`;
+				sum.activity = `${icon} ${toolTitle(c)}`;
 			}
-			continue;
-		}
-		if (isTransparent(c)) continue;
-		if (c instanceof AssistantMessageComponent && startsWithThinking(c)) {
+		} else if (c instanceof AssistantMessageComponent && hasThinking(c)) {
 			sum.thinking++;
 			const t = thinkingTimings.get(c.lastMessage?.timestamp);
-			const ms = c.isStreaming ? elapsedOf(t) : durationOf(t);
-			if (ms !== undefined) {
-				sum.thinkingMs += ms;
-				sum.totalMs += ms;
-			}
-			if (c.isStreaming && t?.end === undefined) {
+			const live = c.isStreaming && t?.end === undefined;
+			const before = sumMs;
+			account(t, live);
+			sum.thinkingMs += sumMs - before;
+			if (live) {
 				sum.running = true;
-				sum.activity ??= "thinking";
+				sum.activity = "thinking";
 			}
-			if (!endsWithThinking(c)) break; // its text ends the run
-			continue;
 		}
-		break;
 	}
+	sum.totalMs = wall && minStart !== Infinity ? maxEnd - minStart : sumMs;
 	return sum;
 }
 
@@ -358,13 +369,16 @@ function toolTitle(c: any): string {
 	return line ? stripTerminalSequences(line).trim() : String(c.toolName ?? "");
 }
 
-function renderRunSummary(sum: RunSummary, width: number, pad: number): string {
+function renderSummary(sum: Summary, width: number, pad: number): string[] {
 	const groups: string[] = [];
-	// Total time first, always — the one featured number.
+	// Wall-clock time first, always — the one featured number.
 	if (sum.totalMs > 0) groups.push(bold(formatDuration(sum.totalMs)));
 	if (sum.thinking > 0) {
-		// Thinking is just another item; its own time only when it matters (long, or a big share of the run).
-		const show = sum.thinkingMs > 0 && (sum.thinkingMs >= THINKING_MIN_MS || sum.thinkingMs >= THINKING_MIN_SHARE * sum.totalMs);
+		// Thinking is just another item; its own time only when it matters (long, or a big share).
+		const show =
+			sum.thinkingMs > 0 &&
+			(sum.thinkingMs >= THINKING_MIN_MS || sum.thinkingMs >= THINKING_MIN_SHARE * sum.totalMs) &&
+			formatDuration(sum.thinkingMs) !== formatDuration(sum.totalMs);
 		groups.push(fg("accent", THINKING_ICON) + (show ? ` ${muted(formatDuration(sum.thinkingMs))}` : ""));
 	}
 	for (const [icon, g] of sum.tools) {
@@ -379,15 +393,18 @@ function renderRunSummary(sum: RunSummary, width: number, pad: number): string {
 		}
 		groups.push(text);
 	}
+	const lines = [ruleLine(width, pad, groups.join(muted(GROUP_GAP)), "")];
+	// Second line while running: what is happening right now.
 	if (sum.running && sum.activity) {
-		groups.push(`${RUNNING_ICON} ${fg("warning", sum.activity === "thinking" ? "thinking…" : sum.activity)}`);
+		const activity = sum.activity === "thinking" ? "thinking…" : sum.activity;
+		lines.push(truncateToWidth(" ".repeat(pad) + `${RUNNING_ICON} ${fg("warning", activity)}`, width, "…"));
 	}
-	return ruleLine(width, pad, groups.join(muted(GROUP_GAP)), "");
+	return lines;
 }
 
 // ---- thinking ----
 
-/** Wraps a thinking Markdown component: run summary (or nothing, when absorbed) while collapsed. */
+/** Wraps a thinking Markdown component: the interaction line when its message is the anchor, else nothing. */
 class ThinkingWindow {
 	constructor(
 		private readonly inner: Markdown,
@@ -397,8 +414,8 @@ class ThinkingWindow {
 
 	render(width: number): string[] {
 		if (isExpanded()) return this.inner.render(width);
-		if (absorbedInRun(this.owner)) return [];
-		return [renderRunSummary(summarizeRun(this.owner), width, this.pad)];
+		if (!isAnchor(this.owner)) return [];
+		return renderSummary(summarizeInteraction(this.owner), width, this.pad);
 	}
 
 	invalidate(): void {
@@ -436,14 +453,13 @@ function patchAssistantMessage(): void {
 		const lines: string[] = originalRender.call(this, width);
 		if (isExpanded() || lines.length === 0) return lines;
 		const blocks = visibleBlocks(this.lastMessage);
-		const first = blocks[0]?.type;
 		const hasText = blocks.some((b) => b.type === "text");
-		const absorbed = absorbedInRun(this);
-		// Thinking-only message absorbed into an earlier summary: draw nothing at all.
-		if (absorbed && first === "thinking" && !hasText) return [];
-		// After a run line, keep exactly one blank line above the answer text.
-		// Absorbed message (its thinking is on the earlier line, or text-only): the blank(s) above collapse to one.
-		if (absorbed && (first === "thinking" || first === "text")) return collapseLeadingBlanks(lines);
+		if (!hasThinking(this)) return lines;
+		const anchor = isAnchor(this);
+		// Thinking-only message that isn't the anchor: nothing to show at all.
+		if (!anchor && !hasText) return [];
+		// Its thinking rendered nothing (line is drawn elsewhere): the blank(s) above the text collapse to one.
+		if (!anchor) return collapseLeadingBlanks(lines);
 		return lines;
 	};
 }
@@ -463,12 +479,11 @@ function patchToolExecution(): void {
 	const originalRender = (proto.__compactViewOriginalRender ??= proto.render);
 	proto.render = function (this: any, width: number): string[] {
 		if (this.expanded || (this.imageComponents?.length ?? 0) > 0 || this.hideComponent) return originalRender.call(this, width);
-		// Absorbed into the summary an earlier sibling draws — and no need to render
-		// pi's (possibly huge) block at all while collapsed.
-		if (absorbedInRun(this)) return [];
+		// Only the interaction's last activity draws the line — and pi's (possibly
+		// huge) block is never rendered while collapsed.
+		if (!isAnchor(this)) return [];
 		const pad: number = this.contentBox?.paddingX ?? 1;
-		// This tool starts a run: pi's blank line above, then one summary line.
-		return ["", renderRunSummary(summarizeRun(this), width, pad)];
+		return ["", ...renderSummary(summarizeInteraction(this), width, pad)];
 	};
 }
 
@@ -489,7 +504,7 @@ export default function (pi: ExtensionAPI): void {
 		const t = toolTimings.get(event.toolCallId);
 		if (!t?.start) return;
 		t.end = Date.now();
-		(pendingEntry.tools ??= {})[event.toolCallId] = t.end - t.start;
+		(pendingEntry.tools ??= {})[event.toolCallId] = persisted(t);
 	});
 	pi.on("turn_end", (_event, ctx) => flushTimings(ctx));
 	pi.on("agent_end", (_event, ctx) => flushTimings(ctx));

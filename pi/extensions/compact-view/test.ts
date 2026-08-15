@@ -4,7 +4,7 @@
  *
  * See README "Test" for the jiti one-liner that runs this.
  */
-import { AssistantMessageComponent, initTheme, ToolExecutionComponent } from "@earendil-works/pi-coding-agent";
+import { AssistantMessageComponent, initTheme, ToolExecutionComponent, UserMessageComponent } from "@earendil-works/pi-coding-agent";
 import { Container } from "@earendil-works/pi-tui";
 import compactView from "./index.ts";
 
@@ -29,7 +29,10 @@ const fakeTui = { requestRender() {} } as never;
 const thinking = Array.from({ length: 40 }, (_, i) => `thought line ${i + 1}`).join("\n\n");
 const chat = new Container();
 
-// ---- 1. streaming: thinking-only message starts a run ----
+// ---- 0. user prompt = interaction boundary ----
+chat.addChild(new UserMessageComponent("do things", undefined as never, 1, []));
+
+// ---- 1. streaming: thinking-only message ----
 const a1 = new AssistantMessageComponent();
 chat.addChild(a1);
 a1.updateContent({ timestamp: 1, role: "assistant", content: [{ type: "thinking", thinking }] } as never, true);
@@ -59,13 +62,13 @@ for (const [id, name, args] of [["t2", "edit", { path: "/tmp/x", oldText: "a", n
 	handlers.tool_execution_end({ toolCallId: id }, {});
 	t.updateResult({ content: [{ type: "text", text: "ok" }] } as never, false);
 }
-show("run with 2 messages, 3 tools", chat.render(60));
+show("2 messages, 3 tools", chat.render(60));
 
 // ---- 3. final message: thinking + answer text ----
 const a3 = new AssistantMessageComponent();
 chat.addChild(a3);
 a3.updateContent({ timestamp: 3, role: "assistant", content: [{ type: "thinking", thinking: "ok" }, { type: "text", text: "final answer" }] } as never, false);
-show("run + answer", chat.render(60));
+show("thinking + interim answer", chat.render(60));
 
 // ---- 4. text-only message right after a tool: rule replaces the blank line ----
 handlers.tool_execution_start({ toolCallId: "t4" }, {});
@@ -76,7 +79,14 @@ t4.updateResult({ content: [{ type: "text", text: "ok" }] } as never, false);
 const a4 = new AssistantMessageComponent();
 chat.addChild(a4);
 a4.updateContent({ timestamp: 4, role: "assistant", content: [{ type: "text", text: "plain answer" }] } as never, false);
-show("second run + text-only answer", chat.render(60).slice(-4));
+show("more tools + final answer (line anchored above it)", chat.render(60));
+
+// ---- 5. next interaction: thinking-only reply ----
+chat.addChild(new UserMessageComponent("again", undefined as never, 1, []));
+const a5 = new AssistantMessageComponent();
+chat.addChild(a5);
+a5.updateContent({ timestamp: 5, role: "assistant", content: [{ type: "thinking", thinking: "…" }, { type: "text", text: "second answer" }] } as never, false);
+show("second interaction", chat.render(60).slice(-5));
 
 expanded = true;
 console.log(`--- expanded: ${chat.render(60).length} lines ---`);
