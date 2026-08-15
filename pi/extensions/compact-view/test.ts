@@ -10,8 +10,10 @@ import compactView from "./index.ts";
 
 initTheme("dark");
 let expanded = false;
+const working: (string | undefined)[] = [];
 const fakeUi = {
 	getToolsExpanded: () => expanded,
+	setWorkingMessage: (m?: string) => working.push(m),
 	theme: { fg: (_c: string, t: string) => t, bg: (_c: string, t: string) => t, bold: (t: string) => `*${t}*` },
 };
 const handlers: Record<string, (e: unknown, ctx: unknown) => void> = {};
@@ -32,7 +34,6 @@ const chat = new Container();
 // ---- 0. user prompt = interaction boundary ----
 chat.addChild(new UserMessageComponent("do things", undefined as never, 1, []));
 
-handlers.agent_start({}, {});
 // ---- 1. streaming: thinking-only message ----
 const a1 = new AssistantMessageComponent();
 chat.addChild(a1);
@@ -41,7 +42,7 @@ show("streaming: thinking", chat.render(60));
 
 // tool call arrives (thinking done), tool running
 a1.updateContent({ timestamp: 1, role: "assistant", content: [{ type: "thinking", thinking }, { type: "toolCall", id: "t1", name: "bash", arguments: { command: "echo t1" } }] } as never, true);
-handlers.tool_execution_start({ toolCallId: "t1" }, {});
+handlers.tool_execution_start({ toolCallId: "t1", toolName: "bash", args: { command: "echo t1" } }, {});
 const t1 = new ToolExecutionComponent("bash", "t1", { command: "echo t1" }, {}, undefined, fakeTui, "/tmp");
 chat.addChild(t1);
 show("streaming: tool running", chat.render(60));
@@ -83,6 +84,7 @@ a4.updateContent({ timestamp: 4, role: "assistant", content: [{ type: "text", te
 show("more tools + final answer, turn still running", chat.render(60).slice(-5));
 handlers.agent_end({}, {});
 show("turn ended", chat.render(60).slice(-4));
+console.log("--- working messages ---\n" + JSON.stringify(working));
 
 // ---- 5. next interaction: thinking-only reply ----
 chat.addChild(new UserMessageComponent("again", undefined as never, 1, []));

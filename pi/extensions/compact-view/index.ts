@@ -14,11 +14,12 @@
  *
  *    wall-clock time first, then per tool icon × count with failures bound
  *    to their tool and a short hint of what ran, then 🧠 (with its own time
- *    only when it matters), and a rule filling the rest. While the interaction is going the
- *    line updates live and a second line under it shows the current activity
- *    (`⏳ 💻 $ npm test`); it disappears when the turn ends. Interim answer
- *    text is left alone. Thinking text and tool output are not streamed at
- *    all when collapsed — only expanded.
+ *    only when it matters), and a rule filling the rest. While the
+ *    interaction is going the line updates live, and the current activity
+ *    goes into pi's own "Working..." spinner row (`🧠 thinking…`,
+ *    `💻 $ npm test`, `writing…`) rather than a second chat line. Interim
+ *    answer text is left alone. Thinking text and tool output are not
+ *    streamed at all when collapsed — only expanded.
  *
  * pi has no hook for any of this, so components are patched on their
  * prototypes: AssistantMessageComponent.updateContent / .render and
@@ -39,8 +40,11 @@ import { Container, Markdown, Spacer, stripTerminalSequences, Text, truncateToWi
 
 /** Icon for thinking in the summary line. */
 const THINKING_ICON = "🧠";
-/** Icon shown in front of the current activity while a run is still going. */
-const RUNNING_ICON = "⏳";
+/** Working-indicator messages (pi's spinner row under the editor) for the current activity. */
+const WORKING_THINKING = "thinking…";
+const WORKING_WRITING = "writing…";
+/** Max width of the tool part of the working message (`💻 $ cmd`). */
+const WORKING_TOOL_MAX = 60;
 /** Separator between the summary's groups. */
 const GROUP_GAP = " · ";
 /** Rule character that fills the summary line up to the total time. */
@@ -80,8 +84,6 @@ const TOOL_ICON_DEFAULT = "🧩";
 const toolIcon = (name: string): string => TOOL_ICONS.find(([re]) => re.test(name))?.[1] ?? TOOL_ICON_DEFAULT;
 
 let ui: ExtensionUIContext | undefined;
-/** True between agent_start and agent_end. */
-let agentRunning = false;
 
 const isExpanded = (): boolean => ui?.getToolsExpanded() ?? false;
 const fg = (color: string, text: string): string => ui?.theme.fg(color as never, text) ?? text;
@@ -265,16 +267,11 @@ interface Summary {
 	thinkingMs: number;
 	tools: Map<string, ToolGroup>; // icon -> group
 	totalMs: number; // wall clock when every start is known, else the sum of durations
-	running: boolean;
-	/** Current activity while running: "thinking" or a tool title. */
-	activity?: string;
-	/** The agent is still working on this interaction (it's the last one and a turn is in flight). */
-	live: boolean;
 }
 
 /** Total up everything from the start of `anchor`'s interaction to the anchor. */
 function summarizeInteraction(anchor: any): Summary {
-	const sum: Summary = { thinking: 0, thinkingMs: 0, tools: new Map(), totalMs: 0, running: false, live: false };
+	const sum: Summary = { thinking: 0, thinkingMs: 0, tools: new Map(), totalMs: 0 };
 	const s = siblings(anchor);
 	const list = s ? s.list : [anchor];
 	let sumMs = 0;
@@ -305,10 +302,6 @@ function summarizeInteraction(anchor: any): Summary {
 			const hint = resultHint(c) ?? toolHint(String(c.toolName ?? ""), c.args);
 			if (hint && !group.hints.includes(hint)) group.hints.push(hint);
 			account(toolTimings.get(c.toolCallId), !finished);
-			if (!finished) {
-				sum.running = true;
-				sum.activity = `${icon} ${toolTitle(c)}`;
-			}
 		} else if (c instanceof AssistantMessageComponent && hasThinking(c)) {
 			sum.thinking++;
 			const t = thinkingTimings.get(c.lastMessage?.timestamp);
@@ -316,23 +309,9 @@ function summarizeInteraction(anchor: any): Summary {
 			const before = sumMs;
 			account(t, live);
 			sum.thinkingMs += sumMs - before;
-			if (live) {
-				sum.running = true;
-				sum.activity = "thinking";
-			}
 		}
 	}
 	sum.totalMs = wall && minStart !== Infinity ? maxEnd - minStart : sumMs;
-	// Live = a turn is running and no later interaction (boundary) exists after the anchor.
-	if (agentRunning) {
-		sum.live = true;
-		for (let i = (s ? s.index : 0) + 1; i < list.length; i++) {
-			if (isBoundary(list[i])) {
-				sum.live = false;
-				break;
-			}
-		}
-	}
 	return sum;
 }
 
@@ -393,15 +372,6 @@ function toolHint(name: string, args: any): string | undefined {
 	}
 }
 
-/** First non-blank line of pi's own tool rendering, stripped — `$ cmd`, `edit path`, ... */
-function toolTitle(c: any): string {
-	const original = (ToolExecutionComponent.prototype as any).__compactViewOriginalRender;
-	if (!original) return String(c.toolName ?? "");
-	const lines: string[] = original.call(c, 200);
-	const line = lines.find((l) => stripTerminalSequences(l).trim() !== "");
-	return line ? stripTerminalSequences(line).trim() : String(c.toolName ?? "");
-}
-
 function renderSummary(sum: Summary, width: number, pad: number): string[] {
 	const groups: string[] = [];
 	// Wall-clock time first, always — the one featured number.
@@ -426,16 +396,46 @@ function renderSummary(sum: Summary, width: number, pad: number): string[] {
 			formatDuration(sum.thinkingMs) !== formatDuration(sum.totalMs);
 		groups.push(fg("accent", THINKING_ICON) + (show ? ` ${bold(formatDuration(sum.thinkingMs))}` : ""));
 	}
-	const lines = [ruleLine(width, pad, groups.join(muted(GROUP_GAP)), "")];
-	// Second line for the whole turn: what is happening right now. Kept (as a
-	// bare ⏳) between steps too, so the line count only grows while streaming —
-	// pi does a full clear+redraw whenever content shrinks.
-	if (sum.live) {
-		const activity = sum.activity === "thinking" ? "thinking…" : sum.activity;
-		const text = activity ? `${RUNNING_ICON} ${fg("warning", activity)}` : RUNNING_ICON;
-		lines.push(truncateToWidth(" ".repeat(pad) + text, width - EDGE_MARGIN, "…"));
+	return [ruleLine(width, pad, groups.join(muted(GROUP_GAP)), "")];
+}
+
+// ---- working indicator ----
+// The current activity goes into pi's own "Working..." spinner row instead of
+// a second chat line: `🧠 thinking…`, `💻 $ npm test`, `writing…`.
+
+let workingMessage: string | undefined;
+function setWorking(message: string | undefined): void {
+	if (message === workingMessage) return;
+	workingMessage = message;
+	try {
+		ui?.setWorkingMessage(message);
+	} catch {
+		// UI gone (stale ctx after reload) — cosmetic only.
 	}
-	return lines;
+}
+
+/** `💻 $ cmd` / `📖 file` for the working row, from the tool call's args. */
+function workingToolMessage(name: string, args: any): string {
+	const icon = toolIcon(name);
+	let detail: string | undefined;
+	if (name === "bash" && typeof args?.command === "string") {
+		const first = args.command.trim().split("\n")[0] ?? "";
+		detail = `$ ${first}`;
+	} else {
+		detail = toolHint(name, args) ?? name;
+	}
+	return truncateToWidth(`${icon} ${detail}`, WORKING_TOOL_MAX, "…");
+}
+
+/** While an assistant message streams: thinking → `🧠 thinking…`, text → `writing…`. */
+function trackWorking(message: any, isStreaming: boolean): void {
+	if (!isStreaming) return;
+	const content: any[] = message?.content ?? [];
+	const last = content[content.length - 1];
+	if (!last) return;
+	if (last.type === "thinking") setWorking(`${THINKING_ICON} ${WORKING_THINKING}`);
+	else if (last.type === "text" && last.text?.trim()) setWorking(WORKING_WRITING);
+	// toolCall: tool_execution_start takes over.
 }
 
 // ---- thinking ----
@@ -468,6 +468,7 @@ function patchAssistantMessage(): void {
 	proto.updateContent = function (this: any, message: any, isStreaming: boolean = this.isStreaming) {
 		originalUpdateContent.call(this, message, isStreaming);
 		trackThinking(message, this.isStreaming);
+		trackWorking(message, this.isStreaming);
 		const children: any[] = this.contentContainer?.children ?? [];
 		for (let i = 0; i < children.length; i++) {
 			const child = children[i];
@@ -535,6 +536,7 @@ export default function (pi: ExtensionAPI): void {
 	});
 	pi.on("tool_execution_start", (event) => {
 		toolTimings.set(event.toolCallId, { start: Date.now() });
+		if (event.toolName) setWorking(workingToolMessage(String(event.toolName), (event as any).args));
 	});
 	pi.on("tool_execution_end", (event) => {
 		const t = toolTimings.get(event.toolCallId);
@@ -543,11 +545,8 @@ export default function (pi: ExtensionAPI): void {
 		(pendingEntry.tools ??= {})[event.toolCallId] = persisted(t);
 	});
 	pi.on("turn_end", (_event, ctx) => flushTimings(ctx));
-	pi.on("agent_start", () => {
-		agentRunning = true;
-	});
 	pi.on("agent_end", (_event, ctx) => {
-		agentRunning = false;
+		setWorking(undefined); // back to pi's default "Working..."
 		flushTimings(ctx);
 	});
 }

@@ -28,9 +28,10 @@ sees are unchanged.
   interaction; a muted `─` rule fills the line, stopping one cell short of
   the edge (pi and the terminal can disagree on an emoji's width, and a line
   that wraps leaves a stale copy of itself on screen). While the turn is
-  running the line updates live and a second line under it shows the current
-  activity (`⏳ thinking…` / `⏳ 💻 $ npm test`, bare `⏳` between steps so
-  the line count only grows); it goes away at `agent_end`.
+  running the line updates live, and the current activity is shown in pi's
+  own "Working…" spinner row under the editor (`🧠 thinking…`, `💻 $ npm
+  test`, `📖 file`, `writing…`) via `ui.setWorkingMessage` — one status row,
+  not two; it resets at `agent_end`.
   Thinking text and tool output are **not streamed** while collapsed. No
   background bars by default (`RUN_BG` to opt in) — bold/colored text only.
 
