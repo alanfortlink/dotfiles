@@ -7,7 +7,8 @@
  *
  * 1. Thinking, while streaming, renders inside a fixed-height window: only
  *    the last THINKING_LINES visual lines are shown, so the block scrolls in
- *    place instead of pushing the transcript up. Once the message is done it
+ *    place instead of pushing the transcript up. As soon as thinking is over
+ *    (a tool call or text follows, or the message ends) it
  *    collapses to one line: `🧠 5.2s` (or `🧠` when the timing is unknown,
  *    e.g. a restored session).
  *
@@ -207,8 +208,10 @@ class ThinkingWindow {
 
 	render(width: number): string[] {
 		if (isExpanded()) return this.inner.render(width);
-		if (!this.isStreaming()) {
-			const ms = durationOf(this.timing());
+		// Collapse as soon as thinking is over (a tool call or text followed), not
+		// only at message end — so the streaming view already has the final shape.
+		const ms = durationOf(this.timing());
+		if (!this.isStreaming() || ms !== undefined) {
 			const label = ms === undefined ? THINKING_DONE_ICON : `${THINKING_DONE_ICON} ${formatDuration(ms)}`;
 			const styled = COLLAPSED_FG ? dimmed(label) : ui ? ui.theme.bold(ui.theme.fg(THINKING_DONE_FG, label)) : label;
 			return [truncateToWidth(" ".repeat(this.pad) + styled, width, "...")];

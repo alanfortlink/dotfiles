@@ -5,7 +5,8 @@ sees are unchanged.
 
 - **Thinking** streams inside a fixed-height window: the last `THINKING_LINES`
   (4) visual lines, scrolling in place, with a `... (N earlier lines, ctrl+o to
-  expand)` hint above. When the message finishes it collapses to one line:
+  expand)` hint above. As soon as thinking is over (a tool call or text
+  follows, or the message ends) it collapses to one line:
   `🧠 5.2s` (`🧠` when the timing is unknown, e.g. a session
   recorded before this extension was installed).
 - **Tool blocks** are capped at `TOOL_LINES` (10) visual lines while running

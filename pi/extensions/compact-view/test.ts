@@ -31,8 +31,11 @@ const msg = {
 	stopReason: "stop",
 } as never;
 const am = new AssistantMessageComponent();
+am.updateContent({ ...(msg as any), content: [{ type: "thinking", thinking }] } as never, true);
+console.log("--- thinking streaming (window) ---");
+console.log(am.render(60).map((l) => l.replace(/\x1b\[[0-9;]*m/g, "")).join("\n"));
 am.updateContent(msg, true);
-console.log("--- thinking streaming ---");
+console.log("--- thinking streaming, text started ---");
 console.log(am.render(60).map((l) => l.replace(/\x1b\[[0-9;]*m/g, "")).join("\n"));
 am.updateContent(msg, false);
 const strip = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, "");
