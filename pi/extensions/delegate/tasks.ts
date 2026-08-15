@@ -758,19 +758,18 @@ export function persistState(): void {
 		try {
 			const existing = JSON.parse(fs.readFileSync(STATE_PATH, "utf-8")) as {
 				version?: number;
-				seq?: number;
 				tasks?: PersistedTask[];
 			};
 			if (existing && Array.isArray(existing.tasks)) {
 				others = existing.tasks.filter((r) => r.sessionId !== currentSession);
-				seq = Math.max(seq, Number(existing.seq) || 0);
 			}
 		} catch {
 			/* no prior state */
 		}
 		const merged = [...others, ...records];
 		const tmp = `${STATE_PATH}.tmp`;
-		fs.writeFileSync(tmp, JSON.stringify({ version: 4, seq, tasks: merged }), { encoding: "utf-8", mode: 0o600 });
+		// Ids are per session (t1, t2, … restart in every session), so no file-wide counter.
+		fs.writeFileSync(tmp, JSON.stringify({ version: 5, tasks: merged }), { encoding: "utf-8", mode: 0o600 });
 		fs.renameSync(tmp, STATE_PATH);
 	} catch {
 		/* best-effort; never fail a task over persistence */
@@ -800,14 +799,15 @@ let restoredFor: string | null = null;
  * file holds every session's history, and each session sees just its own.
  * Legacy records (no sessionId) are left alone - they predate session scoping.
  *
- * The id counter is restored too, otherwise fresh tasks would reuse ids that
- * still refer to persisted records.
+ * The id counter continues from this session's highest persisted id, so fresh
+ * tasks never reuse an id that still refers to a persisted record. Ids are
+ * per session: every session starts at t1.
  */
 export function restoreState(): void {
 	if (!currentSession) return; // session not named yet; nothing belongs to us
 	if (restoredFor === currentSession) return;
 	restoredFor = currentSession;
-	let parsed: { version?: number; seq?: number; tasks?: PersistedTask[] } | null = null;
+	let parsed: { version?: number; tasks?: PersistedTask[] } | null = null;
 	try {
 		parsed = JSON.parse(fs.readFileSync(STATE_PATH, "utf-8"));
 	} catch {
@@ -850,7 +850,7 @@ export function restoreState(): void {
 		const n = Number.parseInt(r.id.replace(/^t/, ""), 10);
 		if (Number.isFinite(n)) maxId = Math.max(maxId, n);
 	}
-	seq = Math.max(seq, maxId, parsed.seq ?? 0);
+	seq = Math.max(seq, maxId);
 	pruneTasks();
 	persistState();
 	emitChange();

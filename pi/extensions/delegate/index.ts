@@ -9,7 +9,7 @@
  * plain pi would use.
  *
  * The model gets four tools: spawn tasks, check on them, read them, steer them.
- * The human gets an inspector (`/delegate` or alt+g) that shows every subagent
+ * The human gets an inspector (`/delegate`) that shows every subagent
  * live - tool calls, prose, streaming output - and can steer or kill any of them.
  *
  * Tasks are flat and independent. Sequencing is the parent agent's job: spawn,
@@ -282,7 +282,7 @@ export default function (pi: ExtensionAPI) {
 					const head =
 						theme.fg("toolTitle", theme.bold("delegate ")) +
 						tally.join(theme.fg("dim", ", ")) +
-						theme.fg("dim", "  ·  alt+g to inspect");
+						theme.fg("dim", "  ·  /delegate to inspect");
 
 					const rows = active.slice(0, WIDGET_ROWS).map((t) => {
 						const icon = t.status === "running" ? theme.fg("warning", "▶") : theme.fg("dim", "·");
@@ -365,7 +365,7 @@ export default function (pi: ExtensionAPI) {
 			"Every field is passed straight to the subagent session; anything you omit falls back to whatever this session would use.",
 			"You define each subagent inline (prompt, and optionally systemPrompt, tools, model) - there are no predefined agents to pick from.",
 			"After spawning, END YOUR TURN: you are notified automatically when the tasks settle, and the user stays free to talk to you meanwhile.",
-			"Live progress is shown in the inspector (alt+g), not streamed into your context.",
+			"Live progress is shown in the inspector (/delegate), not streamed into your context.",
 		].join(" "),
 		promptSnippet: "Run prompts in separate subagent sessions (non-blocking; returns task ids)",
 		promptGuidelines: [
@@ -401,7 +401,7 @@ export default function (pi: ExtensionAPI) {
 							(caps.length ? `Waiting on provider capacity: ${caps.join("; ")}.\n` : "") +
 							`These run in the background. Tell the user what you started, then END YOUR TURN — do not call delegate_wait now. ` +
 							`A [delegate] message will arrive when they settle; read the results with delegate_wait then. ` +
-							`Progress is visible in the inspector (alt+g), not in your context.`,
+							`Progress is visible in the inspector (/delegate), not in your context.`,
 					},
 				],
 				details: toDetails(spawned),

@@ -212,7 +212,7 @@ A provider not listed in `providerConcurrency` gets `localConcurrency` if its id
 
 - **Completion push** — when the last in-flight task settles, one message is delivered to the parent (`followUp`, so it lands cleanly mid-stream) naming the ids to read. Suppressed for anything the parent already collected.
 - **Shutdown** — closing pi kills running subagent sessions rather than orphaning them.
-- **Durability** — task records persist to `~/.pi/agent/delegate-state.json` (atomic tmp+rename), including the id counter so fresh ids never collide with restored ones. Writes merge with other sessions' records instead of replacing them. Finished tasks stay readable across a restart *of the same session*; anything in flight is restored as `killed` / `stopReason: "lost"`, since in-memory sessions cannot be resumed. Last 30 settled tasks retained per session.
+- **Durability** — task records persist to `~/.pi/agent/delegate-state.json` (atomic tmp+rename). Ids are per session — every session starts at `t1` — and continue from the session's highest persisted id so fresh ids never collide with restored ones. Writes merge with other sessions' records instead of replacing them. Finished tasks stay readable across a restart *of the same session*; anything in flight is restored as `killed` / `stopReason: "lost"`, since in-memory sessions cannot be resumed. Last 30 settled tasks retained per session.
 - **Failure** — an unresolvable `model` or a session that fails to start settles that task as `failed`; other tasks are unaffected.
 
 ## Not included
