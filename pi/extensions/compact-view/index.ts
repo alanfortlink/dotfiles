@@ -10,11 +10,11 @@
  *    are consolidated into a single line, anchored at the bottom of the
  *    activity — right above the final answer:
  *
- *        1m 24s · 🧠 12s · 💻 6 (1✗) ls, echo, cat +3 · 🤖 2 t23, t24 ─────
+ *        1m 24s · 💻 6 (1✗) ls, echo, cat +3 · 🤖 2 audit, research · 🧠 12s ──
  *
- *    wall-clock time first, then 🧠 (with its own time only when it matters),
- *    tool icon × count with failures bound to their tool and a short hint of
- *    what ran, and a rule filling the rest. While the interaction is going the
+ *    wall-clock time first, then per tool icon × count with failures bound
+ *    to their tool and a short hint of what ran, then 🧠 (with its own time
+ *    only when it matters), and a rule filling the rest. While the interaction is going the
  *    line updates live and a second line under it shows the current activity
  *    (`⏳ 💻 $ npm test`); it disappears when the turn ends. Interim answer
  *    text is left alone. Thinking text and tool output are not streamed at
@@ -50,8 +50,8 @@ const HINTS_PER_TOOL = 3;
 /** Show the thinking time only when it is at least this long or this share of the run. */
 const THINKING_MIN_MS = 2000;
 const THINKING_MIN_SHARE = 0.3;
-/** Rule color, one step dimmer than the muted hints (chrome vs content). */
-const RULE_FG = "dim";
+/** Rule color. "dim" vanished into the background on dark themes; muted stays visible across the width. */
+const RULE_FG = "muted";
 /**
  * Optional background for the whole run line, e.g. "toolPendingBg" or
  * "customMessageBg", to mark it as metadata rather than output. Off by
@@ -291,7 +291,7 @@ function summarizeInteraction(anchor: any): Summary {
 			group.count++;
 			const finished = c.result !== undefined && !c.isPartial;
 			if (finished && c.result?.isError) group.errors++;
-			const hint = toolHint(String(c.toolName ?? ""), c.args);
+			const hint = resultHint(c) ?? toolHint(String(c.toolName ?? ""), c.args);
 			if (hint && !group.hints.includes(hint)) group.hints.push(hint);
 			account(toolTimings.get(c.toolCallId), !finished);
 			if (!finished) {
@@ -313,6 +313,18 @@ function summarizeInteraction(anchor: any): Summary {
 	}
 	sum.totalMs = wall && minStart !== Infinity ? maxEnd - minStart : sumMs;
 	return sum;
+}
+
+/**
+ * Hint taken from a finished tool's result details when that beats the args:
+ * delegate tools report `details.tasks[{id,name}]`, so names replace bare ids
+ * (`🤖 visual-demo` instead of `🤖 t26`) and stay consistent across spawn/wait/status.
+ */
+function resultHint(c: any): string | undefined {
+	const tasks = c.result?.details?.tasks;
+	if (!String(c.toolName ?? "").startsWith("delegate") || !Array.isArray(tasks) || tasks.length === 0) return undefined;
+	const names = tasks.map((t: any) => t?.name || t?.label || t?.id).filter(Boolean);
+	return names.length ? names.join(", ") : undefined;
 }
 
 /** Short "what ran" hint for a call: bash → command name, file tools → basename, grep/find → pattern. */
@@ -373,14 +385,6 @@ function renderSummary(sum: Summary, width: number, pad: number): string[] {
 	const groups: string[] = [];
 	// Wall-clock time first, always — the one featured number.
 	if (sum.totalMs > 0) groups.push(bold(formatDuration(sum.totalMs)));
-	if (sum.thinking > 0) {
-		// Thinking is just another item; its own time only when it matters (long, or a big share).
-		const show =
-			sum.thinkingMs > 0 &&
-			(sum.thinkingMs >= THINKING_MIN_MS || sum.thinkingMs >= THINKING_MIN_SHARE * sum.totalMs) &&
-			formatDuration(sum.thinkingMs) !== formatDuration(sum.totalMs);
-		groups.push(fg("accent", THINKING_ICON) + (show ? ` ${muted(formatDuration(sum.thinkingMs))}` : ""));
-	}
 	for (const [icon, g] of sum.tools) {
 		const hints = HINTS_PER_TOOL > 0 ? g.hints : [];
 		// A count of 1 next to a hint says nothing — `📖 sample.txt` is enough.
@@ -392,6 +396,14 @@ function renderSummary(sum: Summary, width: number, pad: number): string[] {
 			text += ` ${muted(shown + (more > 0 && hints.length > HINTS_PER_TOOL ? ` +${more}` : ""))}`;
 		}
 		groups.push(text);
+	}
+	if (sum.thinking > 0) {
+		// Thinking last — least actionable. Its own time only when it matters (long, or a big share).
+		const show =
+			sum.thinkingMs > 0 &&
+			(sum.thinkingMs >= THINKING_MIN_MS || sum.thinkingMs >= THINKING_MIN_SHARE * sum.totalMs) &&
+			formatDuration(sum.thinkingMs) !== formatDuration(sum.totalMs);
+		groups.push(fg("accent", THINKING_ICON) + (show ? ` ${bold(formatDuration(sum.thinkingMs))}` : ""));
 	}
 	const lines = [ruleLine(width, pad, groups.join(muted(GROUP_GAP)), "")];
 	// Second line while running: what is happening right now.

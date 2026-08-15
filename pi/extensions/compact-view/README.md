@@ -10,21 +10,22 @@ sees are unchanged.
   alone):
 
   ```text
-   1m 24s · 🧠 12s · 💻 6 (1✗) ls, echo, cat +3 · 🤖 2 t23, t24 ──────────
+   1m 24s · 💻 6 (1✗) ls, echo, cat +3 · 🤖 2 audit, research · 🧠 12s ────
 
    All 3 delegates finished. Results: …
   ```
 
   Wall-clock time first (bold; falls back to the sum of durations when
-  starts are unknown); 🧠 as just another item, with its own time only when
-  ≥ 2s or ≥ 30% of the interaction; per tool: icon (`💻 bash`, `📖 read`,
+  starts are unknown); then per tool: icon (`💻 bash`, `📖 read`,
   `📄 write`, `📝 edit`, `🔍 grep`, `🔎 find`, `📁 ls`, `🌐 web*`, `🤖
   delegate*`, `❓ ask`, `🧩` other extension tools — `TOOL_ICONS`), bold
   count (dropped when it's 1 and there's a hint), failures bound to their
   tool as `(2✗)` in the error color, up to `HINTS_PER_TOOL` muted hints of
   what ran (command names, file basenames, grep patterns, hostnames, quoted
-  search queries, delegate labels/ids; unknown tools show their name) with
-  `+n` for the rest; a dim `─` rule fills the line. While the interaction is
+  search queries, delegate task names taken from the result so spawn/wait/
+  status agree; unknown tools show their name) with `+n` for the rest; then
+  🧠 last, with its own (bold) time only when ≥ 2s or ≥ 30% of the
+  interaction; a muted `─` rule fills the line. While the interaction is
   going the line updates live and a second line under it shows the current
   activity (`⏳ thinking…` / `⏳ 💻 $ npm test`), gone once the turn ends.
   Thinking text and tool output are **not streamed** while collapsed. No
