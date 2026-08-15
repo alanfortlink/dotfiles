@@ -10,24 +10,24 @@ sees are unchanged.
   under it:
 
   ```text
-   🧠 2.5s · 💻 6 (1✗) ls, echo, false +3 · 📖 sample.txt ───────────── 3.3s
+   3.3s · 🧠 · 💻 6 (1✗) ls, echo, false +3 · 📖 sample.txt ─────────────
+
    Now some tool calls:
   ```
 
-  🧠 + thinking time (only when ≥ 2s or ≥ 30% of the run, or when the run is
-  thinking-only — otherwise just 🧠); per tool: icon (`💻 bash`, `📖 read`,
-  `📄 write`, `📝 edit`, `🔍 grep`, `🔎 find`, `📁 ls`, `🌐 web*`, `🤖
-  delegate*`, `❓ ask`, `🧩` other extension tools — `TOOL_ICONS`), bold
-  count (dropped when it's 1 and there's a hint), failures bound to their
-  tool as `(2✗)` in the error color, up to `HINTS_PER_TOOL` muted hints of
-  what ran (command names, file basenames, grep patterns, hostnames, quoted
-  search queries, delegate labels/ids; unknown tools show their name) with
-  `+n` for the rest; a dim `─` rule fills the line; total time flush right
-  (omitted under `TOTAL_MIN_MS` or when it would repeat the thinking time).
-  While the run is going the line updates live and ends with the current
-  activity (`⏳ thinking…` / `⏳ 💻 $ npm test`). Thinking text and tool output
-  are **not streamed** while collapsed. No background bars — bold/colored
-  text only.
+  Total time first (bold, the one featured number); 🧠 as just another item,
+  with its own time only when ≥ 2s or ≥ 30% of the run; per tool: icon (`💻
+  bash`, `📖 read`, `📄 write`, `📝 edit`, `🔍 grep`, `🔎 find`, `📁 ls`, `🌐
+  web*`, `🤖 delegate*`, `❓ ask`, `🧩` other extension tools — `TOOL_ICONS`),
+  bold count (dropped when it's 1 and there's a hint), failures bound to
+  their tool as `(2✗)` in the error color, up to `HINTS_PER_TOOL` muted hints
+  of what ran (command names, file basenames, grep patterns, hostnames,
+  quoted search queries, delegate labels/ids; unknown tools show their name)
+  with `+n` for the rest; a dim `─` rule fills the line. One blank line, then
+  the answer. While the run is going the line updates live and ends with the
+  current activity (`⏳ thinking…` / `⏳ 💻 $ npm test`). Thinking text and
+  tool output are **not streamed** while collapsed. No background bars —
+  bold/colored text only.
 
 `ctrl+o` (pi's `app.tools.expand`) shows everything in full, exactly as before,
 and collapses again on the next press. Thinking hide/show (`/settings` →

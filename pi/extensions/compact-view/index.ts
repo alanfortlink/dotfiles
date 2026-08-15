@@ -9,11 +9,11 @@
  *    messages, up to the answer text — is drawn as ONE line that doubles as
  *    the divider before the answer:
  *
- *        🧠 0.4s · 💻 5 (2✗) ls, echo, cat… · 📖 1 ───────────────── 3.7s
+ *        3.7s · 🧠 · 💻 5 (2✗) ls, echo, cat +2 · 📖 sample.txt ─────────
  *
- *    thinking time (only when it matters), tool icon × count with failures
- *    bound to their tool and a short hint of what ran, a rule filling the
- *    rest, total time flush right. While the run is going the line updates
+ *    total time first, then 🧠 (with its own time only when it matters),
+ *    tool icon × count with failures bound to their tool and a short hint of
+ *    what ran, and a rule filling the rest. While the run is going the line updates
  *    live and shows the current activity (`⏳ 💻 $ npm test`). Thinking text
  *    and tool output are not streamed at all when collapsed — only expanded.
  *
@@ -47,8 +47,6 @@ const HINTS_PER_TOOL = 3;
 /** Show the thinking time only when it is at least this long or this share of the run. */
 const THINKING_MIN_MS = 2000;
 const THINKING_MIN_SHARE = 0.3;
-/** Totals below this are noise and not shown. */
-const TOTAL_MIN_MS = 500;
 /** Rule color, one step dimmer than the muted hints (chrome vs content). */
 const RULE_FG = "dim";
 /**
@@ -354,11 +352,12 @@ function toolTitle(c: any): string {
 
 function renderRunSummary(sum: RunSummary, width: number, pad: number): string {
 	const groups: string[] = [];
-	const hasTools = sum.tools.size > 0;
+	// Total time first, always — the one featured number.
+	if (sum.totalMs > 0) groups.push(bold(formatDuration(sum.totalMs)));
 	if (sum.thinking > 0) {
-		// Thinking time only when it matters (long, or a big share of the run) — or when it's all there is.
-		const show = sum.thinkingMs > 0 && (!hasTools || sum.thinkingMs >= THINKING_MIN_MS || sum.thinkingMs >= THINKING_MIN_SHARE * sum.totalMs);
-		groups.push(bold(fg("accent", THINKING_ICON)) + (show ? ` ${muted(formatDuration(sum.thinkingMs))}` : ""));
+		// Thinking is just another item; its own time only when it matters (long, or a big share of the run).
+		const show = sum.thinkingMs > 0 && (sum.thinkingMs >= THINKING_MIN_MS || sum.thinkingMs >= THINKING_MIN_SHARE * sum.totalMs);
+		groups.push(fg("accent", THINKING_ICON) + (show ? ` ${muted(formatDuration(sum.thinkingMs))}` : ""));
 	}
 	for (const [icon, g] of sum.tools) {
 		const hints = HINTS_PER_TOOL > 0 ? g.hints : [];
@@ -375,11 +374,7 @@ function renderRunSummary(sum: RunSummary, width: number, pad: number): string {
 	if (sum.running && sum.activity) {
 		groups.push(`${RUNNING_ICON} ${fg("warning", sum.activity === "thinking" ? "thinking…" : sum.activity)}`);
 	}
-	const left = groups.join(muted(GROUP_GAP));
-	// Total flush right — unless it's noise or would just repeat the thinking time.
-	const showTotal = hasTools && sum.totalMs >= TOTAL_MIN_MS && formatDuration(sum.totalMs) !== formatDuration(sum.thinkingMs);
-	const right = showTotal ? muted(formatDuration(sum.totalMs)) : "";
-	return ruleLine(width, pad, left, right);
+	return ruleLine(width, pad, groups.join(muted(GROUP_GAP)), "");
 }
 
 // ---- thinking ----
@@ -438,30 +433,19 @@ function patchAssistantMessage(): void {
 		const absorbed = absorbedInRun(this);
 		// Thinking-only message absorbed into an earlier summary: draw nothing at all.
 		if (absorbed && first === "thinking" && !hasText) return [];
-		// The run line is the divider, so the answer hangs directly under it:
-		// absorbed message (its thinking is on the earlier line, or text-only) → drop the blank(s) above the text;
-		if (absorbed && (first === "thinking" || first === "text")) return dropLeadingBlanks(lines);
-		// run-starting message with thinking + text → drop the blank between summary and text.
-		if (!absorbed && first === "thinking" && hasText) return dropBlanksAfterFirstContent(lines);
+		// After a run line, keep exactly one blank line above the answer text.
+		// Absorbed message (its thinking is on the earlier line, or text-only): the blank(s) above collapse to one.
+		if (absorbed && (first === "thinking" || first === "text")) return collapseLeadingBlanks(lines);
 		return lines;
 	};
 }
 
-/** Remove leading blank lines, carrying their escape-only content (OSC 133 zone markers) onto the next line. */
-function dropLeadingBlanks(lines: string[]): string[] {
+/** Collapse leading blank lines to one, keeping their escape-only content (OSC 133 zone markers). */
+function collapseLeadingBlanks(lines: string[]): string[] {
 	let i = 0;
 	let carry = "";
 	while (i < lines.length - 1 && isBlankLine(lines[i])) carry += lines[i++];
-	return [carry + lines[i], ...lines.slice(i + 1)];
-}
-
-/** Remove the blank lines that directly follow the first non-blank line. */
-function dropBlanksAfterFirstContent(lines: string[]): string[] {
-	const i = lines.findIndex((l) => !isBlankLine(l));
-	if (i === -1) return lines;
-	let j = i + 1;
-	while (j < lines.length - 1 && isBlankLine(lines[j])) j++;
-	return [...lines.slice(0, i + 1), ...lines.slice(j)];
+	return i <= 1 ? lines : [carry, ...lines.slice(i)];
 }
 
 // ---- tools ----
