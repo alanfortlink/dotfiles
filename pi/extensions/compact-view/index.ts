@@ -80,6 +80,8 @@ const TOOL_ICON_DEFAULT = "🧩";
 const toolIcon = (name: string): string => TOOL_ICONS.find(([re]) => re.test(name))?.[1] ?? TOOL_ICON_DEFAULT;
 
 let ui: ExtensionUIContext | undefined;
+/** True between agent_start and agent_end. */
+let agentRunning = false;
 
 const isExpanded = (): boolean => ui?.getToolsExpanded() ?? false;
 const fg = (color: string, text: string): string => ui?.theme.fg(color as never, text) ?? text;
@@ -94,9 +96,16 @@ function formatDuration(ms: number): string {
 }
 
 /** `left` then a muted rule filling to `right` (flush right), inside `pad`, truncated to width. */
+/**
+ * The last column is never painted. pi and the terminal can disagree by one
+ * cell on an emoji's width; a line that lands one cell past the edge wraps,
+ * shifts every row below it and leaves a stale copy of the line on screen.
+ */
+const EDGE_MARGIN = 1;
+
 function ruleLine(width: number, pad: number, left: string, right: string): string {
 	const rightWidth = visibleWidth(right);
-	const inner = width - pad * 2;
+	const inner = width - pad * 2 - EDGE_MARGIN;
 	// Keep at least a short rule visible even when the left part is long.
 	const minRule = 4;
 	const maxLeft = Math.max(1, inner - minRule - 1 - (rightWidth ? rightWidth + 1 : 0));
@@ -259,11 +268,13 @@ interface Summary {
 	running: boolean;
 	/** Current activity while running: "thinking" or a tool title. */
 	activity?: string;
+	/** The agent is still working on this interaction (it's the last one and a turn is in flight). */
+	live: boolean;
 }
 
 /** Total up everything from the start of `anchor`'s interaction to the anchor. */
 function summarizeInteraction(anchor: any): Summary {
-	const sum: Summary = { thinking: 0, thinkingMs: 0, tools: new Map(), totalMs: 0, running: false };
+	const sum: Summary = { thinking: 0, thinkingMs: 0, tools: new Map(), totalMs: 0, running: false, live: false };
 	const s = siblings(anchor);
 	const list = s ? s.list : [anchor];
 	let sumMs = 0;
@@ -312,6 +323,16 @@ function summarizeInteraction(anchor: any): Summary {
 		}
 	}
 	sum.totalMs = wall && minStart !== Infinity ? maxEnd - minStart : sumMs;
+	// Live = a turn is running and no later interaction (boundary) exists after the anchor.
+	if (agentRunning) {
+		sum.live = true;
+		for (let i = (s ? s.index : 0) + 1; i < list.length; i++) {
+			if (isBoundary(list[i])) {
+				sum.live = false;
+				break;
+			}
+		}
+	}
 	return sum;
 }
 
@@ -406,10 +427,13 @@ function renderSummary(sum: Summary, width: number, pad: number): string[] {
 		groups.push(fg("accent", THINKING_ICON) + (show ? ` ${bold(formatDuration(sum.thinkingMs))}` : ""));
 	}
 	const lines = [ruleLine(width, pad, groups.join(muted(GROUP_GAP)), "")];
-	// Second line while running: what is happening right now.
-	if (sum.running && sum.activity) {
+	// Second line for the whole turn: what is happening right now. Kept (as a
+	// bare ⏳) between steps too, so the line count only grows while streaming —
+	// pi does a full clear+redraw whenever content shrinks.
+	if (sum.live) {
 		const activity = sum.activity === "thinking" ? "thinking…" : sum.activity;
-		lines.push(truncateToWidth(" ".repeat(pad) + `${RUNNING_ICON} ${fg("warning", activity)}`, width, "…"));
+		const text = activity ? `${RUNNING_ICON} ${fg("warning", activity)}` : RUNNING_ICON;
+		lines.push(truncateToWidth(" ".repeat(pad) + text, width - EDGE_MARGIN, "…"));
 	}
 	return lines;
 }
@@ -519,5 +543,11 @@ export default function (pi: ExtensionAPI): void {
 		(pendingEntry.tools ??= {})[event.toolCallId] = persisted(t);
 	});
 	pi.on("turn_end", (_event, ctx) => flushTimings(ctx));
-	pi.on("agent_end", (_event, ctx) => flushTimings(ctx));
+	pi.on("agent_start", () => {
+		agentRunning = true;
+	});
+	pi.on("agent_end", (_event, ctx) => {
+		agentRunning = false;
+		flushTimings(ctx);
+	});
 }

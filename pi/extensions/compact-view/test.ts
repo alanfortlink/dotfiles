@@ -32,6 +32,7 @@ const chat = new Container();
 // ---- 0. user prompt = interaction boundary ----
 chat.addChild(new UserMessageComponent("do things", undefined as never, 1, []));
 
+handlers.agent_start({}, {});
 // ---- 1. streaming: thinking-only message ----
 const a1 = new AssistantMessageComponent();
 chat.addChild(a1);
@@ -79,7 +80,9 @@ t4.updateResult({ content: [{ type: "text", text: "ok" }] } as never, false);
 const a4 = new AssistantMessageComponent();
 chat.addChild(a4);
 a4.updateContent({ timestamp: 4, role: "assistant", content: [{ type: "text", text: "plain answer" }] } as never, false);
-show("more tools + final answer (line anchored above it)", chat.render(60));
+show("more tools + final answer, turn still running", chat.render(60).slice(-5));
+handlers.agent_end({}, {});
+show("turn ended", chat.render(60).slice(-4));
 
 // ---- 5. next interaction: thinking-only reply ----
 chat.addChild(new UserMessageComponent("again", undefined as never, 1, []));
