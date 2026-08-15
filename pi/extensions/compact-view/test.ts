@@ -64,3 +64,30 @@ console.log(`--- tool expanded: ${te.render(60).length} lines ---`);
 handlers.turn_end({}, {});
 console.log("--- persisted entries ---");
 console.log(JSON.stringify(entries));
+
+// ---- grouping: thought → tool → tool(error) → thought+text, in one chat container ----
+import { Container } from "@earendil-works/pi-tui";
+const chat = new Container();
+const think = (ts: number, text?: string) =>
+	({ timestamp: ts, role: "assistant", content: [{ type: "thinking", thinking: "hmm" }, ...(text ? [{ type: "text", text }] : [])], stopReason: "stop" }) as never;
+const a1 = new AssistantMessageComponent();
+chat.addChild(a1);
+a1.updateContent(think(1), false);
+const mkTool = (id: string, isError: boolean) => {
+	handlers.tool_execution_start({ toolCallId: id }, {});
+	const t = new ToolExecutionComponent("bash", id, { command: `echo ${id}` }, {}, undefined, fakeTui, "/tmp");
+	chat.addChild(t);
+	handlers.tool_execution_end({ toolCallId: id }, {});
+	t.updateResult({ content: [{ type: "text", text: isError ? "boom\nline2\nline3" : "ok" }], isError } as never, false);
+	return t;
+};
+mkTool("t1", false);
+mkTool("t2", true);
+const a2 = new AssistantMessageComponent();
+chat.addChild(a2);
+a2.updateContent(think(2, "final answer"), false);
+console.log("--- grouped ---");
+console.log(chat.render(60).map((l) => `|${strip(l)}`).join("\n"));
+expanded = true;
+console.log(`--- grouped expanded: ${chat.render(60).length} lines ---`);
+expanded = false;

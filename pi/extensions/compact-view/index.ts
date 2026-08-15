@@ -14,12 +14,20 @@
  * 2. Tool blocks, while running, are capped at TOOL_LINES visual lines (head
  *    kept, hint line for the rest). Once finished they collapse to one line:
  *    the tool's title (`$ cmd`, `edit path`, ...) with ` · 120ms` appended.
- *    Errors keep the capped view so they stay visible.
+ *    Errors collapse too (` · error`), keeping pi's error background.
+ *
+ * 3. Runs of tool calls / thinking are drawn tight: the blank line pi puts
+ *    before each tool block and before a thinking block is dropped when the
+ *    previous chat sibling is a collapsed tool or a message that ends in
+ *    thinking, so a "thought → tool → tool → thought" sequence reads as one
+ *    group. Text keeps its spacing.
  *
  * pi has no hook for either, so the two components are patched on their
  * prototypes: AssistantMessageComponent.updateContent (post-process the
- * thinking Markdown children) and ToolExecutionComponent.render (post-process
- * the rendered lines). Both are exported from the pi package. Session, LLM
+ * thinking Markdown children), AssistantMessageComponent.render and
+ * ToolExecutionComponent.render (post-process the rendered lines). Both are
+ * exported from the pi package. Sibling lookup needs a parent pointer pi-tui
+ * doesn't keep, so Container.addChild is patched to record one. Session, LLM
  * context and the expanded view are untouched. Durations are measured live
  * (thinking: first thinking delta → first non-thinking content; tools:
  * tool_execution_start → tool_execution_end) and persisted per turn as a custom
@@ -33,7 +41,7 @@ import {
 	keyHint,
 	ToolExecutionComponent,
 } from "@earendil-works/pi-coding-agent";
-import { Box, Markdown, stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { Box, Container, Markdown, stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
 /** Visual lines of thinking kept on screen while streaming. */
 const THINKING_LINES = 4;
@@ -104,9 +112,55 @@ function restoreTimings(entries: Iterable<any>): void {
 	}
 }
 
+// ---- siblings ----
+// pi-tui components don't know their parent; record it on addChild so a chat
+// component can look at the sibling rendered right above it.
+
+const PARENT = Symbol.for("compact-view.parent");
+
+function patchContainer(): void {
+	const proto = Container.prototype as any;
+	const originalAddChild = (proto.__compactViewOriginalAddChild ??= proto.addChild);
+	proto.addChild = function (this: any, child: any) {
+		if (child && typeof child === "object") child[PARENT] = this;
+		return originalAddChild.call(this, child);
+	};
+}
+
+function previousSibling(component: any): any {
+	const parent = component?.[PARENT];
+	const children: any[] | undefined = parent?.children;
+	if (!children) return undefined;
+	const idx = children.indexOf(component);
+	return idx > 0 ? children[idx - 1] : undefined;
+}
+
+const isVisibleBlock = (c: any): boolean =>
+	(c?.type === "text" && c.text?.trim()) || (c?.type === "thinking" && c.thinking?.trim());
+const visibleBlocks = (message: any): any[] => (message?.content ?? []).filter(isVisibleBlock);
+
+/** A collapsed (non-expanded, image-free) tool block — running or finished. */
+function isCompactTool(c: any): boolean {
+	return c instanceof ToolExecutionComponent && !(c as any).expanded && ((c as any).imageComponents?.length ?? 0) === 0 && !(c as any).hideComponent;
+}
+
+/** An assistant message whose last visible block is thinking (drawn as a Thought line / window). */
+function endsWithThinking(c: any): boolean {
+	if (!(c instanceof AssistantMessageComponent)) return false;
+	const blocks = visibleBlocks((c as any).lastMessage);
+	return blocks.length > 0 && blocks[blocks.length - 1].type === "thinking";
+}
+
+/** Should `component` drop the blank line pi draws above it? */
+function tightAbove(component: any): boolean {
+	if (isExpanded()) return false;
+	const prev = previousSibling(component);
+	return isCompactTool(prev) || endsWithThinking(prev);
+}
+
+const isBlankLine = (l: string | undefined): boolean => l !== undefined && stripTerminalSequences(l).trim() === "";
+
 // ---- thinking ----
-
-
 /** Wraps a thinking Markdown component: tail window while streaming, one summary line when done. */
 class ThinkingWindow {
 	constructor(
@@ -185,6 +239,17 @@ function patchAssistantMessage(): void {
 	proto.setExpanded ??= function (this: any, _expanded: boolean) {
 		if (this.lastMessage) this.updateContent(this.lastMessage);
 	};
+
+	// Drop the leading blank line when a thinking-first message follows a tool run.
+	const originalRender = (proto.__compactViewOriginalRender ??= proto.render);
+	proto.render = function (this: any, width: number): string[] {
+		const lines: string[] = originalRender.call(this, width);
+		if (lines.length < 2 || !isBlankLine(lines[0])) return lines;
+		const first = visibleBlocks(this.lastMessage)[0];
+		if (first?.type !== "thinking" || !tightAbove(this)) return lines;
+		// lines[0] may carry OSC 133 zone markers (no visible text); keep them on the new first line.
+		return [lines[0] + lines[1], ...lines.slice(2)];
+	};
 }
 
 // ---- tools ----
@@ -209,14 +274,20 @@ function patchToolExecution(): void {
 		const pad: number = box?.paddingX ?? (children.includes(this.contentText) ? 1 : 0);
 		const keepTail = box !== undefined || children.includes(this.contentText);
 
+		// Runs of tools/thinking are drawn without pi's blank separator line.
+		const tight = tightAbove(this);
+		const lead: string[] = tight || !isBlankLine(lines[0]) ? [] : [lines[0]];
+		if (tight && isBlankLine(lines[0])) lines.shift();
+
 		const finished = this.result !== undefined && !this.isPartial;
-		if (finished && !this.result?.isError) {
-			// One line: the tool title, with the duration appended when known.
+		if (finished) {
+			// One line: the tool title, with error marker / duration appended when known.
 			const idx = lines.findIndex((l) => stripTerminalSequences(l).trim() !== "");
-			if (idx === -1) return lines;
+			if (idx === -1) return [...lead, ...lines];
 			const title = lines[idx];
 			const ms = durationOf(toolTimings.get(this.toolCallId));
-			const dur = ms === undefined ? "" : ` · ${formatDuration(ms)}`;
+			const parts = [this.result?.isError ? "error" : "", ms === undefined ? "" : formatDuration(ms)].filter(Boolean);
+			const dur = parts.length ? ` · ${parts.join(" · ")}` : "";
 			const durWidth = visibleWidth(dur);
 			const textWidth = visibleWidth(stripTerminalSequences(title).trimEnd());
 			const maxTitle = Math.min(textWidth, Math.max(1, width - durWidth));
@@ -226,19 +297,20 @@ function patchToolExecution(): void {
 				const seg = muted(dur) + " ".repeat(Math.max(0, width - visibleWidth(line) - durWidth));
 				line += bg ? bg(seg) : seg;
 			}
-			return lines[0] !== undefined && stripTerminalSequences(lines[0]).trim() === "" ? [lines[0], line] : [line];
+			return [...lead, line];
 		}
 
-		if (lines.length <= TOOL_LINES) return lines;
-		const head = lines.slice(0, TOOL_LINES - (keepTail ? 2 : 1));
+		if (lines.length + lead.length <= TOOL_LINES) return [...lead, ...lines];
+		const head = lines.slice(0, TOOL_LINES - lead.length - (keepTail ? 2 : 1));
 		const dropped = lines.length - head.length - (keepTail ? 1 : 0);
 		let hint = truncateToWidth(" ".repeat(pad) + hiddenHint(dropped, "more lines"), width, "...");
 		if (bg) hint = bg(hint + " ".repeat(Math.max(0, width - visibleWidth(hint))));
-		return keepTail ? [...head, hint, lines[lines.length - 1]] : [...head, hint];
+		return keepTail ? [...lead, ...head, hint, lines[lines.length - 1]] : [...lead, ...head, hint];
 	};
 }
 
 export default function (pi: ExtensionAPI): void {
+	patchContainer();
 	patchAssistantMessage();
 	patchToolExecution();
 	// Capture the UI context for theme + expansion state; hidden with -p or in RPC mode.
