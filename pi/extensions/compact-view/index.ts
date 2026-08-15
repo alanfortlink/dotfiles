@@ -67,10 +67,10 @@ const THINKING_DONE_BG = "toolSuccessBg" as const;
 const TOOL_ICONS: Array<[RegExp, string]> = [
 	[/^bash$/, "💻"],
 	[/^read$/, "📖"],
-	[/^write$/, "📝"],
-	[/^edit$/, "✏️"],
+	[/^write$/, "📄"],
+	[/^edit$/, "📝"],
 	[/^grep$/, "🔍"],
-	[/^find$/, "🗂️"],
+	[/^find$/, "🔎"],
 	[/^ls$/, "📁"],
 	[/^web|^fetch|_search/, "🌐"],
 	[/^delegate/, "🤖"],
@@ -101,6 +101,22 @@ const dimmed = (text: string): string =>
 function separatorLine(width: number, pad: number): string {
 	const n = SEPARATOR_WIDTH > 0 ? Math.min(SEPARATOR_WIDTH, width - pad * 2) : width - pad * 2;
 	return " ".repeat(pad) + muted(SEPARATOR_CHAR.repeat(Math.max(1, n)));
+}
+
+/**
+ * One collapsed line: `left` (icon + title) flush left, `right` (duration /
+ * error) flush right, both inside `pad`, dimmed per COLLAPSED_FG, on `bg`.
+ * Every collapsed thinking/tool line goes through here so columns line up.
+ */
+function collapsedLine(width: number, pad: number, left: string, right: string, bg?: (s: string) => string): string {
+	const style = (t: string) => (COLLAPSED_FG ? dimmed(t) : t);
+	const rightText = right ? style(right) : "";
+	const rightWidth = visibleWidth(rightText);
+	const maxLeft = Math.max(1, width - pad * 2 - (rightWidth ? rightWidth + 1 : 0));
+	const leftText = truncateToWidth(style(left), maxLeft, "…");
+	const gap = Math.max(0, width - pad * 2 - visibleWidth(leftText) - rightWidth);
+	const line = " ".repeat(pad) + leftText + " ".repeat(gap) + rightText + " ".repeat(pad);
+	return bg ? bg(line) : line;
 }
 
 /** Replaces the Spacer pi puts between thinking and the answer text: a rule when collapsed, blank when expanded. */
@@ -233,11 +249,9 @@ class ThinkingWindow {
 		// only at message end — so the streaming view already has the final shape.
 		const ms = durationOf(this.timing());
 		if (!this.isStreaming() || ms !== undefined) {
-			const label = ms === undefined ? THINKING_DONE_ICON : `${THINKING_DONE_ICON} ${formatDuration(ms)}`;
-			const styled = COLLAPSED_FG ? dimmed(label) : ui ? ui.theme.bold(ui.theme.fg(THINKING_DONE_FG, label)) : label;
-			const line = truncateToWidth(" ".repeat(this.pad) + styled, width, "...");
-			const fill = " ".repeat(Math.max(0, width - visibleWidth(line)));
-			return [ui ? ui.theme.bg(THINKING_DONE_BG, line + fill) : line];
+			const icon = COLLAPSED_FG || !ui ? THINKING_DONE_ICON : ui.theme.bold(ui.theme.fg(THINKING_DONE_FG, THINKING_DONE_ICON));
+			const bg = ui ? (t: string) => ui!.theme.bg(THINKING_DONE_BG, t) : undefined;
+			return [collapsedLine(width, this.pad, icon, ms === undefined ? "" : formatDuration(ms), bg)];
 		}
 		const lines = this.inner.render(width);
 		if (lines.length <= THINKING_LINES + 1) return lines;
@@ -353,32 +367,13 @@ function patchToolExecution(): void {
 			// One line: the tool title, with error marker / duration appended when known.
 			const idx = lines.findIndex((l) => stripTerminalSequences(l).trim() !== "");
 			if (idx === -1) return [...lead, ...lines];
-			// Title = pi's first line with the tool icon in front (pi's own colors are
-			// dropped when COLLAPSED_FG re-styles the line anyway).
+			// Left: tool icon + pi's title text; right: "error · 120ms" — on pi's bg bar.
 			const icon = toolIcon(String(this.toolName ?? ""));
 			const rawTitle = lines[idx];
-			const title = COLLAPSED_FG
-				? " ".repeat(pad) + icon + " " + stripTerminalSequences(rawTitle).trim()
-				: " ".repeat(pad) + icon + " " + rawTitle.trimStart();
+			const titleText = COLLAPSED_FG ? stripTerminalSequences(rawTitle).trim() : rawTitle.trimStart();
 			const ms = durationOf(toolTimings.get(this.toolCallId));
-			const parts = [this.result?.isError ? "error" : "", ms === undefined ? "" : formatDuration(ms)].filter(Boolean);
-			const dur = parts.length ? ` · ${parts.join(" · ")}` : "";
-			const durWidth = visibleWidth(dur);
-			const textWidth = visibleWidth(stripTerminalSequences(title).trimEnd());
-			const maxTitle = Math.min(textWidth, Math.max(1, width - durWidth));
-			const ellipsis = textWidth > maxTitle ? "…" : "";
-			const isError = this.result?.isError === true;
-			let line = truncateToWidth(title, maxTitle, ellipsis);
-			if (COLLAPSED_FG) {
-				// Quiet: dimmed text on pi's success/error background bar (full width).
-				const content = dimmed(line) + (dur ? dimmed(dur) : "");
-				const fill = " ".repeat(Math.max(0, width - visibleWidth(content)));
-				line = bg ? bg(content + fill) : content;
-			} else if (dur) {
-				const seg = muted(dur) + " ".repeat(Math.max(0, width - visibleWidth(line) - durWidth));
-				line += bg ? bg(seg) : seg;
-			}
-			return [...lead, line];
+			const right = [this.result?.isError ? "error" : "", ms === undefined ? "" : formatDuration(ms)].filter(Boolean).join(" · ");
+			return [...lead, collapsedLine(width, pad, `${icon} ${titleText}`, right, bg)];
 		}
 
 		if (lines.length + lead.length <= TOOL_LINES) return [...lead, ...lines];
