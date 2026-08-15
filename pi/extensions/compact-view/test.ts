@@ -10,7 +10,7 @@ import compactView from "./index.ts";
 
 initTheme("dark");
 let expanded = false;
-const fakeUi = { getToolsExpanded: () => expanded, theme: { fg: (_c: string, t: string) => t, bold: (t: string) => `*${t}*` } };
+const fakeUi = { getToolsExpanded: () => expanded, theme: { fg: (_c: string, t: string) => t, bg: (_c: string, t: string) => t, bold: (t: string) => `*${t}*` } };
 const handlers: Record<string, (e: unknown, ctx: unknown) => void> = {};
 const entries: any[] = [];
 const fakePi = {

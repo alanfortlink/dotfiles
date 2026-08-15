@@ -11,16 +11,18 @@ sees are unchanged.
   recorded before this extension was installed).
 - **Tool blocks** are capped at `TOOL_LINES` (10) visual lines while running
   (head kept, `... (N more lines, ctrl+o to expand)` line for the rest). When
-  the tool finishes they collapse to one line: the tool title (`$ cmd`,
-  `edit path`, ...) with ` · 120ms` appended when the timing is known. Errors
+  the tool finishes they collapse to one line: a tool icon (`💻 bash`, `📖
+  read`, `✏️ edit`, `🌐 web*`, `🤖 delegate*`, `🧩` other extension tools —
+  `TOOL_ICONS`) + the tool title (`$ cmd`, `edit path`, ...) with ` · 120ms`
+  appended when the timing is known. Errors
   collapse too, as `title · error · 120ms` on pi's error background.
 - **Grouping**: pi puts a blank line above every tool block and every thinking
   block. That line is dropped when the previous chat sibling is a collapsed
   tool or a message that ends in thinking, so `🧠 → $ cmd → $ cmd →
   🧠` reads as one tight run. Text keeps its normal spacing.
 - **Quiet + boundary**: collapsed thinking/tool lines are drawn in the theme's
-  `dim` color (`COLLAPSED_FG`), tool lines on pi's success/error background
-  bar, and a muted `─` rule (`SEPARATOR_CHAR`/`SEPARATOR_WIDTH`) sits
+  `dim` color (`COLLAPSED_FG`) on a full-width background bar (tools: pi's
+  success/error bg; 🧠: `THINKING_DONE_BG`), and a muted `─` rule (`SEPARATOR_CHAR`/`SEPARATOR_WIDTH`) sits
   between the run and the answer text that follows it — the "done thinking,
   now answering" mark. All of it reverts to pi's normal look when expanded.
 

@@ -14,7 +14,8 @@
  *
  * 2. Tool blocks, while running, are capped at TOOL_LINES visual lines (head
  *    kept, hint line for the rest). Once finished they collapse to one line:
- *    the tool's title (`$ cmd`, `edit path`, ...) with ` · 120ms` appended.
+ *    a tool icon (TOOL_ICONS) + the tool's title (`$ cmd`, `edit path`, ...)
+ *    with ` · 120ms` appended.
  *    Errors collapse too (` · error`) on pi's error background.
  *
  * 3. Runs of tool calls / thinking are drawn tight: the blank line pi puts
@@ -57,6 +58,26 @@ const TOOL_LINES = 10;
 const THINKING_DONE_FG = "accent" as const;
 /** Prefix of the finished-thinking summary line (`🧠 5.2s`, or just `🧠` when the timing is unknown). */
 const THINKING_DONE_ICON = "🧠";
+/** Background token for the collapsed thinking line — same bar as tools so a run reads as one block. */
+const THINKING_DONE_BG = "toolSuccessBg" as const;
+/**
+ * Icon shown before a collapsed tool line, matched against the tool name in
+ * order (first hit wins). Extension tools not listed get TOOL_ICON_DEFAULT.
+ */
+const TOOL_ICONS: Array<[RegExp, string]> = [
+	[/^bash$/, "💻"],
+	[/^read$/, "📖"],
+	[/^write$/, "📝"],
+	[/^edit$/, "✏️"],
+	[/^grep$/, "🔍"],
+	[/^find$/, "🗂️"],
+	[/^ls$/, "📁"],
+	[/^web|^fetch|_search/, "🌐"],
+	[/^delegate/, "🤖"],
+	[/^ask$/, "❓"],
+];
+const TOOL_ICON_DEFAULT = "🧩";
+const toolIcon = (name: string): string => TOOL_ICONS.find(([re]) => re.test(name))?.[1] ?? TOOL_ICON_DEFAULT;
 /**
  * Collapsed (finished, not expanded) thinking/tool lines are re-styled in this
  * theme color (on top of pi's success/error background bar for tools), so the
@@ -214,7 +235,9 @@ class ThinkingWindow {
 		if (!this.isStreaming() || ms !== undefined) {
 			const label = ms === undefined ? THINKING_DONE_ICON : `${THINKING_DONE_ICON} ${formatDuration(ms)}`;
 			const styled = COLLAPSED_FG ? dimmed(label) : ui ? ui.theme.bold(ui.theme.fg(THINKING_DONE_FG, label)) : label;
-			return [truncateToWidth(" ".repeat(this.pad) + styled, width, "...")];
+			const line = truncateToWidth(" ".repeat(this.pad) + styled, width, "...");
+			const fill = " ".repeat(Math.max(0, width - visibleWidth(line)));
+			return [ui ? ui.theme.bg(THINKING_DONE_BG, line + fill) : line];
 		}
 		const lines = this.inner.render(width);
 		if (lines.length <= THINKING_LINES + 1) return lines;
@@ -330,7 +353,13 @@ function patchToolExecution(): void {
 			// One line: the tool title, with error marker / duration appended when known.
 			const idx = lines.findIndex((l) => stripTerminalSequences(l).trim() !== "");
 			if (idx === -1) return [...lead, ...lines];
-			const title = lines[idx];
+			// Title = pi's first line with the tool icon in front (pi's own colors are
+			// dropped when COLLAPSED_FG re-styles the line anyway).
+			const icon = toolIcon(String(this.toolName ?? ""));
+			const rawTitle = lines[idx];
+			const title = COLLAPSED_FG
+				? " ".repeat(pad) + icon + " " + stripTerminalSequences(rawTitle).trim()
+				: " ".repeat(pad) + icon + " " + rawTitle.trimStart();
 			const ms = durationOf(toolTimings.get(this.toolCallId));
 			const parts = [this.result?.isError ? "error" : "", ms === undefined ? "" : formatDuration(ms)].filter(Boolean);
 			const dur = parts.length ? ` · ${parts.join(" · ")}` : "";
