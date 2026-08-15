@@ -45,8 +45,12 @@ const RULE_CHAR = "─";
 /** Max distinct hints (command names / file names) shown per tool group; 0 disables. */
 const HINTS_PER_TOOL = 3;
 /** Show the thinking time only when it is at least this long or this share of the run. */
-const THINKING_MIN_MS = 1000;
+const THINKING_MIN_MS = 2000;
 const THINKING_MIN_SHARE = 0.3;
+/** Totals below this are noise and not shown. */
+const TOTAL_MIN_MS = 500;
+/** Rule color, one step dimmer than the muted hints (chrome vs content). */
+const RULE_FG = "dim";
 /**
  * Icon shown for a tool in the summary, matched against the tool name in
  * order (first hit wins). Extension tools not listed get TOOL_ICON_DEFAULT.
@@ -90,7 +94,7 @@ function ruleLine(width: number, pad: number, left: string, right: string): stri
 	const maxLeft = Math.max(1, inner - minRule - 1 - (rightWidth ? rightWidth + 1 : 0));
 	const leftText = truncateToWidth(left, maxLeft, "…");
 	const ruleWidth = Math.max(minRule, inner - visibleWidth(leftText) - 1 - (rightWidth ? rightWidth + 1 : 0));
-	return " ".repeat(pad) + leftText + " " + muted(RULE_CHAR.repeat(ruleWidth)) + (rightWidth ? " " + right : "");
+	return " ".repeat(pad) + leftText + " " + fg(RULE_FG, RULE_CHAR.repeat(ruleWidth)) + (rightWidth ? " " + right : "");
 }
 
 // ---- timings ----
@@ -215,6 +219,8 @@ function endsWithThinking(c: any): boolean {
 	const blocks = visibleBlocks((c as any).lastMessage);
 	return blocks.length > 0 && blocks[blocks.length - 1].type === "thinking";
 }
+/** An assistant message with nothing visible (tool calls only, or still empty) — invisible to the run logic. */
+const isTransparent = (c: any): boolean => c instanceof AssistantMessageComponent && visibleBlocks((c as any).lastMessage).length === 0;
 /** Does the run continue *past* this component (so the next sibling is absorbed)? */
 const continuesRun = (c: any): boolean => isCompactTool(c) || endsWithThinking(c);
 
@@ -222,7 +228,10 @@ const continuesRun = (c: any): boolean => isCompactTool(c) || endsWithThinking(c
 function absorbedInRun(component: any): boolean {
 	if (isExpanded()) return false;
 	const s = siblings(component);
-	return s !== undefined && s.index > 0 && continuesRun(s.list[s.index - 1]);
+	if (!s) return false;
+	let i = s.index - 1;
+	while (i >= 0 && isTransparent(s.list[i])) i--;
+	return i >= 0 && continuesRun(s.list[i]);
 }
 
 // ---- run summary ----
@@ -268,6 +277,7 @@ function summarizeRun(start: any): RunSummary {
 			}
 			continue;
 		}
+		if (isTransparent(c)) continue;
 		if (c instanceof AssistantMessageComponent && startsWithThinking(c)) {
 			sum.thinking++;
 			const t = thinkingTimings.get(c.lastMessage?.timestamp);
@@ -308,8 +318,28 @@ function toolHint(name: string, args: any): string | undefined {
 		case "grep":
 		case "find":
 			return typeof args.pattern === "string" ? args.pattern : undefined;
-		default:
-			return undefined;
+		case "webfetch": {
+			try {
+				return new URL(String(args.url)).hostname.replace(/^www\./, "");
+			} catch {
+				return undefined;
+			}
+		}
+		case "delegate":
+			return Array.isArray(args.tasks) ? args.tasks.map((t: any) => t?.label ?? t?.id).filter(Boolean).join(", ") || undefined : undefined;
+		case "delegate_wait":
+		case "delegate_status":
+			return Array.isArray(args.ids) && args.ids.length ? args.ids.join(", ") : name.replace(/^delegate_/, "");
+		case "delegate_steer":
+			return typeof args.id === "string" ? `steer ${args.id}` : "steer";
+		default: {
+			// Searches: the query, quoted and clipped. Anything else: the tool name itself.
+			if (typeof args.query === "string" && args.query) {
+				const q = args.query.trim();
+				return `"${q.length > 24 ? q.slice(0, 23) + "…" : q}"`;
+			}
+			return toolIcon(name) === TOOL_ICON_DEFAULT ? name : undefined;
+		}
 	}
 }
 
@@ -331,11 +361,14 @@ function renderRunSummary(sum: RunSummary, width: number, pad: number): string {
 		groups.push(bold(fg("accent", THINKING_ICON)) + (show ? ` ${muted(formatDuration(sum.thinkingMs))}` : ""));
 	}
 	for (const [icon, g] of sum.tools) {
-		let text = `${icon} ${bold(String(g.count))}`;
+		const hints = HINTS_PER_TOOL > 0 ? g.hints : [];
+		// A count of 1 next to a hint says nothing — `📖 sample.txt` is enough.
+		let text = g.count === 1 && hints.length ? icon : `${icon} ${bold(String(g.count))}`;
 		if (g.errors > 0) text += ` ${fg("error", `(${g.errors}✗)`)}`;
-		if (HINTS_PER_TOOL > 0 && g.hints.length > 0) {
-			const shown = g.hints.slice(0, HINTS_PER_TOOL).join(", ") + (g.hints.length > HINTS_PER_TOOL ? "…" : "");
-			text += ` ${muted(shown)}`;
+		if (hints.length) {
+			const shown = hints.slice(0, HINTS_PER_TOOL).join(", ");
+			const more = g.count - Math.min(hints.length, HINTS_PER_TOOL);
+			text += ` ${muted(shown + (more > 0 && hints.length > HINTS_PER_TOOL ? ` +${more}` : ""))}`;
 		}
 		groups.push(text);
 	}
@@ -343,8 +376,9 @@ function renderRunSummary(sum: RunSummary, width: number, pad: number): string {
 		groups.push(`${RUNNING_ICON} ${fg("warning", sum.activity === "thinking" ? "thinking…" : sum.activity)}`);
 	}
 	const left = groups.join(muted(GROUP_GAP));
-	// Total flush right — but not when it would just repeat the thinking time.
-	const right = hasTools && sum.totalMs > 0 ? muted(formatDuration(sum.totalMs)) : "";
+	// Total flush right — unless it's noise or would just repeat the thinking time.
+	const showTotal = hasTools && sum.totalMs >= TOTAL_MIN_MS && formatDuration(sum.totalMs) !== formatDuration(sum.thinkingMs);
+	const right = showTotal ? muted(formatDuration(sum.totalMs)) : "";
 	return ruleLine(width, pad, left, right);
 }
 
@@ -400,15 +434,34 @@ function patchAssistantMessage(): void {
 		if (isExpanded() || lines.length === 0) return lines;
 		const blocks = visibleBlocks(this.lastMessage);
 		const first = blocks[0]?.type;
+		const hasText = blocks.some((b) => b.type === "text");
 		const absorbed = absorbedInRun(this);
 		// Thinking-only message absorbed into an earlier summary: draw nothing at all.
-		if (absorbed && first === "thinking" && !blocks.some((b) => b.type === "text")) return [];
-		if (!isBlankLine(lines[0]) || lines.length < 2) return lines;
-		// lines[0] may carry OSC 133 zone markers (no visible text); keep them on the new first line.
-		// thinking(+text) after a run: its thinking is absorbed, drop the blank line above.
-		if (absorbed && first === "thinking") return [lines[0] + lines[1], ...lines.slice(2)];
+		if (absorbed && first === "thinking" && !hasText) return [];
+		// The run line is the divider, so the answer hangs directly under it:
+		// absorbed message (its thinking is on the earlier line, or text-only) → drop the blank(s) above the text;
+		if (absorbed && (first === "thinking" || first === "text")) return dropLeadingBlanks(lines);
+		// run-starting message with thinking + text → drop the blank between summary and text.
+		if (!absorbed && first === "thinking" && hasText) return dropBlanksAfterFirstContent(lines);
 		return lines;
 	};
+}
+
+/** Remove leading blank lines, carrying their escape-only content (OSC 133 zone markers) onto the next line. */
+function dropLeadingBlanks(lines: string[]): string[] {
+	let i = 0;
+	let carry = "";
+	while (i < lines.length - 1 && isBlankLine(lines[i])) carry += lines[i++];
+	return [carry + lines[i], ...lines.slice(i + 1)];
+}
+
+/** Remove the blank lines that directly follow the first non-blank line. */
+function dropBlanksAfterFirstContent(lines: string[]): string[] {
+	const i = lines.findIndex((l) => !isBlankLine(l));
+	if (i === -1) return lines;
+	let j = i + 1;
+	while (j < lines.length - 1 && isBlankLine(lines[j])) j++;
+	return [...lines.slice(0, i + 1), ...lines.slice(j)];
 }
 
 // ---- tools ----
