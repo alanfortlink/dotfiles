@@ -17,6 +17,11 @@ sees are unchanged.
   block. That line is dropped when the previous chat sibling is a collapsed
   tool or a message that ends in thinking, so `🧠 → $ cmd → $ cmd →
   🧠` reads as one tight run. Text keeps its normal spacing.
+- **Quiet + boundary**: collapsed thinking/tool lines are drawn in the theme's
+  `dim` color with no background (`COLLAPSED_FG`; errors keep pi's error
+  background), and a muted `─` rule (`SEPARATOR_CHAR`/`SEPARATOR_WIDTH`) sits
+  between the run and the answer text that follows it — the "done thinking,
+  now answering" mark. All of it reverts to pi's normal look when expanded.
 
 `ctrl+o` (pi's `app.tools.expand`) shows everything in full, exactly as before,
 and collapses again on the next press. Thinking hide/show (`/settings` →

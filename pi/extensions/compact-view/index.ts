@@ -22,6 +22,11 @@
  *    thinking, so a "thought → tool → tool → thought" sequence reads as one
  *    group. Text keeps its spacing.
  *
+ * 4. Collapsed thinking/tool lines are drawn in COLLAPSED_FG (dim) without
+ *    pi's backgrounds (errors keep theirs), and a muted rule separates the run
+ *    from the answer text that follows — the "done thinking, now answering"
+ *    boundary.
+ *
  * pi has no hook for either, so the two components are patched on their
  * prototypes: AssistantMessageComponent.updateContent (post-process the
  * thinking Markdown children), AssistantMessageComponent.render and
@@ -41,7 +46,7 @@ import {
 	keyHint,
 	ToolExecutionComponent,
 } from "@earendil-works/pi-coding-agent";
-import { Box, Container, Markdown, stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import { Box, Container, Markdown, Spacer, stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
 /** Visual lines of thinking kept on screen while streaming. */
 const THINKING_LINES = 4;
@@ -51,11 +56,39 @@ const TOOL_LINES = 10;
 const THINKING_DONE_FG = "accent" as const;
 /** Prefix of the finished-thinking summary line (`🧠 5.2s`, or just `🧠` when the timing is unknown). */
 const THINKING_DONE_ICON = "🧠";
+/**
+ * Collapsed (finished, not expanded) thinking/tool lines are re-styled in this
+ * theme color instead of pi's own colors + background, so the run reads as
+ * quiet metadata under the answer. Errors keep pi's error background. Set to
+ * undefined to keep pi's styling.
+ */
+const COLLAPSED_FG: "dim" | "muted" | undefined = "dim";
+/** Separator drawn between a thinking/tool run and the answer text that follows it. */
+const SEPARATOR_CHAR = "─";
+/** Separator width in cells; 0 = full width (minus padding). */
+const SEPARATOR_WIDTH = 0;
 
 let ui: ExtensionUIContext | undefined;
 
 const isExpanded = (): boolean => ui?.getToolsExpanded() ?? false;
 const muted = (text: string): string => ui?.theme.fg("muted", text) ?? text;
+/** Re-style a collapsed line: strip pi's colors/background, apply COLLAPSED_FG. */
+const dimmed = (text: string): string =>
+	COLLAPSED_FG && ui ? ui.theme.fg(COLLAPSED_FG, stripTerminalSequences(text).trimEnd()) : text;
+
+function separatorLine(width: number, pad: number): string {
+	const n = SEPARATOR_WIDTH > 0 ? Math.min(SEPARATOR_WIDTH, width - pad * 2) : width - pad * 2;
+	return " ".repeat(pad) + muted(SEPARATOR_CHAR.repeat(Math.max(1, n)));
+}
+
+/** Replaces the Spacer pi puts between thinking and the answer text: a rule when collapsed, blank when expanded. */
+class Separator {
+	constructor(private readonly pad: number) {}
+	render(width: number): string[] {
+		return [isExpanded() ? "" : separatorLine(width, this.pad)];
+	}
+	invalidate(): void {}
+}
 
 /** "... (N more lines, ctrl+o to expand)" — same shape as pi's own hints. */
 function hiddenHint(count: number, word: string): string {
@@ -177,7 +210,7 @@ class ThinkingWindow {
 		if (!this.isStreaming()) {
 			const ms = durationOf(this.timing());
 			const label = ms === undefined ? THINKING_DONE_ICON : `${THINKING_DONE_ICON} ${formatDuration(ms)}`;
-			const styled = ui ? ui.theme.bold(ui.theme.fg(THINKING_DONE_FG, label)) : label;
+			const styled = COLLAPSED_FG ? dimmed(label) : ui ? ui.theme.bold(ui.theme.fg(THINKING_DONE_FG, label)) : label;
 			return [truncateToWidth(" ".repeat(this.pad) + styled, width, "...")];
 		}
 		const lines = this.inner.render(width);
@@ -234,6 +267,12 @@ function patchAssistantMessage(): void {
 				);
 			}
 		}
+		// thinking → text inside one message: pi separates them with a Spacer; make it the rule.
+		for (let i = 1; i < children.length - 1; i++) {
+			if (children[i] instanceof Spacer && children[i - 1] instanceof ThinkingWindow && children[i + 1] instanceof Markdown) {
+				children[i] = new Separator(this.outputPad ?? 1);
+			}
+		}
 	};
 
 	// Lets pi's setToolsExpanded() reach us like any other expandable chat component.
@@ -242,15 +281,17 @@ function patchAssistantMessage(): void {
 		if (this.lastMessage) this.updateContent(this.lastMessage);
 	};
 
-	// Drop the leading blank line when a thinking-first message follows a tool run.
+	// After a tool/thinking run: a thinking-first message drops its leading blank
+	// line (stays in the run); a text-first message turns it into the separator.
 	const originalRender = (proto.__compactViewOriginalRender ??= proto.render);
 	proto.render = function (this: any, width: number): string[] {
 		const lines: string[] = originalRender.call(this, width);
-		if (lines.length < 2 || !isBlankLine(lines[0])) return lines;
+		if (lines.length < 2 || !isBlankLine(lines[0]) || !tightAbove(this)) return lines;
 		const first = visibleBlocks(this.lastMessage)[0];
-		if (first?.type !== "thinking" || !tightAbove(this)) return lines;
 		// lines[0] may carry OSC 133 zone markers (no visible text); keep them on the new first line.
-		return [lines[0] + lines[1], ...lines.slice(2)];
+		if (first?.type === "thinking") return [lines[0] + lines[1], ...lines.slice(2)];
+		if (first?.type === "text") return [lines[0] + separatorLine(width, this.outputPad ?? 1), ...lines.slice(1)];
+		return lines;
 	};
 }
 
@@ -294,8 +335,12 @@ function patchToolExecution(): void {
 			const textWidth = visibleWidth(stripTerminalSequences(title).trimEnd());
 			const maxTitle = Math.min(textWidth, Math.max(1, width - durWidth));
 			const ellipsis = textWidth > maxTitle ? "…" : "";
+			const isError = this.result?.isError === true;
 			let line = truncateToWidth(title, maxTitle, ellipsis);
-			if (dur) {
+			if (COLLAPSED_FG && !isError) {
+				// Quiet: plain dimmed text, no background bar.
+				line = dimmed(line) + (dur ? dimmed(dur) : "");
+			} else if (dur) {
 				const seg = muted(dur) + " ".repeat(Math.max(0, width - visibleWidth(line) - durWidth));
 				line += bg ? bg(seg) : seg;
 			}

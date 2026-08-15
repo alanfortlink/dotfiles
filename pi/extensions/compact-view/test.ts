@@ -91,3 +91,11 @@ console.log(chat.render(60).map((l) => `|${strip(l)}`).join("\n"));
 expanded = true;
 console.log(`--- grouped expanded: ${chat.render(60).length} lines ---`);
 expanded = false;
+
+// text-only message right after a tool: rule replaces the blank line
+mkTool("t3", false);
+const a3 = new AssistantMessageComponent();
+chat.addChild(a3);
+a3.updateContent({ timestamp: 3, role: "assistant", content: [{ type: "text", text: "plain answer" }], stopReason: "stop" } as never, false);
+console.log("--- text after tool ---");
+console.log(chat.render(60).slice(-3).map((l) => `|${strip(l)}`).join("\n"));
