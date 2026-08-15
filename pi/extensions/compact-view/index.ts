@@ -50,6 +50,13 @@ const THINKING_MIN_SHARE = 0.3;
 /** Rule color, one step dimmer than the muted hints (chrome vs content). */
 const RULE_FG = "dim";
 /**
+ * Optional background for the whole run line, e.g. "toolPendingBg" or
+ * "customMessageBg", to mark it as metadata rather than output. Off by
+ * default: the dim foreground already says "not output", and a bar pulls the
+ * eye to the least important line on screen.
+ */
+const RUN_BG: string | undefined = undefined;
+/**
  * Icon shown for a tool in the summary, matched against the tool name in
  * order (first hit wins). Extension tools not listed get TOOL_ICON_DEFAULT.
  * Plain 2-cell emoji only (no VS16) so the terminal and pi agree on width.
@@ -92,7 +99,8 @@ function ruleLine(width: number, pad: number, left: string, right: string): stri
 	const maxLeft = Math.max(1, inner - minRule - 1 - (rightWidth ? rightWidth + 1 : 0));
 	const leftText = truncateToWidth(left, maxLeft, "…");
 	const ruleWidth = Math.max(minRule, inner - visibleWidth(leftText) - 1 - (rightWidth ? rightWidth + 1 : 0));
-	return " ".repeat(pad) + leftText + " " + fg(RULE_FG, RULE_CHAR.repeat(ruleWidth)) + (rightWidth ? " " + right : "");
+	const line = " ".repeat(pad) + leftText + " " + fg(RULE_FG, RULE_CHAR.repeat(ruleWidth)) + (rightWidth ? " " + right : "") + " ".repeat(pad);
+	return RUN_BG && ui ? ui.theme.bg(RUN_BG as never, line) : line;
 }
 
 // ---- timings ----
