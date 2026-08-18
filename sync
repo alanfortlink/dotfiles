@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# Link this repo into place. Idempotent, and portable: the omarchy/ tree is
+# only touched on a machine that actually runs it.
+#
+# The repo is the source of truth — once linked, edits in $HOME write straight
+# back here. Anything real already sitting at a target is moved aside as
+# <target>.pre-link-<ts> rather than deleted.
+#
+#   config/<x>      -> ~/.config/<x>
+#   bin/<x>         -> ~/.local/bin/<x>
+#   pi/<x>          -> ~/.pi/agent/<x>        (extensions/ one level deeper)
+#   .<x>            -> ~/.<x>
+#   omarchy/<x>     -> ~/.config/<x>          Omarchy only
+#   omarchy/bin/<x> -> ~/.local/bin/<x>       Omarchy only
+#
+# A config/<x>/.link-files marker means the live directory holds runtime state
+# (herdr keeps its sockets, logs and session history in ~/.config/herdr), so
+# that one is linked file by file instead of being replaced wholesale.
+set -euo pipefail
+
+REPO="$(cd "$(dirname "$0")" && pwd)"
+TS="$(date +%s)"
+
+link() { # src target
+  local src="$1" target="$2"
+  [ -e "$src" ] || return 0
+  if [ -L "$target" ] && [ "$(readlink -f "$target")" = "$(readlink -f "$src")" ]; then
+    return 0
+  fi
+  if [ -e "$target" ] || [ -L "$target" ]; then
+    mv "$target" "$target.pre-link-$TS"
+    echo "  moved aside: $target -> $target.pre-link-$TS"
+  fi
+  mkdir -p "$(dirname "$target")"
+  ln -s "$src" "$target"
+  echo "  linked: $target -> $src"
+}
+
+link_tree() { # repo-relative dir, destination root
+  local reldir="$1" dest="$2" entry name
+  [ -d "$REPO/$reldir" ] || return 0
+  for entry in "$REPO/$reldir"/*; do
+    [ -e "$entry" ] || continue
+    name="$(basename "$entry")"
+    [ "$name" = "bin" ] && continue
+    if [ -f "$entry/.link-files" ]; then
+      git -C "$REPO" ls-files "$reldir/$name" | while read -r rel; do
+        local sub="${rel#"$reldir/$name/"}"
+        case "$sub" in .link-files | plugins/*/SOURCE | plugins/*/*.patch) continue ;; esac
+        link "$REPO/$rel" "$dest/$name/$sub"
+      done
+      continue
+    fi
+    link "$entry" "$dest/$name"
+  done
+}
+
+echo "==> config/* -> ~/.config/"
+link_tree config "$HOME/.config"
+
+echo "==> bin/* -> ~/.local/bin/"
+for entry in "$REPO/bin"/*; do
+  [ -f "$entry" ] || continue
+  chmod +x "$entry"
+  link "$entry" "$HOME/.local/bin/$(basename "$entry")"
+done
+
+# ~/.pi/agent stays a real directory: auth.json, sessions/, models-store.json
+# and any locally-installed extension live alongside the tracked files.
+echo "==> pi/* -> ~/.pi/agent/"
+for entry in "$REPO/pi"/*; do
+  [ -e "$entry" ] || continue
+  name="$(basename "$entry")"
+  if [ "$name" = "extensions" ]; then
+    for ext in "$entry"/*; do
+      [ -e "$ext" ] || continue
+      link "$ext" "$HOME/.pi/agent/extensions/$(basename "$ext")"
+    done
+    continue
+  fi
+  link "$entry" "$HOME/.pi/agent/$name"
+done
+
+# Dotfiles at the repo root, minus git's own and the two that only make sense
+# on one platform. tmux is deliberately absent: it lives in config/tmux, and a
+# ~/.tmux.conf would be loaded on top of it and double the config up.
+echo "==> .* -> ~"
+for entry in "$REPO"/.[!.]*; do
+  [ -e "$entry" ] || continue
+  name="$(basename "$entry")"
+  case "$name" in
+    .git | .gitignore | .gitmodules) continue ;;
+    .bashrc) [ "$(uname -s)" = "Linux" ] || continue ;;
+    .hammerspoon) [ "$(uname -s)" = "Darwin" ] || continue ;;
+  esac
+  link "$entry" "$HOME/$name"
+done
+link "$REPO/antigen.zsh" "$HOME/antigen.zsh"
+
+# Hyprland/Wayland/Omarchy-only. Everything portable was moved out of here, so
+# a machine that is not running Omarchy has no business linking any of it.
+if [ -d /usr/share/omarchy ]; then
+  echo "==> omarchy/* -> ~/.config/ (Omarchy detected)"
+  link_tree omarchy "$HOME/.config"
+  for entry in "$REPO/omarchy/bin"/*; do
+    [ -f "$entry" ] || continue
+    link "$entry" "$HOME/.local/bin/$(basename "$entry")"
+  done
+else
+  echo "==> skipping omarchy/ (no /usr/share/omarchy)"
+fi
+
+echo
+echo "Done. Edits in \$HOME now write directly to the repo."

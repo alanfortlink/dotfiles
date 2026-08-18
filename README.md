@@ -1,46 +1,78 @@
 # dotfiles
 
-Personal config for nvim, tmux, bash, ghostty, and omarchy (Hyprland).
+Personal config for nvim, tmux, herdr, bash, and the Hyprland desktop.
+
+## Layout
+
+The split is by portability, not by machine:
+
+| dir | goes to | contents |
+| --- | --- | --- |
+| `config/` | `~/.config/<name>` | anything that runs anywhere: `nvim`, `tmux`, `herdr`, `ghostty`, `alacritty`, `kitty`, `wezterm`, `btop`, `fastfetch`, `lazygit`, `starship.toml`, `claude` |
+| `bin/` | `~/.local/bin/<name>` | portable scripts: `tmux-navigator`, `tmux-kill-pane-confirm`, `herdr-setup`, `ask-claude`, `gif-captioner` |
+| `pi/` | `~/.pi/agent/` | pi coding agent config + `extensions/<name>/` |
+| `.bashrc` etc. | `~/` | shell dotfiles |
+| `omarchy/` | `~/.config/`, `~/.local/bin/` | Hyprland/Wayland/Omarchy only — `hypr`, `waybar`, `walker`, `mako`, `swayosd`, and `bin/` (`hypr-*`, `session-*`, `voxtype-toggle`, the `omarchy-pkg-add` agent wrappers) |
+
+Nothing outside `omarchy/` depends on Omarchy, so a machine that isn't running
+it can take everything else as-is. `./sync` enforces that: it skips the
+`omarchy/` tree entirely when `/usr/share/omarchy` is absent.
 
 ## Status
 
-Active. Targets two machines, both running omarchy (Arch + Hyprland):
+Active. Primary machine is `tank` (Arch + Hyprland + Omarchy); `deck` is a
+Steam Deck running the same. The zsh files (`.zshrc`, `.zpreztorc`,
+`antigen.zsh`), `.hammerspoon/` and `config/wezterm/` are from macOS setups —
+inert on Linux, live if the repo is deployed on a Mac.
 
-- `tank` — primary omarchy desktop
-- `deck` — Steam Deck running omarchy
+Remotes: `origin` (github.com/alanfortlink/dotfiles) and `deck` (self-hosted
+Gitea on the Steam Deck).
 
-Shell is bash. The zsh files (`.zshrc`, `.zpreztorc`, `antigen.zsh`) and `.hammerspoon/`, `wezterm/` are inert leftovers from prior macOS/zsh setups, kept for reference.
+## Sync
 
-Sync is one-way: live system → repo, via `./sync-omarchy`. Self-discovering — anything already tracked gets refreshed; to add something new, copy it in once.
+```
+./sync
+```
 
-Remotes: `origin` (github.com/alanfortlink/dotfiles) and `deck` (self-hosted Gitea on the Steam Deck).
+Idempotent, and one-way in the sense that matters: it symlinks the repo into
+`$HOME`, so from then on editing a config in `$HOME` writes straight back here.
+Anything real already at a target is moved aside as `<target>.pre-link-<ts>`,
+never deleted. To add something new, copy it into the right dir once and re-run.
 
-## What's inside
+Two things are linked file-by-file rather than as a whole directory, because
+the live directory also holds state that must stay local to the machine:
 
-- `.bashrc`, `.aliases` — bash setup, vi mode, zoxide, unlimited history, git aliases
-- `omarchy/tmux/tmux.conf` — Omarchy's tmux defaults (sourced from `/usr/share/omarchy`) + the herdr key layer (ctrl+shift direct keys, prefix+hjkl focus, `tmux-navigator` on prefix+g), herdr-matching theme, kill-pane confirmation when the pane is busy (`tmux-kill-pane-confirm`), tpm + resurrect. Linked to `~/.config/tmux/` so `omarchy restart/refresh tmux`, `omarchy-theme-set-tmux` and migrations keep working; no `~/.tmux.conf` (tmux would load both).
-- `nvim/` — full `~/.config/nvim` mirror (init.lua, lua/, snippets, ftplugin, lazy-lock)
-- `omarchy/` — mirror of `~/.config/<name>` for: `hypr`, `tmux`, `waybar`, `walker`, `mako`, `swayosd`, `ghostty`, `alacritty`, `kitty`, `btop`, `fastfetch`, `lazygit`, `starship.toml`
-- `omarchy/bin/` — scripts from `~/.local/bin` (codex, copilot, gemini, ghui, opencode, session-save/restore, web-search, etc.)
-- `omarchy/herdr/` — herdr `config.toml`, plugin configs (`plugins/config/<plugin>/`), and plugin sources (`plugins/<plugin>/SOURCE` = upstream url + ref, plus `*.patch` for local commits). Not dir-linked: `~/.config/herdr` holds the server's sockets/session state, so `.link-files` makes `sync-omarchy` link each tracked file individually. `herdr-setup` (in `omarchy/bin`) clones/patches/links the plugins.
-- `omarchy/bin/hypr-mux-*` — ALT+hjkl / ALT+Z / ALT+W route into herdr or tmux panes (local, or over ssh / `herdr --remote`) and fall through to Hyprland; wired in `omarchy/hypr/bindings.lua`. `hypr-mux-lib.sh` resolves which mux the active window shows.
-- `pi/` — pi coding agent: `settings.json`, `keybindings.json`, `APPEND_SYSTEM.md`, and `extensions/<name>/` (ask, claude-footer, compact-view, delegate, ollama-provider, web-tools). `sync-omarchy` links these into `~/.pi/agent/` individually (auth, sessions, models-store, and omarchy-managed extension/theme stay local). `web-tools` needs `npm install` in its dir; the `tsconfig.json` paths are editor-only.
-- `claude/` — curated `~/.claude` subset: `CLAUDE.md`, `settings.json`, `skills/`, `agents/`, `commands/` (no secrets/sessions/history)
-- `sync-omarchy` — the sync script
-- `rr` — tmux helper: send a command to every other pane in the current window
+- `config/herdr/` — herdr keeps its sockets, logs and session history in
+  `~/.config/herdr`. The `.link-files` marker triggers per-file linking.
+- `pi/` — `~/.pi/agent/` also holds `auth.json`, `sessions/` and
+  `models-store.json`.
 
-## Install
+## Notes
 
-No bootstrap script yet. To adopt on a new machine:
+- **tmux** (`config/tmux/tmux.conf`) is self-contained — base settings inlined,
+  no `source-file` out to a distro config. Linked at `~/.config/tmux/`; do not
+  create a `~/.tmux.conf`, tmux would load both. The `ctrl+shift` direct layer
+  mirrors herdr's keymap and needs a terminal that sends CSI-u; `prefix+<key>`
+  works anywhere.
+- **herdr** (`config/herdr/`) — `config.toml`, plugin configs under
+  `plugins/config/<plugin>/`, and plugin sources as `plugins/<plugin>/SOURCE`
+  (upstream url + ref) plus `*.patch` for local commits. `bin/herdr-setup`
+  clones, patches and links them.
+- **hypr-mux-\*** (`omarchy/bin/`) — ALT+hjkl / ALT+Z / ALT+W route into herdr
+  or tmux panes (local, or over ssh / `herdr --remote`) and fall through to
+  Hyprland. `hypr-mux-lib.sh` works out which mux the focused window is showing.
+- **pi** — `web-tools` needs `npm install` in its dir; the `tsconfig.json` paths
+  are editor-only.
+- `rr` — tmux helper: send a command to every other pane in the current window.
 
-1. Clone the repo somewhere (e.g. `~/repos/dotfiles`).
-2. Symlink or copy what you want into place. The layout mirrors the source:
-   - `.bashrc`, `.aliases` → `~/`
-   - `nvim/` → `~/.config/nvim/`
-   - `omarchy/<name>/` → `~/.config/<name>/`
-   - `omarchy/bin/<script>` → `~/.local/bin/<script>` (chmod +x)
-   - `claude/` contents → `~/.claude/` (selective)
-   - `pi/` → `~/.pi/agent/` (files + `extensions/<name>`; or just run `./sync-omarchy`)
-3. Install runtime deps used by configs: `zoxide`, `tmux` + tpm, `nvim` (with lazy.nvim), starship, plus the omarchy-managed Hyprland stack.
-4. herdr: install `herdr`, then run `herdr-setup` to clone + link the plugins listed in `omarchy/herdr/plugins/`.
-5. From then on, run `./sync-omarchy` after editing live configs to pull changes back into the repo, then commit.
+## New machine
+
+1. Clone somewhere (e.g. `~/repos/dotfiles`) and run `./sync`.
+2. Runtime deps: `tmux`, `nvim` (lazy.nvim), `herdr`, `zoxide`, `fzf`,
+   `starship`. `bin/tmux-navigator` needs bash 4+ (`mapfile`), so on macOS
+   install Homebrew's bash and put it ahead of `/bin` on `PATH`.
+3. `herdr-setup` to clone and link the herdr plugins.
+4. tpm for tmux-resurrect: clone `tmux-plugins/tpm` into `~/.tmux/plugins/tpm`,
+   then `prefix+I`.
+5. On Arch/Omarchy, `packages.txt` lists the extra packages the `omarchy/`
+   configs expect.

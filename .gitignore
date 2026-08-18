@@ -1,16 +1,12 @@
-t
-t
-t
-t
-nvim/lazy-lock.json
-test.test.test
-test.test.test
-test.test.test
-test.test.test
-omarchy/hypr/layout-data.lua.bak
+config/nvim/lazy-lock.json
 node_modules/
 pi/extensions/delegate/*.html
+omarchy/hypr/layout-data.lua.bak
 
 # sync/edit backups
 *.bak.[0-9]*
 *.pre-link-[0-9]*
+
+# scratch
+t
+test.test.test

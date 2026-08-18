@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Install/refresh herdr plugins declared in dotfiles/omarchy/herdr/plugins/.
+# Install/refresh herdr plugins declared in dotfiles/config/herdr/plugins/.
 # Each plugins/<name>/ dir has a SOURCE file ("<git-url> <ref>") and optional
 # NNNN-*.patch files (local commits on top of <ref>). The plugin is cloned to
 # ~/repos/<name>, checked out at <ref> on branch "local" with patches applied,
 # then `herdr plugin link`ed. Idempotent; re-run after changing SOURCE/patches.
 set -euo pipefail
 
-REPO="$(cd "$(dirname "$(readlink -f "$0")")/../.." && pwd)"
-PLUGINS="$REPO/omarchy/herdr/plugins"
+REPO="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+PLUGINS="$REPO/config/herdr/plugins"
 DEST_ROOT="${HERDR_PLUGIN_REPOS:-$HOME/repos}"
 
 for dir in "$PLUGINS"/*/; do
