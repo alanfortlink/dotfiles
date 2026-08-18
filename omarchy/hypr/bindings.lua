@@ -10,12 +10,12 @@
 --   SUPER + ALT + hjkl          -> swap with the adjacent neighbor
 --   SUPER + CTRL + SHIFT + hjkl -> merge: re-parent across split boundaries
 
--- hypr-herdr-focus: if the active window hosts herdr and a pane exists in
--- that direction, focus the pane; otherwise plain Hyprland movefocus.
-o.bind("ALT + H", "Focus left", "hypr-herdr-focus l")
-o.bind("ALT + J", "Focus down", "hypr-herdr-focus d")
-o.bind("ALT + K", "Focus up", "hypr-herdr-focus u")
-o.bind("ALT + L", "Focus right", "hypr-herdr-focus r")
+-- hypr-mux-focus: if the active window hosts herdr or tmux and a pane exists
+-- in that direction, focus the pane; otherwise plain Hyprland movefocus.
+o.bind("ALT + H", "Focus left", "hypr-mux-focus l")
+o.bind("ALT + J", "Focus down", "hypr-mux-focus d")
+o.bind("ALT + K", "Focus up", "hypr-mux-focus u")
+o.bind("ALT + L", "Focus right", "hypr-mux-focus r")
 
 -- hypr-resize-intuitive flips the sign when dwindle would otherwise resize
 -- the wrong edge (active in right subtree of its parent H-split).
@@ -41,8 +41,8 @@ o.bind("SUPER + CTRL + SHIFT + L", "Merge right", hl.dsp.window.move({ direction
 
 -- === Fullscreen ===
 o.bind("ALT + F", "Maximize (full width)", hl.dsp.window.fullscreen({ mode = "maximized" }))
--- In herdr (with >1 pane) this toggles pane zoom instead.
-o.bind("ALT + Z", "Maximize / herdr pane zoom", "hypr-herdr-zoom")
+-- In herdr/tmux (with >1 pane) this toggles pane zoom instead.
+o.bind("ALT + Z", "Maximize / mux pane zoom", "hypr-mux-zoom")
 -- Hyprland only hides the bar (top layer) when the monitor's *regular*
 -- workspace has a fullscreen window — fullscreen inside a special workspace
 -- keeps the bar visible. So hop the window out of its scratchpad before
@@ -97,6 +97,9 @@ o.bind("ALT + SHIFT + R", "Fill row", "hypr-fill row")
 
 -- === Monitors ===
 o.bind("CTRL + SHIFT + S", "Move window to next monitor", hl.dsp.window.move({ monitor = "+1", follow = true }))
+-- SUPER+ALT+S was: Move window to scratchpad (omarchy default)
+hl.unbind("SUPER + ALT + S")
+o.bind("SUPER + ALT + S", "Move window to next monitor", hl.dsp.window.move({ monitor = "+1", follow = true }))
 
 -- === Launcher ===
 -- ALT+SPACE mirrors SUPER+SPACE and opens the Omarchy menu.
@@ -140,12 +143,13 @@ o.bind("CTRL + SHIFT + F2", "Scratchpad 2", toggle_scratch_on_dp1("scratch2"))
 o.bind("CTRL + SHIFT + F3", "Scratchpad 3", toggle_scratch_on_dp1("scratch3"))
 o.bind("CTRL + SHIFT + F4", "Scratchpad 4", toggle_scratch_on_dp1("scratch4"))
 
--- Send the focused window into the matching scratchpad (mirrors stock
--- SUPER+ALT+S for the default scratchpad).
-o.bind("CTRL + SHIFT + ALT + F1", "Send window to scratchpad 1", hl.dsp.window.move({ workspace = "special:scratch1", follow = false }))
-o.bind("CTRL + SHIFT + ALT + F2", "Send window to scratchpad 2", hl.dsp.window.move({ workspace = "special:scratch2", follow = false }))
-o.bind("CTRL + SHIFT + ALT + F3", "Send window to scratchpad 3", hl.dsp.window.move({ workspace = "special:scratch3", follow = false }))
-o.bind("CTRL + SHIFT + ALT + F4", "Send window to scratchpad 4", hl.dsp.window.move({ workspace = "special:scratch4", follow = false }))
+-- Toggle the focused window in/out of the matching scratchpad (mirrors
+-- ALT+S for the default scratchpad): pressing it inside the scratchpad
+-- sends the window back to the visible workspace.
+o.bind("CTRL + SHIFT + ALT + F1", "Toggle window in/out of scratchpad 1", "hypr-scratchpad-out scratch1")
+o.bind("CTRL + SHIFT + ALT + F2", "Toggle window in/out of scratchpad 2", "hypr-scratchpad-out scratch2")
+o.bind("CTRL + SHIFT + ALT + F3", "Toggle window in/out of scratchpad 3", "hypr-scratchpad-out scratch3")
+o.bind("CTRL + SHIFT + ALT + F4", "Toggle window in/out of scratchpad 4", "hypr-scratchpad-out scratch4")
 
 -- === macOS-style ALT remaps ===
 -- These must inject from a lua callback with send_key_state: exec'd injectors
@@ -195,12 +199,13 @@ o.bind("ALT + W", "Close tab in browser / window elsewhere", function()
   if class:match("chrome") or class:match("hromium") then
     send_once("CTRL", "W")
   else
-    -- Closes a herdr pane (with confirmation) when herdr is active.
-    hl.dispatch(hl.dsp.exec_cmd("hypr-herdr-close"))
+    -- Closes a herdr/tmux pane when a multiplexer is active (tmux asks
+    -- first if the pane is running something other than a shell).
+    hl.dispatch(hl.dsp.exec_cmd("hypr-mux-close"))
   end
 end)
 
--- Small floating confirm dialog used by hypr-herdr-close.
+-- Small floating confirm dialog (org.omarchy.confirm terminals).
 o.window("^(org\\.omarchy\\.confirm)$", {
   float = true,
   size = "700 160",
@@ -208,14 +213,29 @@ o.window("^(org\\.omarchy\\.confirm)$", {
 })
 o.bind("SUPER + Q", "Close window", hl.dsp.window.close())
 
-o.bind("ALT + N", "New window", mac_routed("N"))
+-- In a terminal these open panes/tabs in herdr or tmux (local, nested or over
+-- ssh), mirroring prefix+v / prefix+n / prefix+c; elsewhere they keep their
+-- macOS meaning. No mux in the terminal -> new terminal window.
+local function mux_or(cmd, mods, key)
+  return function()
+    if active_is_terminal() then
+      hl.dispatch(hl.dsp.exec_cmd(cmd))
+    else
+      send_once(mods, key)
+    end
+  end
+end
+
+o.bind("ALT + N", "Split pane stacked / New window", mux_or("hypr-mux-split stacked", "CTRL", "N"))
 o.bind("ALT + T", "New tab", mac_routed("T"))
 o.bind("ALT + SHIFT + T", "Reopen tab", mac("CTRL SHIFT", "T"))
 o.bind("ALT + R", "Reload", mac("CTRL", "R"))
 o.bind("ALT + E", "Address bar", mac("CTRL", "L"))
--- Ctrl/Shift+Insert copy/paste are universal and also work in terminals.
-o.bind("ALT + C", "Copy", mac("CTRL", "Insert"))
-o.bind("ALT + V", "Paste", mac("SHIFT", "Insert"))
+-- Ctrl/Shift+Insert copy/paste are universal; in a terminal these are the mux
+-- new-tab / split instead, so copy/paste there is ghostty's own
+-- CTRL+INSERT / SHIFT+INSERT.
+o.bind("ALT + C", "New tab in mux / Copy", mux_or("hypr-mux-tab", "CTRL", "Insert"))
+o.bind("ALT + V", "Split pane side by side / Paste", mux_or("hypr-mux-split side", "SHIFT", "Insert"))
 o.bind("ALT + X", "Cut", mac("CTRL", "X"))
 -- Ctrl+1..8 = tab N, Ctrl+9 = last tab, Ctrl+0 = reset zoom.
 o.bind("ALT + 1", "Tab 1", mac("CTRL", "1"))
