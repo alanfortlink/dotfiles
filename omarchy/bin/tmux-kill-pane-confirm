@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Kill a tmux pane, asking first (in the client's status line) when it is
+# running something other than a shell prompt — an agent, nvim, .... Bound to
+# prefix+x / ctrl+shift+x in ~/.config/tmux/tmux.conf; ALT+W (hypr-mux-close)
+# applies the same rule.
+# Usage: tmux-kill-pane-confirm <pane_id> <client_tty>
+set -u
+source "$(dirname "$(readlink -f "$0")")/hypr-mux-lib.sh"
+[[ $# -eq 2 ]] || { echo "usage: $0 <pane_id> <client_tty>" >&2; exit 2; }
+ht_kill_pane local "$2" "$1"

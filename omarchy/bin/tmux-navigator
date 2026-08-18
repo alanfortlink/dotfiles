@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Fuzzy jump to a tmux session/window or a zoxide directory — the tmux
+# counterpart of herdr-navigator. Bound to prefix+g / prefix+t / ctrl+shift+g /
+# ctrl+shift+p / alt+g in ~/.config/tmux/tmux.conf.
+#
+#   tmux-navigator <client_tty>          open the popup on that client
+#   tmux-navigator --pick <client_tty>   (inside the popup) list, pick, jump
+#
+# Picking a window switches to it. Picking a directory (or typing a path that
+# exists) switches to the session named after it, creating it there first if
+# needed — like a herdr workspace per project.
+set -u
+
+if [[ ${1:-} != --pick ]]; then
+  client=${1:?client tty}
+  exec tmux display-popup -c "$client" -E -w 80% -h 70% -T " jump to anything " \
+    "$(printf '%q' "$0") --pick $(printf '%q' "$client")"
+fi
+
+client=${2:?client tty}
+
+session_for_dir() { basename "$1" | tr '.:' '--'; }
+
+list() {
+  # target<TAB>display
+  tmux list-windows -a -F "#{session_name}:#{window_index}	#{?#{&&:#{session_attached},#{window_active}},●,·} #{session_name}  #{window_index}:#{window_name}  #{pane_current_command}  #{s|^$HOME|~|:pane_current_path}"
+  zoxide query -l 2>/dev/null | while IFS= read -r d; do
+    printf 'dir\t  %s\n' "${d/#$HOME/\~}"
+  done
+}
+
+mapfile -t out < <(list | fzf --delimiter='\t' --with-nth=2.. --nth=2.. \
+  --prompt='jump ▸ ' --print-query --no-sort --tiebreak=index \
+  --header='windows · zoxide dirs — Enter: focus / open')
+query=${out[0]:-}
+pick=${out[1]:-}
+
+if [[ -n $pick ]]; then
+  target=${pick%%	*}
+  if [[ $target != dir ]]; then
+    exec tmux switch-client -c "$client" -t "$target"
+  fi
+  dir=${pick#*	}
+  dir=${dir#  }
+else
+  dir=$query
+fi
+
+[[ -n $dir ]] || exit 0
+dir=${dir/#\~/$HOME}
+[[ -d $dir ]] || { echo "not a directory: $dir" >&2; sleep 1; exit 1; }
+zoxide add "$dir" 2>/dev/null
+name=$(session_for_dir "$dir")
+tmux has-session -t "=$name" 2>/dev/null || tmux new-session -d -s "$name" -c "$dir"
+exec tmux switch-client -c "$client" -t "=$name"
