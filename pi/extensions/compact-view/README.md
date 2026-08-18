@@ -10,13 +10,19 @@ sees are unchanged.
   alone):
 
   ```text
-   1m 24s · 💻 6 (1✗) ls, echo, cat +3 · 🤖 2 audit, research · 🧠 12s ────
+   1m 24s · ⚡ 38 tok/s · 💻 6 (1✗) ls, echo, cat +3 · 🤖 2 audit · 🧠 12s ────
 
    All 3 delegates finished. Results: …
   ```
 
   Wall-clock time first (bold; falls back to the sum of durations when
-  starts are unknown); then per tool: icon (`💻 bash`, `📖 read`,
+  starts are unknown); then the generation rate `⚡ 38 tok/s` — output tokens
+  (from the messages' own usage, so it survives resume) over the time the
+  model spent streaming, summed over every assistant message of the
+  interaction, shown once ≥ `RATE_MIN_MS` of generation is in; while a
+  message is still streaming its tokens are estimated from the streamed
+  characters (`CHARS_PER_TOKEN`) and the number gets a `~` until the
+  provider reports usage; then per tool: icon (`💻 bash`, `📖 read`,
   `📄 write`, `📝 edit`, `🔍 grep`, `🔎 find`, `📁 ls`, `🌐 web*`, `🤖
   delegate*`, `❓ ask`, `🧩` other extension tools — `TOOL_ICONS`), bold
   count (dropped when it's 1 and there's a hint), failures bound to their
@@ -34,6 +40,9 @@ sees are unchanged.
   not two; it resets at `agent_end`.
   Thinking text and tool output are **not streamed** while collapsed. No
   background bars by default (`RUN_BG` to opt in) — bold/colored text only.
+  A plain answer with no thinking and no tools gets the line too, right
+  above the text (time + rate only): every message from the agent reports
+  its rate.
 
 `ctrl+o` (pi's `app.tools.expand`) shows everything in full, exactly as before,
 and collapses again on the next press. Thinking hide/show (`/settings` →
@@ -46,12 +55,13 @@ pi has no hook for any of this, so `AssistantMessageComponent.updateContent`
 are patched on their prototypes at load, plus pi-tui's `Container.addChild`
 to record a parent pointer. At render time a component looks at its chat
 siblings: if any later sibling before the next user message is an activity
-(a collapsed tool, or a message with thinking) it renders nothing; otherwise
+(a collapsed tool, or a message with thinking or text) it renders nothing; otherwise
 it is the interaction's *anchor* and renders the consolidated line for
 everything since the previous user message. Thinking Markdown children are
 wrapped in a component that does the same. Durations are measured live
 (thinking: first thinking delta → first non-thinking content; tools:
-`tool_execution_start` → `tool_execution_end`) and persisted once per turn as
+`tool_execution_start` → `tool_execution_end`; generation: first streamed
+delta seen in `message_update` → `message_end`) and persisted once per turn as
 a `compact-view-timings` custom session entry (`[start, ms]` per item; TUI-only,
 never sent to the model), restored on `session_start` so they survive `/reload`, restart and
 `--resume`. Expanded state comes from `ctx.ui.getToolsExpanded()` at render

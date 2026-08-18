@@ -1,0 +1,6 @@
+{
+  "name": "pi-lmstudio-provider",
+  "version": "1.0.0",
+  "description": "Auto-discovers LM Studio models and registers them with pi",
+  "private": true
+}

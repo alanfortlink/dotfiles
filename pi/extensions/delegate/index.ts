@@ -752,11 +752,4 @@ export default function (pi: ExtensionAPI) {
 			ctx.ui.notify(n > 0 ? `Cleared ${n} finished delegate task(s).` : "No finished delegate tasks to clear.", "info");
 		},
 	});
-
-	pi.registerShortcut("alt+g", {
-		description: "Open the delegate inspector",
-		handler: async (ctx) => {
-			await openInspector(ctx);
-		},
-	});
 }

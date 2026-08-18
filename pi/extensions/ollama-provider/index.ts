@@ -1,9 +1,9 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 // Ollama server endpoint. Override with the OLLAMA_BASE_URL env var if needed
-// (e.g. a remote host). Defaults to the local server.
+// (e.g. a remote host). Defaults to the Ollama server on the Mac.
 const OLLAMA_BASE_URL =
-  process.env.OLLAMA_BASE_URL?.replace(/\/$/, "") ?? "http://localhost:11434";
+  process.env.OLLAMA_BASE_URL?.replace(/\/$/, "") ?? "http://10.0.0.75:11434";
 
 // Raw shape returned by Ollama's /api/tags endpoint.
 interface OllamaTagsResponse {
@@ -63,7 +63,7 @@ export default async function (pi: ExtensionAPI) {
   }
 
   pi.registerProvider("ollama", {
-    name: "Ollama (local)",
+    name: "Ollama (Mac)",
     baseUrl: `${OLLAMA_BASE_URL}/v1`,
     api: "openai-completions",
     // Ollama ignores the key, but pi requires *some* auth before models

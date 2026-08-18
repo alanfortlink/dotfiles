@@ -10,11 +10,14 @@
  *    are consolidated into a single line, anchored at the bottom of the
  *    activity — right above the final answer:
  *
- *        1m 24s · 💻 6 (1✗) ls, echo, cat +3 · 🤖 2 audit, research · 🧠 12s ──
+ *        1m 24s · ⚡ 38 tok/s · 💻 6 (1✗) ls, echo, cat +3 · 🤖 2 audit · 🧠 12s ──
  *
- *    wall-clock time first, then per tool icon × count with failures bound
- *    to their tool and a short hint of what ran, then 🧠 (with its own time
- *    only when it matters), and a rule filling the rest. While the
+ *    wall-clock time first, then the generation rate (output tokens over
+ *    the time the model spent streaming, all messages of the interaction),
+ *    then per tool icon × count with failures bound to their tool and a
+ *    short hint of what ran, then 🧠 (with its own time only when it
+ *    matters), and a rule filling the rest. A plain answer with no thinking
+ *    or tools gets the line too (time + rate). While the
  *    interaction is going the line updates live, and the current activity
  *    goes into pi's own "Working..." spinner row (`🧠 thinking…`,
  *    `💻 $ npm test`, `writing…`) rather than a second chat line. Interim
@@ -29,8 +32,9 @@
  * of its interaction (and so draws the line) or not (draws nothing). Session, LLM context and the expanded view are
  * untouched. Durations are measured live (thinking: first thinking delta →
  * first non-thinking content; tools: tool_execution_start →
- * tool_execution_end) and persisted per turn as a custom session entry so
- * they survive /reload, restart and resume.
+ * tool_execution_end; generation: first streamed delta → message_end, the
+ * token count comes from the message's own usage) and persisted per turn as
+ * a custom session entry so they survive /reload, restart and resume.
  */
 
 import { AssistantMessageComponent, type ExtensionAPI, type ExtensionUIContext, ToolExecutionComponent } from "@earendil-works/pi-coding-agent";
@@ -40,6 +44,16 @@ import { Container, Markdown, Spacer, stripTerminalSequences, Text, truncateToWi
 
 /** Icon for thinking in the summary line. */
 const THINKING_ICON = "🧠";
+/** Icon for the generation rate (`⚡ 38 tok/s`) in the summary line. */
+const RATE_ICON = "⚡";
+/** Show the rate only once this much generation time is in (a fraction of a second gives noise). */
+const RATE_MIN_MS = 500;
+/**
+ * While a message streams the provider hasn't reported usage yet, so its
+ * output tokens are estimated from the streamed characters (`~` marks the
+ * estimate); the exact usage replaces it at message_end.
+ */
+const CHARS_PER_TOKEN = 4;
 /** Working-indicator messages (pi's spinner row under the editor) for the current activity. */
 const WORKING_THINKING = "thinking…";
 const WORKING_WRITING = "writing…";
@@ -133,6 +147,8 @@ const elapsedOf = (t: Timing | undefined): number | undefined =>
 const thinkingTimings = new Map<number, Timing>();
 /** Keyed by toolCallId. */
 const toolTimings = new Map<string, Timing>();
+/** Generation (first streamed delta → message_end), keyed by assistant message timestamp. */
+const genTimings = new Map<number, Timing>();
 
 // Durations are measured live and would be lost on /reload or restart, so finished
 // ones are written to the session as custom entries (TUI-only, never sent to the
@@ -144,6 +160,7 @@ type PersistedTiming = number | [number, number];
 interface TimingEntry {
 	thinking?: Record<string, PersistedTiming>; // assistant message timestamp -> timing
 	tools?: Record<string, PersistedTiming>; // toolCallId -> timing
+	gen?: Record<string, PersistedTiming>; // assistant message timestamp -> generation timing
 }
 const persisted = (t: Timing): PersistedTiming => [t.start!, t.end! - t.start!];
 const unpersist = (v: PersistedTiming): Timing => (Array.isArray(v) ? { start: v[0], end: v[0] + v[1] } : { start: 0, end: v });
@@ -151,7 +168,7 @@ let pendingEntry: TimingEntry = {};
 let appendEntry: ((customType: string, data: unknown) => void) | undefined;
 
 function flushTimings(ctx?: any): void {
-	if (!pendingEntry.thinking && !pendingEntry.tools) return;
+	if (!pendingEntry.thinking && !pendingEntry.tools && !pendingEntry.gen) return;
 	const entry = pendingEntry;
 	pendingEntry = {};
 	try {
@@ -174,7 +191,41 @@ function restoreTimings(entries: Iterable<any>): void {
 		const data = entry.data as TimingEntry | undefined;
 		for (const [key, v] of Object.entries(data?.thinking ?? {})) thinkingTimings.set(Number(key), unpersist(v));
 		for (const [key, v] of Object.entries(data?.tools ?? {})) toolTimings.set(key, unpersist(v));
+		for (const [key, v] of Object.entries(data?.gen ?? {})) genTimings.set(Number(key), unpersist(v));
 	}
+}
+
+// ---- generation ----
+
+/** First streamed delta of an assistant message: generation starts. */
+function trackGenStart(message: any, event: any): void {
+	const key: number | undefined = message?.timestamp;
+	if (typeof key !== "number" || genTimings.has(key)) return;
+	if (typeof event?.type !== "string" || !event.type.endsWith("_delta")) return;
+	genTimings.set(key, { start: Date.now() });
+}
+
+/** message_end of an assistant message: generation done. */
+function trackGenEnd(message: any): void {
+	const key: number | undefined = message?.timestamp;
+	if (typeof key !== "number") return;
+	const t = genTimings.get(key);
+	if (!t?.start || t.end !== undefined) return;
+	t.end = Date.now();
+	(pendingEntry.gen ??= {})[String(key)] = persisted(t);
+}
+
+/** Output tokens of a message: reported usage, or a character estimate while it still streams. */
+function outputTokensOf(message: any, live: boolean): { tokens: number; estimated: boolean } {
+	const reported = Number(message?.usage?.output) || 0;
+	if (reported > 0 || !live) return { tokens: reported, estimated: false };
+	let chars = 0;
+	for (const c of message?.content ?? []) {
+		if (c.type === "text") chars += c.text?.length ?? 0;
+		else if (c.type === "thinking") chars += c.thinking?.length ?? 0;
+		else if (c.type === "toolCall") chars += JSON.stringify(c.arguments ?? {}).length;
+	}
+	return { tokens: Math.round(chars / CHARS_PER_TOKEN), estimated: true };
 }
 
 function trackThinking(message: any, isStreaming: boolean): void {
@@ -230,8 +281,8 @@ const hasThinking = (c: any): boolean => visibleBlocks(c?.lastMessage).some((b) 
 function isCompactTool(c: any): boolean {
 	return c instanceof ToolExecutionComponent && !(c as any).expanded && ((c as any).imageComponents?.length ?? 0) === 0 && !(c as any).hideComponent;
 }
-/** Something the summary accounts for: a collapsed tool, or a message with thinking. */
-const isActivity = (c: any): boolean => isCompactTool(c) || (c instanceof AssistantMessageComponent && hasThinking(c));
+/** Something the summary accounts for: a collapsed tool, or a message with thinking or answer text. */
+const isActivity = (c: any): boolean => isCompactTool(c) || (c instanceof AssistantMessageComponent && visibleBlocks((c as any).lastMessage).length > 0);
 /** Neither activity nor a boundary: answer text, empty messages, spacers, status texts, self-rendered tools. */
 const isTransparent = (c: any): boolean =>
 	c instanceof AssistantMessageComponent || c instanceof ToolExecutionComponent || c instanceof Spacer || c instanceof Text;
@@ -267,25 +318,30 @@ interface Summary {
 	thinkingMs: number;
 	tools: Map<string, ToolGroup>; // icon -> group
 	totalMs: number; // wall clock when every start is known, else the sum of durations
+	genMs: number; // time the model spent streaming, all messages
+	tokens: number; // output tokens over that time
+	estimated: boolean; // some of `tokens` are a live estimate
 }
 
 /** Total up everything from the start of `anchor`'s interaction to the anchor. */
 function summarizeInteraction(anchor: any): Summary {
-	const sum: Summary = { thinking: 0, thinkingMs: 0, tools: new Map(), totalMs: 0 };
+	const sum: Summary = { thinking: 0, thinkingMs: 0, tools: new Map(), totalMs: 0, genMs: 0, tokens: 0, estimated: false };
 	const s = siblings(anchor);
 	const list = s ? s.list : [anchor];
 	let sumMs = 0;
 	let minStart = Infinity;
 	let maxEnd = -Infinity;
 	let wall = true;
-	const account = (t: Timing | undefined, live: boolean) => {
+	// Generation overlaps thinking, so it counts toward the wall clock but not the sum of durations.
+	const account = (t: Timing | undefined, live: boolean, overlapping = false): number | undefined => {
 		const ms = live ? elapsedOf(t) : durationOf(t);
-		if (ms === undefined) return;
-		sumMs += ms;
+		if (ms === undefined) return undefined;
+		if (!overlapping) sumMs += ms;
 		if (t?.start) {
 			minStart = Math.min(minStart, t.start);
 			maxEnd = Math.max(maxEnd, live ? Date.now() : t.end!);
 		} else wall = false;
+		return ms;
 	};
 	// Find the interaction's start, then account chronologically.
 	let first = s ? s.index : 0;
@@ -302,13 +358,25 @@ function summarizeInteraction(anchor: any): Summary {
 			const hint = resultHint(c) ?? toolHint(String(c.toolName ?? ""), c.args);
 			if (hint && !group.hints.includes(hint)) group.hints.push(hint);
 			account(toolTimings.get(c.toolCallId), !finished);
-		} else if (c instanceof AssistantMessageComponent && hasThinking(c)) {
-			sum.thinking++;
-			const t = thinkingTimings.get(c.lastMessage?.timestamp);
-			const live = c.isStreaming && t?.end === undefined;
-			const before = sumMs;
-			account(t, live);
-			sum.thinkingMs += sumMs - before;
+		} else if (c instanceof AssistantMessageComponent) {
+			const message = (c as any).lastMessage;
+			if (hasThinking(c)) {
+				sum.thinking++;
+				const t = thinkingTimings.get(message?.timestamp);
+				const live = (c as any).isStreaming && t?.end === undefined;
+				sum.thinkingMs += account(t, live) ?? 0;
+			}
+			const g = genTimings.get(message?.timestamp);
+			const live = (c as any).isStreaming && g?.end === undefined;
+			const ms = account(g, live, true);
+			if (ms !== undefined) {
+				const { tokens, estimated } = outputTokensOf(message, live);
+				if (tokens > 0) {
+					sum.genMs += ms;
+					sum.tokens += tokens;
+					sum.estimated ||= estimated;
+				}
+			}
 		}
 	}
 	sum.totalMs = wall && minStart !== Infinity ? maxEnd - minStart : sumMs;
@@ -376,6 +444,11 @@ function renderSummary(sum: Summary, width: number, pad: number): string[] {
 	const groups: string[] = [];
 	// Wall-clock time first, always — the one featured number.
 	if (sum.totalMs > 0) groups.push(bold(formatDuration(sum.totalMs)));
+	// Generation rate next to the time it qualifies.
+	if (sum.tokens > 0 && sum.genMs >= RATE_MIN_MS) {
+		const rate = Math.round(sum.tokens / (sum.genMs / 1000));
+		groups.push(`${fg("accent", RATE_ICON)} ${bold(`${sum.estimated ? "~" : ""}${rate}`)} ${muted("tok/s")}`);
+	}
 	for (const [icon, g] of sum.tools) {
 		const hints = HINTS_PER_TOOL > 0 ? g.hints : [];
 		// A count of 1 next to a hint says nothing — `📖 sample.txt` is enough.
@@ -491,7 +564,11 @@ function patchAssistantMessage(): void {
 		if (isExpanded() || lines.length === 0) return lines;
 		const blocks = visibleBlocks(this.lastMessage);
 		const hasText = blocks.some((b) => b.type === "text");
-		if (!hasThinking(this)) return lines;
+		if (!hasThinking(this)) {
+			// Answer without thinking: when it closes the interaction, the line goes right above it.
+			if (!hasText || !isAnchor(this)) return lines;
+			return ["", ...renderSummary(summarizeInteraction(this), width, this.outputPad ?? 1), ...lines];
+		}
 		const anchor = isAnchor(this);
 		// Thinking-only message that isn't the anchor: nothing to show at all.
 		if (!anchor && !hasText) return [];
@@ -543,6 +620,12 @@ export default function (pi: ExtensionAPI): void {
 		if (!t?.start) return;
 		t.end = Date.now();
 		(pendingEntry.tools ??= {})[event.toolCallId] = persisted(t);
+	});
+	pi.on("message_update", (event) => {
+		if (event.message.role === "assistant") trackGenStart(event.message, event.assistantMessageEvent);
+	});
+	pi.on("message_end", (event) => {
+		if (event.message.role === "assistant") trackGenEnd(event.message);
 	});
 	pi.on("turn_end", (_event, ctx) => flushTimings(ctx));
 	pi.on("agent_end", (_event, ctx) => {
