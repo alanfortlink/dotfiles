@@ -7,9 +7,9 @@ TERM = "xterm-256color"
 osc52 = "CopyPaste"
 
 [font]
-normal = { family = "PragmataPro Mono Liga", style = "Regular" }
-bold = { family = "PragmataPro Mono Liga", style = "Bold" }
-italic = { family = "PragmataPro Mono Liga", style = "Italic" }
+normal = { family = "FiraCode Nerd Font" }
+bold = { family = "FiraCode Nerd Font" }
+italic = { family = "FiraCode Nerd Font" }
 size = 8
 
 [window]

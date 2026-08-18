@@ -10,3 +10,7 @@ test.test.test
 omarchy/hypr/layout-data.lua.bak
 node_modules/
 pi/extensions/delegate/*.html
+
+# sync/edit backups
+*.bak.[0-9]*
+*.pre-link-[0-9]*

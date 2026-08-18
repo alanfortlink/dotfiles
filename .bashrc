@@ -66,3 +66,11 @@ export PATH="$PATH:/home/tank/.local/bin/go/bin/"
 # leetcode TUI
 export PATH="$HOME/.local/bin/leetcode/bin:$PATH"
 export PATH="$HOME/flutter/bin:$PATH"
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/home/tank/.lmstudio/bin"
+# End of LM Studio CLI section
+
+
+# Point ollama at the Mac server (10.0.0.75)
+export OLLAMA_HOST="http://10.0.0.75:11434"

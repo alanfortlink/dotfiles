@@ -44,13 +44,21 @@ for name in nvim wezterm claude; do
   link "$REPO/$name" "$HOME/.config/$name"
 done
 
+echo "==> pi/extensions/* -> ~/.pi/agent/extensions/"
+for entry in "$REPO/pi/extensions"/*/; do
+  entry="${entry%/}"
+  [ -d "$entry" ] || continue
+  link "$entry" "$HOME/.pi/agent/extensions/$(basename "$entry")"
+done
+
+# .tmux.conf lives in omarchy/tmux/ (linked above as ~/.config/tmux); a
+# ~/.tmux.conf would be loaded too and double up the config.
 echo "==> home dotfiles -> ~"
 for name in \
   .aliases \
   .bashrc \
   .zshrc \
   .zpreztorc \
-  .tmux.conf \
   .animatedbg.nvim \
   .hammerspoon \
   antigen.zsh

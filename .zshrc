@@ -55,3 +55,11 @@ if [ -f '/Users/alan/repos/quiz_server/temp/google-cloud-sdk/path.zsh.inc' ]; th
 if [ -f '/Users/alan/repos/quiz_server/temp/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/alan/repos/quiz_server/temp/google-cloud-sdk/completion.zsh.inc'; fi
 
 source ~/.aliases
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/home/tank/.lmstudio/bin"
+# End of LM Studio CLI section
+
+
+# Point ollama at the Mac server (10.0.0.75)
+export OLLAMA_HOST="http://10.0.0.75:11434"
