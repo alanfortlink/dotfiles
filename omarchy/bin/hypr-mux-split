@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# ALT+V / ALT+N handler: split the focused herdr/tmux pane (local or via ssh)
+# in the terminal shown by the active window. side = side by side (herdr
+# split_vertical / prefix+v, tmux split-window -h), stacked = one above the
+# other (herdr split_horizontal / prefix+n, tmux split-window -v).
+# With no multiplexer in the active window, open a new terminal window instead.
+set -u
+source "$(dirname "$(readlink -f "$0")")/hypr-mux-lib.sh"
+
+case ${1:-side} in
+  side)    hdir=right; tflag=-h ;;
+  stacked) hdir=down;  tflag=-v ;;
+  *) echo "usage: ${0##*/} <side|stacked>" >&2; exit 2 ;;
+esac
+
+if hh_resolve_targets; then
+  for entry in "${HH_TARGETS[@]}"; do
+    read -r kind host client <<<"$entry"
+    if [[ $kind == herdr || $kind == any ]]; then
+      pane_id=$(hh "$host" pane current --current 2>/dev/null | jq -r '.result.pane.pane_id // empty')
+      if [[ -n $pane_id ]]; then
+        hh "$host" pane split "$pane_id" --direction "$hdir" >/dev/null || exit
+        # `pane split` leaves focus on the original pane; the new pane is its
+        # neighbor in the split direction.
+        hh "$host" pane focus --pane "$pane_id" --direction "$hdir" >/dev/null
+        exit
+      fi
+    fi
+    if [[ $kind == tmux || $kind == any ]]; then
+      c=$(ht_client "$host" "${client:-}") || continue
+      pane_id=$(ht_pane "$host" "$c")
+      if [[ -n $pane_id ]]; then
+        ht "$host" split-window "$tflag" -t "$pane_id" -c '#{pane_current_path}'; exit
+      fi
+    fi
+  done
+fi
+
+exec omarchy launch terminal

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# ALT+C handler: open a new tab in the herdr/tmux (local or via ssh) shown by
+# the active window — herdr new_tab / prefix+c, tmux new-window; otherwise
+# open a new terminal window.
+set -u
+source "$(dirname "$(readlink -f "$0")")/hypr-mux-lib.sh"
+
+if hh_resolve_targets; then
+  for entry in "${HH_TARGETS[@]}"; do
+    read -r kind host client <<<"$entry"
+    if [[ $kind == herdr || $kind == any ]]; then
+      pane=$(hh "$host" pane current --current 2>/dev/null)
+      if [[ -n $(jq -r '.result.pane.pane_id // empty' <<<"$pane") ]]; then
+        cwd=$(jq -r '.result.pane.cwd // empty' <<<"$pane")
+        hh "$host" tab create --focus ${cwd:+--cwd "$cwd"}; exit
+      fi
+    fi
+    if [[ $kind == tmux || $kind == any ]]; then
+      c=$(ht_client "$host" "${client:-}") || continue
+      # new-window takes a window/session target, not a pane id.
+      sess=$(ht "$host" display-message -c "$c" -p '#{session_name}' 2>/dev/null)
+      if [[ -n $sess ]]; then
+        ht "$host" new-window -t "$sess:" -c '#{pane_current_path}'; exit
+      fi
+    fi
+  done
+fi
+
+exec omarchy launch terminal

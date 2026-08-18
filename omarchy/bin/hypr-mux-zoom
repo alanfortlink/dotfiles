@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
-# ALT+Z handler: inside herdr (local or via ssh) with >1 pane in the tab,
-# toggle pane zoom; otherwise toggle Hyprland maximize.
+# ALT+Z handler: inside herdr/tmux (local or via ssh) with >1 pane in the
+# tab/window, toggle pane zoom; otherwise toggle Hyprland maximize.
 set -u
-source "$(dirname "$(readlink -f "$0")")/hypr-herdr-lib.sh"
+source "$(dirname "$(readlink -f "$0")")/hypr-mux-lib.sh"
 
 if hh_resolve_targets; then
-  for t in "${HH_TARGETS[@]}"; do
-    n=$(hh "$t" pane layout --current 2>/dev/null | jq -r '.result.layout.panes | length')
-    if [[ ${n:-0} -gt 1 ]]; then
-      hh "$t" pane zoom --toggle --current; exit
+  for entry in "${HH_TARGETS[@]}"; do
+    read -r kind host client <<<"$entry"
+    if [[ $kind == herdr || $kind == any ]]; then
+      n=$(hh "$host" pane layout --current 2>/dev/null | jq -r '.result.layout.panes | length')
+      if [[ ${n:-0} -gt 1 ]]; then
+        hh "$host" pane zoom --toggle --current; exit
+      fi
+    fi
+    if [[ $kind == tmux || $kind == any ]]; then
+      c=$(ht_client "$host" "${client:-}") || continue
+      n=$(ht "$host" display-message -c "$c" -p '#{window_panes}' 2>/dev/null)
+      if [[ ${n:-0} -gt 1 ]]; then
+        ht "$host" resize-pane -Z -t "$(ht_pane "$host" "$c")"; exit
+      fi
     fi
   done
 fi

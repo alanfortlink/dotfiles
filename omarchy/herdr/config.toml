@@ -1,5 +1,7 @@
+onboarding = false
 # herdr config — herdr defaults + a ctrl+shift "direct" layer replacing the old
-# tmux alt+ shortcuts (alt is Hyprland's mod on this box, so alt+ never reaches herdr).
+# tmux alt+ shortcuts (alt is Hyprland's mod on this box, so most alt+ never reaches
+# herdr; plain alt+g is unbound in Hyprland and does pass through).
 # ghostty: ctrl+shift+{j,t,o,e} are unbound in ~/.config/ghostty/config so they pass through.
 
 [theme]
@@ -21,7 +23,7 @@ new_cwd = "follow"
 
 [keys]
 # prefix = ctrl+b (herdr default)
-goto = ["prefix+g", "ctrl+shift+g"]   # built-in session navigator
+goto = ["prefix+g", "ctrl+shift+g", "alt+g"]   # built-in session navigator
 
 # Panes — herdr defaults + ctrl+shift direct layer
 focus_pane_left  = ["prefix+h", "ctrl+shift+h"]
@@ -47,6 +49,7 @@ previous_tab = ["prefix+left", "ctrl+shift+left"]
 next_tab     = ["prefix+right", "ctrl+shift+right"]
 
 [ui]
+confirm_close = true
 pane_gaps = true
 pane_outer_borders = true
 accent = "blue"
@@ -56,7 +59,7 @@ tab_bar_right = [{ type = "zoom" }, { type = "hostname" }]
 delivery = "herdr"
 
 [ui.sound]
-enabled = true
+enabled = false
 
 [experimental]
 pane_history = true
