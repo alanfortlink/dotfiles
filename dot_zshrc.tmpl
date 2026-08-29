@@ -1,0 +1,68 @@
+{{ if eq .chezmoi.os "darwin" -}}
+# Homebrew (Apple Silicon)
+if [ -x /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
+{{ end -}}
+
+if [[ -n $SSH_CONNECTION ]]; then
+  export EDITOR='nvim'
+else
+  export EDITOR='nvim'
+fi
+
+[ -f /usr/local/etc/profile.d/autojump.sh ] && . /usr/local/etc/profile.d/autojump.sh
+
+export PATH="$PATH:{{ .chezmoi.homeDir }}/.local/go/bin"
+
+source ~/antigen.zsh
+
+# Load the oh-my-zsh's library.
+antigen use oh-my-zsh
+
+# Bundles from the default repo (robbyrussell's oh-my-zsh).
+antigen bundle timer
+antigen bundle git
+antigen bundle heroku
+antigen bundle pip
+antigen bundle lein
+antigen bundle autojump
+antigen bundle command-not-found
+
+# Syntax highlighting bundle.
+antigen bundle zsh-users/zsh-syntax-highlighting
+
+# Load the theme.
+antigen theme robbyrussell
+
+# Tell Antigen that you're done.
+antigen apply
+
+set -o vi
+
+# Vi-mode default kills Ctrl+L clear-screen; put it back in both keymaps.
+bindkey -M viins '^L' clear-screen
+bindkey -M vicmd '^L' clear-screen
+
+# Ctrl+P/Ctrl+N: prefix-search history with what's typed before the cursor.
+autoload -Uz history-search-end
+zle -N history-beginning-search-backward-end history-search-end
+zle -N history-beginning-search-forward-end history-search-end
+bindkey -M viins '^P' history-beginning-search-backward-end
+bindkey -M viins '^N' history-beginning-search-forward-end
+bindkey -M vicmd '^P' history-beginning-search-backward-end
+bindkey -M vicmd '^N' history-beginning-search-forward-end
+
+source ~/.aliases
+
+{{ end -}}
+
+source ~/.aliases
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:{{ .chezmoi.homeDir }}/.lmstudio/bin"
+# End of LM Studio CLI section
+
+
+# Ollama host is per-machine; keep it out of the repo by putting the URL in ~/.config/ollama_host
+[ -f "$HOME/.config/ollama_host" ] && export OLLAMA_HOST="$(<$HOME/.config/ollama_host)"

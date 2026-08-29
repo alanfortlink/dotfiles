@@ -1,0 +1,34 @@
+From d8d37c06ee47e1b63543735005ec9db81ff883b9 Mon Sep 17 00:00:00 2001
+From: Alan Silva <alanfortlink@gmail.com>
+Date: Sat, 15 Aug 2026 13:46:59 +0100
+Subject: [PATCH] keymap: ctrl+j/k and ctrl+n/p move selection
+
+---
+ src/keymap.rs | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/keymap.rs b/src/keymap.rs
+index 820a8fe..38aa417 100644
+--- a/src/keymap.rs
++++ b/src/keymap.rs
+@@ -192,6 +192,8 @@ pub(crate) fn keybindings(app: &App) -> Vec<Keybind> {
+             Command::MoveUp,
+             vec![
+                 key(KeyCode::Up, KeyModifiers::NONE, "↑"),
++                key(KeyCode::Char('k'), KeyModifiers::CONTROL, "⌃K"),
++                key(KeyCode::Char('p'), KeyModifiers::CONTROL, "⌃P"),
+                 vim_key(KeyCode::Char('k'), "k"),
+             ],
+             "move up",
+@@ -202,6 +204,8 @@ pub(crate) fn keybindings(app: &App) -> Vec<Keybind> {
+             Command::MoveDown,
+             vec![
+                 key(KeyCode::Down, KeyModifiers::NONE, "↓"),
++                key(KeyCode::Char('j'), KeyModifiers::CONTROL, "⌃J"),
++                key(KeyCode::Char('n'), KeyModifiers::CONTROL, "⌃N"),
+                 vim_key(KeyCode::Char('j'), "j"),
+             ],
+             "move down",
+-- 
+2.55.0
+

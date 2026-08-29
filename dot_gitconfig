@@ -1,0 +1,20 @@
+[user]
+	name = Alan Silva
+	email = alanfortlink@gmail.com
+
+[init]
+	defaultBranch = main
+
+[core]
+	editor = nvim
+
+[push]
+	default = simple
+
+[pull]
+	ff = only
+
+[alias]
+	st = status
+	co = checkout
+	br = branch
