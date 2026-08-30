@@ -64,3 +64,8 @@ export PATH="$PATH:{{ .chezmoi.homeDir }}/.lmstudio/bin"
 
 # Ollama host is per-machine; keep it out of the repo by putting the URL in ~/.config/ollama_host
 [ -f "$HOME/.config/ollama_host" ] && export OLLAMA_HOST="$(<$HOME/.config/ollama_host)"
+
+# Starship prompt (hostname etc. via starship.toml); no-op if starship isn't installed.
+if (( $+commands[starship] )) && [[ -z $STARSHIP_SHELL ]]; then
+  eval "$(starship init zsh)"
+fi
