@@ -45,6 +45,7 @@ The legacy branch mirrors the old `~/repos/dotfiles` layout driven by `./sync`.
 | `dot_config/tmux/` | `~/.config/tmux/` |
 | `dot_config/nvim/` | `~/.config/nvim/` |
 | `dot_config/herdr/…` (selected files) | `~/.config/herdr/…` |
+| `dot_pi/agent/…` | `~/.pi/agent/…` (pi coding-agent: settings, keybindings, models, extensions, skills, themes, `APPEND_SYSTEM.md`) |
 
 Notes:
 
@@ -53,3 +54,7 @@ Notes:
   `session.json`) that is *not* managed — only config files and the
   `herdr-navigator` plugin (SOURCE + patch) are.
 - `~/.config/nvim/.luarc.json` is intentionally unmanaged (editor-local).
+- pi (`~/.pi/agent`): machine-local state is **not** managed — `auth.json`,
+  `sessions/`, `models-store.json`, and `delegate-state.json` stay per-machine,
+  so first-run login and per-machine model/session state are unaffected.
+  `extensions/web-tools/node_modules` is installed locally, not synced.

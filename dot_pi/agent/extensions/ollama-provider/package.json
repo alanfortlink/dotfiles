@@ -1,0 +1,6 @@
+{
+  "name": "pi-ollama-provider",
+  "version": "1.0.0",
+  "description": "Auto-discovers Ollama models and registers them with pi",
+  "private": true
+}

@@ -1,0 +1,857 @@
+/**
+ * Task registry, scheduler, and persistence for `delegate`.
+ *
+ * The unit of work is a TASK: one agent, one prompt, one `createAgentSession`.
+ * Tasks are flat and independent - there is no batch, no DAG, no parent/child
+ * bookkeeping. Ordering is the parent agent's job (it spawns, waits, spawns
+ * again with the previous output in the prompt).
+ *
+ * Concurrency is bounded per model provider by a single process-wide gate, so
+ * nested delegation (a subagent that itself delegates) is braked by the same
+ * counter as everything else.
+ */
+
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import {
+	DefaultResourceLoader,
+	SessionManager,
+	createAgentSession,
+	getAgentDir,
+} from "@earendil-works/pi-coding-agent";
+import type { Model } from "@earendil-works/pi-ai";
+
+const CONFIG_PATH = path.join(os.homedir(), ".pi", "agent", "delegate.json");
+const STATE_PATH = path.join(os.homedir(), ".pi", "agent", "delegate-state.json");
+
+/** Activity lines kept per task for the inspector. */
+const FEED_LIMIT = 300;
+/** Streaming-text tail kept per task (characters). */
+const STREAM_LIMIT = 4000;
+/** Settled tasks retained in memory and on disk. */
+const RETENTION = 30;
+/** Final output stored per task (characters). */
+const OUTPUT_LIMIT = 16000;
+
+// ---- config ----
+
+export interface DelegateConfig {
+	providerConcurrency: Record<string, number>;
+	localConcurrency: number;
+	defaultConcurrency: number;
+	localProviders: string[];
+	/**
+	 * Longest a delegate_wait may block the parent turn in an interactive
+	 * terminal. While the parent is inside a tool call the session is streaming,
+	 * so everything the human types becomes a steering message instead of a
+	 * normal turn - parking here takes the terminal away from them.
+	 *
+	 * Defaults to 0: hand the terminal back immediately. A grace period only pays
+	 * off if a task can finish inside it, and in practice a subagent is still
+	 * inside its first API call at that point - so waiting bought nothing and cost
+	 * the user their prompt. The completion push is what closes the loop instead.
+	 * Raise it if you would rather collect very short tasks inline.
+	 */
+	interactiveWaitMs: number;
+}
+
+const DEFAULT_CONFIG: DelegateConfig = {
+	providerConcurrency: { anthropic: 2, openai: 2, google: 2 },
+	localConcurrency: 8,
+	defaultConcurrency: 2,
+	localProviders: ["ollama", "llama", "llamacpp", "lmstudio", "kobold", "vllm"],
+	interactiveWaitMs: 0,
+};
+
+let configCache: { mtime: number; config: DelegateConfig } | null = null;
+
+export function loadConfig(): DelegateConfig {
+	try {
+		const stat = fs.statSync(CONFIG_PATH);
+		if (configCache && configCache.mtime === stat.mtimeMs) return configCache.config;
+		const parsed = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8")) as Partial<DelegateConfig>;
+		const config: DelegateConfig = {
+			providerConcurrency: { ...DEFAULT_CONFIG.providerConcurrency, ...(parsed.providerConcurrency ?? {}) },
+			localConcurrency: parsed.localConcurrency ?? DEFAULT_CONFIG.localConcurrency,
+			defaultConcurrency: parsed.defaultConcurrency ?? DEFAULT_CONFIG.defaultConcurrency,
+			localProviders: [...DEFAULT_CONFIG.localProviders, ...(parsed.localProviders ?? [])],
+			interactiveWaitMs: Math.max(0, Number(parsed.interactiveWaitMs ?? DEFAULT_CONFIG.interactiveWaitMs)) || 0,
+		};
+		configCache = { mtime: stat.mtimeMs, config };
+		return config;
+	} catch {
+		return DEFAULT_CONFIG;
+	}
+}
+
+/** Clamp a cap to a sane integer >= 1 (a zero/garbage config value must not deadlock the gate). */
+function toCap(v: unknown): number {
+	const n = Math.floor(Number(v));
+	return Number.isFinite(n) && n >= 1 ? n : 1;
+}
+
+function providerCap(providerId: string, cfg: DelegateConfig): number {
+	if (providerId in cfg.providerConcurrency) return toCap(cfg.providerConcurrency[providerId]);
+	const lower = providerId.toLowerCase();
+	if (cfg.localProviders.some((p) => lower.includes(p.toLowerCase()))) return toCap(cfg.localConcurrency);
+	return toCap(cfg.defaultConcurrency);
+}
+
+// ---- per-provider gate (process-wide) ----
+
+/**
+ * Counting semaphore. A released slot is handed directly to a waiter inside the
+ * same synchronous step, so an acquirer arriving between the release and the
+ * waiter's resumption cannot barge in and push the count negative.
+ */
+class Gate {
+	private available: number;
+	private waiters: Array<() => void> = [];
+	constructor(private cap: number) {
+		this.available = cap;
+	}
+	get capValue(): number {
+		return this.cap;
+	}
+	get waiting(): number {
+		return this.waiters.length;
+	}
+	get inUse(): number {
+		return this.cap - this.available;
+	}
+	/** Apply a live config edit. Growing the cap immediately admits queued waiters. */
+	setCap(next: number): void {
+		if (next === this.cap) return;
+		this.available += next - this.cap;
+		this.cap = next;
+		this.drain();
+	}
+	async acquire(): Promise<void> {
+		if (this.available > 0) {
+			this.available--;
+			return;
+		}
+		await new Promise<void>((resolve) => this.waiters.push(resolve));
+	}
+	release(): void {
+		this.available++;
+		this.drain();
+	}
+	private drain(): void {
+		while (this.available > 0 && this.waiters.length > 0) {
+			this.available--;
+			this.waiters.shift()!();
+		}
+	}
+}
+
+const gates = new Map<string, Gate>();
+
+function gateFor(provider: string): Gate {
+	const cap = providerCap(provider, loadConfig());
+	const existing = gates.get(provider);
+	if (existing) {
+		existing.setCap(cap);
+		return existing;
+	}
+	const gate = new Gate(cap);
+	gates.set(provider, gate);
+	return gate;
+}
+
+export function gateSnapshot(): Array<{ provider: string; inUse: number; cap: number; waiting: number }> {
+	return [...gates.entries()].map(([provider, g]) => ({
+		provider,
+		inUse: g.inUse,
+		cap: g.capValue,
+		waiting: g.waiting,
+	}));
+}
+
+// ---- tasks ----
+
+export type TaskStatus = "queued" | "running" | "done" | "failed" | "killed";
+
+export interface TaskUsage {
+	input: number;
+	output: number;
+	cacheRead: number;
+	cacheWrite: number;
+	cost: number;
+	turns: number;
+}
+
+/** One line of a subagent's visible activity, kept so both the popup and the model can see progress. */
+export interface Activity {
+	at: number;
+	kind: "note" | "tool" | "toolResult" | "text";
+	text: string;
+	toolName?: string;
+	isError?: boolean;
+}
+
+export interface Task {
+	id: string;
+	/** The pi session that spawned this task. Tasks never leak across sessions. */
+	sessionId: string;
+	/** Optional caller-supplied name, for display only. */
+	label?: string;
+	prompt: string;
+	cwd: string;
+	status: TaskStatus;
+	provider?: string;
+	model?: string;
+	createdAt: number;
+	startedAt?: number;
+	finishedAt?: number;
+	/** Completed LLM turns. */
+	turns: number;
+	usage: TaskUsage;
+	output: string;
+	errorMessage?: string;
+	/** Non-fatal note (e.g. a model spec that could not be resolved). Never an error. */
+	warning?: string;
+	stopReason?: string;
+	/** Bounded activity log (tool calls, assistant text, lifecycle) for the inspector and delegate_status. */
+	feed: Activity[];
+	/** Bounded tail of the text currently streaming from the model. */
+	stream: string;
+	/** Steering messages accepted so far. */
+	steered: string[];
+	/** Resolves when the task settles. Never rejects. */
+	promise: Promise<Task>;
+	/** True for a record rebuilt from disk after a restart. */
+	restored?: boolean;
+
+	// internals
+	session?: any;
+	controller: AbortController;
+	pendingSteer: string[];
+}
+
+/**
+ * Everything a task is. These map 1:1 onto `createAgentSession` options plus the
+ * prompt; nothing here is defaulted, rewritten, or added to. Omit a field and the
+ * subagent gets whatever plain pi would give it.
+ */
+export interface TaskSpec {
+	prompt: string;
+	/** Replaces the subagent's system prompt entirely. Omit to keep pi's own. */
+	systemPrompt?: string;
+	/** Appended to the subagent's system prompt instead of replacing it. */
+	appendSystemPrompt?: string;
+	cwd?: string;
+	model?: string;
+	thinkingLevel?: string;
+	tools?: string[];
+	excludeTools?: string[];
+	noTools?: "all" | "builtin";
+	/** Hard stop after this many LLM turns. No limit when unset. */
+	maxTurns?: number;
+	/** Display name for the inspector. Has no effect on the subagent. */
+	label?: string;
+}
+
+/** Snapshot of the spawning context. Captured at spawn time so the runner never touches a turn-scoped object. */
+export interface SpawnEnv {
+	cwd: string;
+	model: Model<any> | undefined;
+	provider?: string;
+	modelRegistry?: { find: (provider: string, modelId: string) => Model<any> | undefined };
+	/** Owning session, stamped on the task so queries can stay session-scoped. */
+	sessionId?: string;
+}
+
+const tasks = new Map<string, Task>();
+let seq = 0;
+
+/** The pi session whose tasks this extension instance owns. Empty until session_start. */
+let currentSession = "";
+
+/**
+ * Bind this extension instance to a pi session. On a change, the in-memory map
+ * (which holds the previous session's tasks) is dropped - those records are on
+ * disk and only their own session may ever see them again. Records from other
+ * sessions never surface here.
+ */
+export function setSession(sessionId: string): void {
+	if (sessionId === currentSession) return;
+	currentSession = sessionId;
+	tasks.clear();
+	seq = 0;
+}
+
+const changeListeners = new Set<() => void>();
+const settleListeners = new Set<(task: Task) => void>();
+
+export function onChange(cb: () => void): () => void {
+	changeListeners.add(cb);
+	return () => changeListeners.delete(cb);
+}
+export function onSettle(cb: (task: Task) => void): () => void {
+	settleListeners.add(cb);
+	return () => settleListeners.delete(cb);
+}
+function emitChange(): void {
+	for (const cb of changeListeners) {
+		try {
+			cb();
+		} catch {
+			/* a listener must never break a task */
+		}
+	}
+}
+
+/** Tasks have no names of their own, so fall back to a slice of the prompt. */
+export function displayName(t: Task): string {
+	if (t.label) return t.label;
+	const oneLine = t.prompt.replace(/\s+/g, " ").trim();
+	return oneLine.length > 32 ? `${oneLine.slice(0, 32)}…` : oneLine || "(empty prompt)";
+}
+
+export function getTask(id: string): Task | undefined {
+	const t = tasks.get(id);
+	return t && t.sessionId === currentSession ? t : undefined;
+}
+export function listTasks(): Task[] {
+	return [...tasks.values()].filter((t) => t.sessionId === currentSession).sort((a, b) => a.createdAt - b.createdAt);
+}
+export function isSettled(t: Task): boolean {
+	return t.status === "done" || t.status === "failed" || t.status === "killed";
+}
+export function activeTasks(): Task[] {
+	return listTasks().filter((t) => !isSettled(t));
+}
+
+function pushFeed(t: Task, kind: Activity["kind"], text: string, extra: Partial<Activity> = {}): void {
+	t.feed.push({ at: Date.now(), kind, text, ...extra });
+	if (t.feed.length > FEED_LIMIT) t.feed.splice(0, t.feed.length - FEED_LIMIT);
+}
+
+/** The most recent thing worth showing on one line (live text beats a finished tool call). */
+export function currentActivity(t: Task): string {
+	if (t.status === "running" && t.stream.trim()) {
+		return t.stream.trim().replace(/\s+/g, " ").split("\n").pop() ?? "";
+	}
+	const last = t.feed.at(-1);
+	return last ? last.text.replace(/\s+/g, " ") : "";
+}
+
+// ---- model resolution (passthrough) ----
+
+function resolveModel(spec: string | undefined, env: SpawnEnv): { model: Model<any> | undefined; warning?: string } {
+	if (!spec) return { model: env.model };
+	const [providerId, modelId] = spec.includes("/") ? spec.split("/", 2) : [env.provider ?? env.model?.provider, spec];
+	if (!providerId) {
+		return { model: env.model, warning: `Could not resolve model "${spec}" (no provider); using the session model.` };
+	}
+	if (env.model?.provider === providerId && env.model.id === modelId) return { model: env.model };
+	if (env.modelRegistry?.find) {
+		const m = env.modelRegistry.find(providerId, modelId!);
+		if (!m) throw new Error(`Cannot resolve model "${providerId}/${modelId}": unknown model for provider "${providerId}"`);
+		return { model: m };
+	}
+	return {
+		model: env.model,
+		warning: `Could not resolve model "${providerId}/${modelId}" (no model registry available); inheriting the session model.`,
+	};
+}
+
+/** Provider a task will run on, for gating and display. Never throws. */
+function plannedProvider(spec: TaskSpec, env: SpawnEnv): string {
+	try {
+		return resolveModel(spec.model, env).model?.provider ?? "unknown";
+	} catch {
+		return "unknown";
+	}
+}
+
+/** Fold one message's usage into a running tally. */
+function addUsage(into: TaskUsage, u: any): void {
+	if (!u) return;
+	into.input += u.input || 0;
+	into.output += u.output || 0;
+	into.cacheRead += u.cacheRead || 0;
+	into.cacheWrite += u.cacheWrite || 0;
+	into.cost += u.cost?.total || 0;
+	into.turns++;
+}
+
+/** Squash any tool result into one short line. */
+function summarize(result: any): string {
+	const text =
+		typeof result === "string"
+			? result
+			: (result?.content?.find?.((c: any) => c.type === "text")?.text ?? result?.error ?? JSON.stringify(result ?? ""));
+	const oneLine = String(text).replace(/\s+/g, " ").trim();
+	return oneLine.length > 120 ? `${oneLine.slice(0, 120)}...` : oneLine;
+}
+
+/** One-line summary of a tool call for the activity feed. */
+function briefArgs(args: any): string {
+	if (!args || typeof args !== "object") return "";
+	for (const key of ["command", "file_path", "path", "pattern", "query", "url", "id"]) {
+		const v = args[key];
+		if (typeof v === "string" && v.trim()) return v.length > 70 ? `${v.slice(0, 70)}...` : v;
+	}
+	return "";
+}
+
+// ---- spawn ----
+
+export function spawn(spec: TaskSpec, env: SpawnEnv): Task {
+	const id = `t${++seq}`;
+	const task: Task = {
+		id,
+		sessionId: env.sessionId ?? currentSession,
+		label: spec.label,
+		prompt: spec.prompt,
+		cwd: spec.cwd ?? env.cwd,
+		status: "queued",
+		provider: plannedProvider(spec, env),
+		createdAt: Date.now(),
+		turns: 0,
+		usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, turns: 0 },
+		output: "",
+		feed: [],
+		stream: "",
+		steered: [],
+		promise: Promise.resolve(null as any),
+		controller: new AbortController(),
+		pendingSteer: [],
+	};
+	tasks.set(id, task);
+	task.promise = run(task, spec, env);
+	emitChange();
+	persistState();
+	return task;
+}
+
+function settle(task: Task, status: Exclude<TaskStatus, "queued" | "running">, patch: Partial<Task> = {}): Task {
+	task.status = status;
+	task.finishedAt = Date.now();
+	Object.assign(task, patch);
+	if (task.output.length > OUTPUT_LIMIT) {
+		const dropped = task.output.length - OUTPUT_LIMIT;
+		task.output = `${task.output.slice(0, OUTPUT_LIMIT)}\n\n[output truncated: ${dropped} more characters were produced but not kept]`;
+	}
+	task.session = undefined;
+	task.stream = "";
+	pruneTasks();
+	persistState();
+	emitChange();
+	for (const cb of settleListeners) {
+		try {
+			cb(task);
+		} catch {
+			/* ignore */
+		}
+	}
+	return task;
+}
+
+async function run(task: Task, spec: TaskSpec, env: SpawnEnv): Promise<Task> {
+	const signal = task.controller.signal;
+	const maxTurns = spec.maxTurns;
+
+	// Resolve the model before queueing so a bad `model` fails fast.
+	let model: Model<any> | undefined;
+	let modelWarning: string | undefined;
+	try {
+		const r = resolveModel(spec.model, env);
+		model = r.model;
+		modelWarning = r.warning;
+	} catch (err) {
+		return settle(task, "failed", { errorMessage: (err as Error).message });
+	}
+	task.model = model ? `${model.provider}/${model.id}` : undefined;
+	task.provider = model?.provider ?? "unknown";
+
+	const gate = gateFor(task.provider);
+	if (gate.inUse >= gate.capValue) pushFeed(task, "note", `queued (${task.provider} at cap ${gate.capValue})`);
+	emitChange();
+	await gate.acquire();
+
+	// A kill may have landed while queued.
+	if (signal.aborted) {
+		gate.release();
+		return settle(task, "killed", { errorMessage: "killed before starting" });
+	}
+
+	task.status = "running";
+	task.startedAt = Date.now();
+	pushFeed(task, "note", `started on ${task.model ?? "session model"}`);
+	emitChange();
+
+	let session: any;
+	try {
+		// Straight passthrough: every option comes from the caller. A field the
+		// caller left out is left out here too, so the subagent falls back to
+		// exactly what pi would do on its own.
+		const loaderOpts: any = { cwd: task.cwd, agentDir: getAgentDir() };
+		if (spec.systemPrompt !== undefined) loaderOpts.systemPromptOverride = () => spec.systemPrompt;
+		if (spec.appendSystemPrompt !== undefined) {
+			loaderOpts.appendSystemPromptOverride = (base: string[]) => [...base, spec.appendSystemPrompt as string];
+		}
+		const resourceLoader = new DefaultResourceLoader(loaderOpts);
+		try {
+			await resourceLoader.reload();
+		} catch {
+			/* fall back to defaults */
+		}
+		const sessionOpts: any = {
+			cwd: task.cwd,
+			resourceLoader,
+			sessionManager: SessionManager.inMemory(task.cwd),
+		};
+		if (model) sessionOpts.model = model;
+		if (spec.tools) sessionOpts.tools = spec.tools;
+		if (spec.excludeTools) sessionOpts.excludeTools = spec.excludeTools;
+		if (spec.noTools) sessionOpts.noTools = spec.noTools;
+		if (spec.thinkingLevel) sessionOpts.thinkingLevel = spec.thinkingLevel;
+		session = (await createAgentSession(sessionOpts)).session;
+	} catch (err) {
+		gate.release();
+		return settle(task, "failed", { errorMessage: `Failed to start subagent session: ${(err as Error).message}` });
+	}
+
+	task.session = session;
+	// Deliver anything steered while the session was still starting.
+	for (const msg of task.pendingSteer.splice(0)) {
+		void session.steer(msg).catch(() => {});
+		task.steered.push(msg);
+		pushFeed(task, "note", `steered: ${msg}`);
+	}
+
+	const onAbort = () => {
+		void session.abort();
+	};
+	if (signal.aborted) onAbort();
+	else signal.addEventListener("abort", onAbort, { once: true });
+
+	// maxTurns is enforced on its own counter - never on UI state, so it cannot
+	// be silently disabled by a display bug. `turn_start` is exact: the run is
+	// stopped as the (maxTurns + 1)-th turn begins, and a clean finish at
+	// exactly maxTurns is not misreported as an overrun.
+	let startedTurns = 0;
+	let hitMaxTurns = false;
+	const unsubscribe = session.subscribe((event: any) => {
+		switch (event.type) {
+			case "turn_start": {
+				startedTurns++;
+				if (maxTurns && startedTurns > maxTurns && !hitMaxTurns) {
+					hitMaxTurns = true;
+					pushFeed(task, "note", `maxTurns (${maxTurns}) exceeded - aborting`);
+					void session.abort();
+				}
+				break;
+			}
+			case "turn_end": {
+				task.turns++;
+				if (task.stream.trim()) pushFeed(task, "text", task.stream.trim());
+				task.stream = "";
+				// Accumulate as we go, so tokens and cost are visible while the task is
+				// still running. Recomputed authoritatively from the messages on settle.
+				addUsage(task.usage, event.message?.usage);
+				emitChange();
+				break;
+			}
+			case "tool_execution_start": {
+				const brief = briefArgs(event.args);
+				pushFeed(task, "tool", `${event.toolName}${brief ? ` ${brief}` : ""}`, { toolName: event.toolName });
+				emitChange();
+				break;
+			}
+			case "tool_execution_end": {
+				// Only failures are worth a line of their own; successes are implied
+				// by the next thing the subagent does.
+				if (event.isError) {
+					pushFeed(task, "toolResult", `${event.toolName} failed: ${summarize(event.result)}`, {
+						toolName: event.toolName,
+						isError: true,
+					});
+					emitChange();
+				}
+				break;
+			}
+			case "message_update": {
+				if (event.assistantMessageEvent?.type === "text_delta") {
+					task.stream += event.assistantMessageEvent.delta;
+					if (task.stream.length > STREAM_LIMIT) task.stream = task.stream.slice(-STREAM_LIMIT);
+					emitChange();
+				}
+				break;
+			}
+		}
+	});
+
+	try {
+		await session.prompt(spec.prompt);
+
+		const messages: any[] = session.messages ?? [];
+		let output = "";
+		let stopReason: string | undefined;
+		let errorMessage: string | undefined;
+		// The live tally from turn_end was an estimate; the messages are the record.
+		task.usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, turns: 0 };
+		for (let i = messages.length - 1; i >= 0; i--) {
+			const msg = messages[i];
+			if (msg.role !== "assistant") continue;
+			if (!stopReason && msg.stopReason) stopReason = msg.stopReason;
+			if (!errorMessage && msg.errorMessage) errorMessage = msg.errorMessage;
+			if (!output) {
+				for (const part of msg.content ?? []) {
+					if (part.type === "text" && part.text) {
+						output = part.text;
+						break;
+					}
+				}
+			}
+			if (msg.usage) addUsage(task.usage, msg.usage);
+		}
+
+		if (hitMaxTurns) {
+			return settle(task, "failed", {
+				output,
+				stopReason: "max_turns",
+				errorMessage: `Exceeded maxTurns (${maxTurns}). Partial output preserved.`,
+			});
+		}
+		if (signal.aborted) {
+			return settle(task, "killed", { output, stopReason: "aborted", errorMessage: "killed by user" });
+		}
+		if (stopReason === "error" || stopReason === "aborted" || errorMessage) {
+			return settle(task, "failed", { output, stopReason, errorMessage: errorMessage ?? output ?? "subagent error" });
+		}
+		return settle(task, "done", {
+			output: output || "(no output)",
+			stopReason,
+			warning: modelWarning,
+		});
+	} catch (err) {
+		if (signal.aborted) return settle(task, "killed", { stopReason: "aborted", errorMessage: "killed by user" });
+		return settle(task, "failed", { errorMessage: `Subagent error: ${(err as Error).message}` });
+	} finally {
+		unsubscribe();
+		signal.removeEventListener("abort", onAbort);
+		try {
+			session.dispose();
+		} catch {
+			/* ignore */
+		}
+		gate.release();
+	}
+}
+
+// ---- control ----
+
+export function killTask(id: string): boolean {
+	const t = getTask(id);
+	if (!t || isSettled(t)) return false;
+	pushFeed(t, "note", "kill requested");
+	t.controller.abort();
+	emitChange();
+	return true;
+}
+
+export function killAll(): number {
+	let n = 0;
+	for (const t of activeTasks()) if (killTask(t.id)) n++;
+	return n;
+}
+
+export type SteerOutcome = "delivered" | "queued" | "settled" | "unknown";
+
+export async function steerTask(id: string, message: string): Promise<SteerOutcome> {
+	const t = getTask(id);
+	if (!t) return "unknown";
+	if (isSettled(t)) return "settled";
+	if (!t.session || typeof t.session.steer !== "function") {
+		t.pendingSteer.push(message);
+		pushFeed(t, "note", `steer queued: ${message}`);
+		emitChange();
+		return "queued";
+	}
+	await t.session.steer(message);
+	t.steered.push(message);
+	pushFeed(t, "note", `steered: ${message}`);
+	emitChange();
+	return "delivered";
+}
+
+/**
+ * Wait for the given tasks (default: everything still in flight) to settle,
+ * up to `waitMs`. Resolves as soon as the last one finishes.
+ */
+export async function waitFor(ids: string[], waitMs: number, signal?: AbortSignal): Promise<Task[]> {
+	const targets = ids.map((id) => getTask(id)).filter((t): t is Task => t !== undefined);
+	if (targets.length === 0 || waitMs <= 0) return targets;
+	const pending = targets.filter((t) => !isSettled(t));
+	if (pending.length === 0) return targets;
+
+	await new Promise<void>((resolve) => {
+		let finished = false;
+		const timer = setTimeout(() => finish(), waitMs);
+		const finish = () => {
+			if (finished) return;
+			finished = true;
+			clearTimeout(timer);
+			signal?.removeEventListener("abort", finish);
+			resolve();
+		};
+		signal?.addEventListener("abort", finish, { once: true });
+		Promise.all(pending.map((t) => t.promise)).then(finish, finish);
+	});
+	return targets;
+}
+
+// ---- persistence ----
+
+interface PersistedTask {
+	id: string;
+	sessionId: string;
+	label?: string;
+	prompt: string;
+	cwd: string;
+	status: TaskStatus;
+	provider?: string;
+	model?: string;
+	createdAt: number;
+	finishedAt?: number;
+	turns: number;
+	usage: TaskUsage;
+	output: string;
+	errorMessage?: string;
+	stopReason?: string;
+}
+
+function pruneTasks(): void {
+	const settled = listTasks().filter(isSettled);
+	if (settled.length <= RETENTION) return;
+	for (const t of settled.slice(0, settled.length - RETENTION)) tasks.delete(t.id);
+}
+
+export function persistState(): void {
+	try {
+		const records: PersistedTask[] = listTasks().map((t) => ({
+			id: t.id,
+			sessionId: t.sessionId,
+			label: t.label,
+			prompt: t.prompt,
+			cwd: t.cwd,
+			status: t.status,
+			provider: t.provider,
+			model: t.model,
+			createdAt: t.createdAt,
+			finishedAt: t.finishedAt,
+			turns: t.turns,
+			usage: t.usage,
+			output: t.output.length > 4096 ? `${t.output.slice(0, 4096)}...` : t.output,
+			errorMessage: t.errorMessage,
+			stopReason: t.stopReason,
+		}));
+		// Merge with the shared file instead of replacing it: this session owns its
+		// own records, and concurrent or past sessions own the rest. A record with
+		// no sessionId is legacy - preserved untouched so it is never destroyed.
+		let others: PersistedTask[] = [];
+		try {
+			const existing = JSON.parse(fs.readFileSync(STATE_PATH, "utf-8")) as {
+				version?: number;
+				tasks?: PersistedTask[];
+			};
+			if (existing && Array.isArray(existing.tasks)) {
+				others = existing.tasks.filter((r) => r.sessionId !== currentSession);
+			}
+		} catch {
+			/* no prior state */
+		}
+		const merged = [...others, ...records];
+		const tmp = `${STATE_PATH}.tmp`;
+		// Ids are per session (t1, t2, … restart in every session), so no file-wide counter.
+		fs.writeFileSync(tmp, JSON.stringify({ version: 5, tasks: merged }), { encoding: "utf-8", mode: 0o600 });
+		fs.renameSync(tmp, STATE_PATH);
+	} catch {
+		/* best-effort; never fail a task over persistence */
+	}
+}
+
+/**
+ * Drop this session's settled tasks from memory and the shared state file.
+ * Tasks still in flight are kept. Returns how many were cleared.
+ */
+export function clearHistory(): number {
+	const cleared = listTasks().filter(isSettled);
+	for (const t of cleared) tasks.delete(t.id);
+	persistState();
+	emitChange();
+	return cleared.length;
+}
+
+let restoredFor: string | null = null;
+
+/**
+ * Rebuild task records after a restart. In-memory subagent sessions cannot be
+ * resumed, so anything that was in flight is restored as `killed` with a `lost`
+ * stop reason - the parent is told the truth instead of waiting forever.
+ *
+ * Only records belonging to the current session are restored: the shared state
+ * file holds every session's history, and each session sees just its own.
+ * Legacy records (no sessionId) are left alone - they predate session scoping.
+ *
+ * The id counter continues from this session's highest persisted id, so fresh
+ * tasks never reuse an id that still refers to a persisted record. Ids are
+ * per session: every session starts at t1.
+ */
+export function restoreState(): void {
+	if (!currentSession) return; // session not named yet; nothing belongs to us
+	if (restoredFor === currentSession) return;
+	restoredFor = currentSession;
+	let parsed: { version?: number; tasks?: PersistedTask[] } | null = null;
+	try {
+		parsed = JSON.parse(fs.readFileSync(STATE_PATH, "utf-8"));
+	} catch {
+		return;
+	}
+	if (!parsed || !Array.isArray(parsed.tasks)) return;
+
+	let maxId = 0;
+	for (const r of parsed.tasks) {
+		if (r.sessionId !== currentSession) continue;
+		const lost = r.status === "queued" || r.status === "running";
+		const task: Task = {
+			id: r.id,
+			sessionId: r.sessionId,
+			label: r.label,
+			prompt: r.prompt ?? "",
+			cwd: r.cwd,
+			status: lost ? "killed" : r.status,
+			provider: r.provider,
+			model: r.model,
+			createdAt: r.createdAt,
+			finishedAt: r.finishedAt ?? Date.now(),
+			turns: r.turns ?? 0,
+			usage: r.usage ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, turns: 0 },
+			output: r.output ?? "",
+			errorMessage: lost
+				? "lost: pi restarted before this task finished (subagent sessions cannot be resumed)"
+				: r.errorMessage,
+			stopReason: lost ? "lost" : r.stopReason,
+			feed: [],
+			stream: "",
+			steered: [],
+			promise: Promise.resolve(null as any),
+			controller: new AbortController(),
+			pendingSteer: [],
+			restored: true,
+		};
+		task.promise = Promise.resolve(task);
+		tasks.set(task.id, task);
+		const n = Number.parseInt(r.id.replace(/^t/, ""), 10);
+		if (Number.isFinite(n)) maxId = Math.max(maxId, n);
+	}
+	seq = Math.max(seq, maxId);
+	pruneTasks();
+	persistState();
+	emitChange();
+}
