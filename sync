@@ -21,15 +21,24 @@ set -euo pipefail
 REPO="$(cd "$(dirname "$0")" && pwd)"
 TS="$(date +%s)"
 
-link() { # src target
-  local src="$1" target="$2"
+link() { # src target [aside-dir]
+  # aside-dir: where to park a pre-existing target. Defaults to a sibling
+  # <target>.pre-link-<ts>; pass a dir when siblings would still be picked up
+  # (pi loads every entry of ~/.pi/agent/extensions/, parked copies included).
+  local src="$1" target="$2" aside="${3:-}"
   [ -e "$src" ] || return 0
   if [ -L "$target" ] && [ "$(readlink -f "$target")" = "$(readlink -f "$src")" ]; then
     return 0
   fi
   if [ -e "$target" ] || [ -L "$target" ]; then
-    mv "$target" "$target.pre-link-$TS"
-    echo "  moved aside: $target -> $target.pre-link-$TS"
+    if [ -n "$aside" ]; then
+      mkdir -p "$aside"
+      aside="$aside/$(basename "$target")"
+    else
+      aside="$target.pre-link-$TS"
+    fi
+    mv "$target" "$aside"
+    echo "  moved aside: $target -> $aside"
   fi
   mkdir -p "$(dirname "$target")"
   ln -s "$src" "$target"
@@ -74,7 +83,12 @@ for entry in "$REPO/pi"/*; do
   if [ "$name" = "extensions" ]; then
     for ext in "$entry"/*; do
       [ -e "$ext" ] || continue
-      link "$ext" "$HOME/.pi/agent/extensions/$(basename "$ext")"
+      link "$ext" "$HOME/.pi/agent/extensions/$(basename "$ext")" "$HOME/.pi/agent/extensions.pre-link-$TS"
+      # web-tools imports npm packages; pi fails to start if they're missing.
+      if [ -f "$ext/package.json" ] && [ ! -d "$ext/node_modules" ] && command -v npm >/dev/null; then
+        echo "  npm install: $ext"
+        (cd "$ext" && npm install --silent --no-fund --no-audit)
+      fi
     done
     continue
   fi

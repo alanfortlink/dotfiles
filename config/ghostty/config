@@ -50,7 +50,7 @@ keybind = copy/escape=deactivate_key_table
 keybind = copy/q=deactivate_key_table
 
 window-save-state = "always"
-shell-integration = "bash"
+shell-integration = "detect"
 confirm-close-surface = false
 
 # herdr/tmux direct layer (~/.config/herdr/config.toml, ~/.config/tmux/tmux.conf):

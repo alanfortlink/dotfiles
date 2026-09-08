@@ -1,12 +1,25 @@
-if [[ -n $SSH_CONNECTION ]]; then
-  export EDITOR='nvim'
-else
-  export EDITOR='nvim'
+# Homebrew (macOS). Login shells also get this from ~/.zprofile, but tmux/herdr
+# panes are non-login shells, so it has to happen here too. No-op on Linux.
+if [ -x /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x /usr/local/bin/brew ]; then
+  eval "$(/usr/local/bin/brew shellenv)"
 fi
 
-[ -f /usr/local/etc/profile.d/autojump.sh ] && . /usr/local/etc/profile.d/autojump.sh
+# ~/.local/bin: the repo's bin/ scripts and the claude launcher.
+case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) PATH="$HOME/.local/bin:$PATH" ;; esac
 
-export PATH="$PATH:/home/tank/.local/go/bin"
+# Optional per-machine tool dirs; only added when they exist.
+for _d in "$HOME/.local/go/bin" "$HOME/go/bin" "$HOME/.cargo/bin" "$HOME/.lmstudio/bin"; do
+  [ -d "$_d" ] || continue
+  case ":$PATH:" in *":$_d:"*) ;; *) PATH="$PATH:$_d" ;; esac
+done
+unset _d
+export PATH
+
+export EDITOR='nvim'
+
+[ -f /usr/local/etc/profile.d/autojump.sh ] && . /usr/local/etc/profile.d/autojump.sh
 
 source ~/antigen.zsh
 
@@ -48,18 +61,10 @@ bindkey -M vicmd '^N' history-beginning-search-forward-end
 
 source ~/.aliases
 
-# The next line updates PATH for the Google Cloud SDK.
-if [ -f '/Users/alan/repos/quiz_server/temp/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/alan/repos/quiz_server/temp/google-cloud-sdk/path.zsh.inc'; fi
+# Ollama host is per-machine; keep it out of the repo by putting the URL in ~/.config/ollama_host
+[ -f "$HOME/.config/ollama_host" ] && export OLLAMA_HOST="$(<"$HOME/.config/ollama_host")"
 
-# The next line enables shell command completion for gcloud.
-if [ -f '/Users/alan/repos/quiz_server/temp/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/alan/repos/quiz_server/temp/google-cloud-sdk/completion.zsh.inc'; fi
-
-source ~/.aliases
-
-# Added by LM Studio CLI (lms)
-export PATH="$PATH:/home/tank/.lmstudio/bin"
-# End of LM Studio CLI section
-
-
-# Point ollama at the Mac server (10.0.0.75)
-export OLLAMA_HOST="http://10.0.0.75:11434"
+# Starship prompt (hostname etc. via starship.toml); no-op if starship isn't installed.
+if (( $+commands[starship] )) && [[ -z $STARSHIP_SHELL ]]; then
+  eval "$(starship init zsh)"
+fi
