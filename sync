@@ -85,7 +85,8 @@ for entry in "$REPO/pi"/*; do
       [ -e "$ext" ] || continue
       link "$ext" "$HOME/.pi/agent/extensions/$(basename "$ext")" "$HOME/.pi/agent/extensions.pre-link-$TS"
       # web-tools imports npm packages; pi fails to start if they're missing.
-      if [ -f "$ext/package.json" ] && [ ! -d "$ext/node_modules" ] && command -v npm >/dev/null; then
+      if [ -f "$ext/package.json" ] && grep -q '"dependencies"' "$ext/package.json" \
+        && [ ! -d "$ext/node_modules" ] && command -v npm >/dev/null; then
         echo "  npm install: $ext"
         (cd "$ext" && npm install --silent --no-fund --no-audit)
       fi
