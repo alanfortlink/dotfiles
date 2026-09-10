@@ -5,26 +5,17 @@
 --   omarchy menu keybindings --print
 
 -- === hjkl window control ===
---   SUPER + hjkl                -> move focus
+--   ALT + hjkl                  -> move focus
 --   ALT + SHIFT + hjkl          -> resize active window (intuitive direction)
 --   SUPER + ALT + hjkl          -> swap with the adjacent neighbor
 --   SUPER + CTRL + SHIFT + hjkl -> merge: re-parent across split boundaries
 
--- Omarchy defaults on SUPER + jkl move to SUPER + SHIFT + jkl so SUPER + hjkl
--- is free for focus movement.
-hl.unbind("SUPER + J")
-hl.unbind("SUPER + K")
-hl.unbind("SUPER + L")
-o.bind("SUPER + SHIFT + J", "Toggle window split", hl.dsp.layout("togglesplit"))
-o.bind("SUPER + SHIFT + K", "Keybindings", "omarchy-menu-keybindings")
-o.bind("SUPER + SHIFT + L", "Toggle workspace layout", "omarchy-hyprland-workspace-layout-toggle")
-
 -- hypr-mux-focus: if the active window hosts herdr or tmux and a pane exists
 -- in that direction, focus the pane; otherwise plain Hyprland movefocus.
-o.bind("SUPER + H", "Focus left", "hypr-mux-focus l")
-o.bind("SUPER + J", "Focus down", "hypr-mux-focus d")
-o.bind("SUPER + K", "Focus up", "hypr-mux-focus u")
-o.bind("SUPER + L", "Focus right", "hypr-mux-focus r")
+o.bind("ALT + H", "Focus left", "hypr-mux-focus l")
+o.bind("ALT + J", "Focus down", "hypr-mux-focus d")
+o.bind("ALT + K", "Focus up", "hypr-mux-focus u")
+o.bind("ALT + L", "Focus right", "hypr-mux-focus r")
 
 -- hypr-resize-intuitive flips the sign when dwindle would otherwise resize
 -- the wrong edge (active in right subtree of its parent H-split).
@@ -49,15 +40,12 @@ o.bind("SUPER + CTRL + SHIFT + K", "Merge up", hl.dsp.window.move({ direction = 
 o.bind("SUPER + CTRL + SHIFT + L", "Merge right", hl.dsp.window.move({ direction = "r" }))
 
 -- === Fullscreen ===
--- SUPER+F was: Full screen (omarchy default); ALT+SHIFT+F below covers that.
-hl.unbind("SUPER + F")
-o.bind("SUPER + F", "Maximize (full width)", hl.dsp.window.fullscreen({ mode = "maximized" }))
+o.bind("ALT + F", "Maximize (full width)", hl.dsp.window.fullscreen({ mode = "maximized" }))
 -- In herdr/tmux (with >1 pane) this toggles pane zoom instead.
-o.bind("SUPER + Z", "Maximize / mux pane zoom", "hypr-mux-zoom")
 o.bind("ALT + Z", "Maximize / mux pane zoom", "hypr-mux-zoom")
 -- Hyprland only hides the bar (top layer) when the monitor's *regular*
 -- workspace has a fullscreen window — fullscreen inside a special workspace
--- keeps the bar visible. So hop the window out of the scratchpad before
+-- keeps the bar visible. So hop the window out of its scratchpad before
 -- fullscreening, and send it back (and re-show the scratchpad) on toggle off.
 local fullscreen_scratch_origin = {}
 
@@ -122,7 +110,7 @@ o.bind("ALT + SPACE", "Omarchy menu", "omarchy-menu toggle")
 -- === Vicinae ===
 -- Toggle moved here from ALT+SPACE.
 o.bind("ALT + SHIFT + SPACE", "Vicinae", "vicinae toggle")
-o.bind("ALT + SHIFT + V", "Clipboard manager", "omarchy-shell shell toggle omarchy.clipboard")
+o.bind("ALT + SHIFT + V", "Clipboard manager (vicinae)", "vicinae deeplink vicinae://launch/clipboard/history")
 
 -- Omarchy's default clipboard history (same action as SUPER+CTRL+V).
 o.bind("SUPER + SHIFT + V", "Clipboard manager", "omarchy-shell shell toggle omarchy.clipboard")
@@ -132,37 +120,33 @@ o.bind("CTRL + ALT + F", "Fuzzy file search", "vicinae deeplink 'vicinae://launc
 o.bind("CTRL + ALT + M", "Now Playing", "vicinae deeplink 'vicinae://launch/@tank/now-playing/list'")
 o.bind("CTRL + SHIFT + F10", "Install AUR package", "xdg-terminal-exec --app-id=org.omarchy.terminal omarchy-pkg-aur-install")
 
--- === Scratchpad ===
--- Only the one generic scratchpad; the numbered scratch1-4 are gone.
--- Pin it to the right monitor (DP-1) so focusing back to it doesn't
--- migrate/hide the special workspace.
+-- === Scratchpads ===
+-- Pin scratchpads to the right monitor (DP-1) so focusing back to it
+-- doesn't migrate/hide the special workspace.
 hl.workspace_rule({ workspace = "special:scratchpad", monitor = "DP-1" })
-hl.workspace_rule({ workspace = "special:scratchpad2", monitor = "DP-1" })
+hl.workspace_rule({ workspace = "special:scratch1", monitor = "DP-1" })
+hl.workspace_rule({ workspace = "special:scratch2", monitor = "DP-1" })
+hl.workspace_rule({ workspace = "special:scratch3", monitor = "DP-1" })
+hl.workspace_rule({ workspace = "special:scratch4", monitor = "DP-1" })
 
 -- togglespecialworkspace ignores the workspace monitor rule (known Hyprland
 -- limitation), so focus DP-1 first before toggling.
-local function toggle_scratchpad(name)
-  return 'hyprctl --batch \'dispatch hl.dsp.focus({ monitor = "DP-1" }) ; dispatch hl.dsp.workspace.toggle_special("'
-    .. name
-    .. '")\''
+local function toggle_scratch_on_dp1(name)
+  return 'hyprctl --batch \'dispatch hl.dsp.focus({ monitor = "DP-1" }) ; dispatch hl.dsp.workspace.toggle_special("' .. name .. '")\''
 end
 
 hl.unbind("SUPER + S")
-o.bind("SUPER + S", "Toggle scratchpad", toggle_scratchpad("scratchpad"))
+o.bind("SUPER + S", "Toggle scratchpad", toggle_scratch_on_dp1("scratchpad"))
 o.bind("ALT + S", "Toggle window in/out of scratchpad", "hypr-scratchpad-out")
 
--- Second scratchpad on the grave key, same behaviour as S.
-o.bind("SUPER + grave", "Toggle scratchpad 2", toggle_scratchpad("scratchpad2"))
-o.bind("ALT + grave", "Toggle window in/out of scratchpad 2", "hypr-scratchpad-out scratchpad2")
-
--- CTRL+SHIFT+F1..F5 switch workspaces (were: scratchpads 1-4); the ALT
+-- CTRL+SHIFT+F1..F4 switch workspaces (were: scratchpads 1-4); the ALT
 -- variant sends the focused window there. Both always act on the right
 -- monitor (LG / DP-1) so the left one (Samsung) never changes workspace:
 -- focus DP-1 first, then select the workspace, which pulls it over if it
 -- happened to live elsewhere.
 local RIGHT_MONITOR = "DP-1"
 
--- Hide the scratchpad if it's showing on the right monitor.
+-- Hide whatever scratchpad is showing on the right monitor, if any.
 local function hide_right_special()
   for _, m in ipairs(hl.get_monitors()) do
     if m.name == RIGHT_MONITOR then
@@ -181,27 +165,14 @@ local function show_on_right(ws)
   hl.dispatch(hl.dsp.focus({ workspace = ws }))
 end
 
--- On the main keyboard F1..F4 are remapped in firmware to F14..F17, so both
--- the plain F14..F17 (and ALT+F14..F17) and the CTRL+SHIFT+F1..F5 (and
--- CTRL+SHIFT+ALT+F1..F5) forms are bound, for other keyboards.
-local function bind_workspace(switch_key, move_key, ws)
-  o.bind(switch_key, "Switch to workspace " .. ws .. " (right monitor)", function()
+for i, ws in ipairs({ "1", "3", "4", "5" }) do
+  o.bind("CTRL + SHIFT + F" .. i, "Switch to workspace " .. ws .. " (right monitor)", function()
     show_on_right(ws)
   end)
-  o.bind(move_key, "Move window to workspace " .. ws .. " (right monitor)", function()
+  o.bind("CTRL + SHIFT + ALT + F" .. i, "Move window to workspace " .. ws .. " (right monitor)", function()
     hl.dispatch(hl.dsp.window.move({ workspace = ws, follow = false }))
     show_on_right(ws)
   end)
-end
-
--- xkeyboard-config maps the F14..F17 keycodes to XF86Launch5..8 keysyms
--- (not F14..F17), so bind those too.
-for i, ws in ipairs({ "1", "3", "4", "5", "6" }) do
-  bind_workspace("CTRL + SHIFT + F" .. i, "CTRL + SHIFT + ALT + F" .. i, ws)
-  if i <= 4 then
-    bind_workspace("F" .. (i + 13), "ALT + F" .. (i + 13), ws)
-    bind_workspace("XF86Launch" .. (i + 4), "ALT + XF86Launch" .. (i + 4), ws)
-  end
 end
 
 -- === macOS-style ALT remaps ===
@@ -271,8 +242,6 @@ o.bind("ALT + T", "New tab", mac_routed("T"))
 o.bind("ALT + SHIFT + T", "Reopen tab", mac("CTRL SHIFT", "T"))
 o.bind("ALT + R", "Reload", mac("CTRL", "R"))
 o.bind("ALT + E", "Address bar", mac("CTRL", "L"))
-o.bind("ALT + L", "Address bar", mac_routed("L"))
-o.bind("ALT + F", "Find", mac_routed("F"))
 -- Ctrl/Shift+Insert copy/paste are universal and work in terminals too, so
 -- ALT+C / ALT+V are copy/paste everywhere, including inside herdr/tmux. Mux
 -- new-tab / splits live on the ctrl+shift direct layer (ctrl+shift+t/o/e).
@@ -289,18 +258,12 @@ o.bind("ALT + 6", "Tab 6", mac("CTRL", "6"))
 o.bind("ALT + 7", "Tab 7", mac("CTRL", "7"))
 o.bind("ALT + 8", "Tab 8", mac("CTRL", "8"))
 o.bind("ALT + 9", "Tab 9", mac("CTRL", "9"))
--- ALT+SHIFT+1..9 inject ctrl+alt+<digit>: herdr's switch_workspace direct
--- chord (workspace 1-9). Hyprland must not own these, and alt+[ / alt+]
--- (herdr previous/next workspace) stay unbound here so the chords pass
--- through untouched.
-for i = 1, 9 do
-  o.bind("ALT + SHIFT + " .. i, "mux workspace " .. i, mac("CTRL ALT", tostring(i)))
-end
 o.bind("ALT + 0", "Reset zoom", mac("CTRL", "0"))
 o.bind("ALT + A", "Select all", mac("CTRL", "A"))
 -- Editing/document shortcuts: ALT -> CTRL, universal combos.
--- (Cmd+S/Save is NOT mapped: ALT+S is the scratchpad toggle. Undo is NOT
--- mapped; use the app's native Ctrl+Z.)
+-- (Cmd+S/Save is NOT mapped: ALT+S is the scratchpad toggle. Undo and Find
+-- are NOT mapped: ALT+Z and ALT+F are maximize; use the apps' native
+-- Ctrl+Z / Ctrl+F.)
 o.bind("ALT + SHIFT + Z", "Redo", mac("CTRL SHIFT", "Z"))
 o.bind("ALT + P", "Print", mac("CTRL", "P"))
 o.bind("ALT + D", "Bookmark", mac("CTRL", "D"))
@@ -309,8 +272,8 @@ o.bind("ALT + I", "Italic", mac("CTRL", "I"))
 o.bind("ALT + U", "Underline", mac("CTRL", "U"))
 o.bind("ALT + M", "Insert link", mac("CTRL", "K"))
 o.bind("ALT + comma", "Preferences", mac("CTRL", "comma"))
-o.bind("ALT + equal", "Zoom in (agent in terminal)", mac_routed("equal"))
-o.bind("ALT + minus", "Zoom out (agent in terminal)", mac_routed("minus"))
+o.bind("ALT + equal", "Zoom in", mac("CTRL", "equal"))
+o.bind("ALT + minus", "Zoom out", mac("CTRL", "minus"))
 
 -- === Layout save ===
 -- Snapshot the current window layout; restored on next login (hypr/layout.lua).

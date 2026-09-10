@@ -3,6 +3,8 @@
 -- static rule because they map a loader window first, which defeats
 -- timing-based placement. Anchored class match, so Steam *games* are unaffected.
 
-o.window("^(steam)$", { workspace = "special:scratch1 silent" })
+o.window("^(steam)$", { workspace = "3 silent" })
 o.window("^(steam)$", { float = true, size = "1100 700" })
-o.window("^(discord)$", { workspace = "special:scratch4 silent" })
+o.window("^(steam)$", { workspace = "3 silent" })
+o.window("^(steam)$", { float = true, size = "942 1106" })
+o.window("^(discord)$", { workspace = "4 silent" })

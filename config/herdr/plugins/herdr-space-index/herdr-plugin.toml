@@ -1,0 +1,27 @@
+# Keeps a $shortcut token (the workspace's current 1-9 position) on every
+# workspace so Space sidebar rows can show the alt+digit that reaches it.
+id = "herdr-space-index"
+name = "Space Index"
+version = "0.1.0"
+min_herdr_version = "0.8.2"
+description = "Index workspaces as $shortcut sidebar tokens"
+platforms = ["linux"]
+
+[[startup]]
+command = ["./reindex.sh"]
+
+[[events]]
+on = "workspace.created"
+command = ["./reindex.sh"]
+
+[[events]]
+on = "workspace.closed"
+command = ["./reindex.sh"]
+
+[[events]]
+on = "workspace.moved"
+command = ["./reindex.sh"]
+
+[[events]]
+on = "workspace.reordered"
+command = ["./reindex.sh"]

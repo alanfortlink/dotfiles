@@ -3,11 +3,22 @@
   "version": "1.0.0",
   "description": "Web search and fetch tools for pi coding agent",
   "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "jiti test.ts",
+    "typecheck": "tsc -p tsconfig.json --noUnusedLocals --noUnusedParameters"
+  },
   "dependencies": {
     "htmlparser2": "^9.1.0",
     "turndown": "^7.2.0"
   },
   "devDependencies": {
-    "@types/turndown": "^5.0.6"
+    "@earendil-works/pi-ai": "^0.84.4",
+    "@earendil-works/pi-coding-agent": "^0.84.4",
+    "@types/node": "^22.19.19",
+    "@types/turndown": "^5.0.6",
+    "jiti": "^2.7.0",
+    "typebox": "^1.3.7",
+    "typescript": "^5.9.3"
   }
 }

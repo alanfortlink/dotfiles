@@ -48,12 +48,28 @@ switch_tab = ["prefix+1..9", "ctrl+1..9", "ctrl+shift+1..9"]
 previous_tab = ["prefix+left", "ctrl+shift+left"]
 next_tab     = ["prefix+right", "ctrl+shift+right"]
 
+# Workspaces. alt+1..9 belongs to Hyprland's macOS-style app tabs, so
+# workspaces live on ctrl+alt+1..9 (Hyprland binds alt+shift+1..9 and injects
+# the ctrl+alt chord). alt+[ / alt+] pass through: Hyprland leaves them unbound.
+switch_workspace = "ctrl+alt+1..9"
+previous_workspace = "alt+["
+next_workspace = "alt+]"
+# ctrl+shift+minus/equal = previous/next agent in the sidebar. Note: herdr
+# normalizes shift+equal to "plus", and rejects the literal "equal" spelling.
+previous_agent = "ctrl+shift+minus"
+next_agent = "ctrl+shift+plus"
+
 [ui]
 confirm_close = true
 pane_gaps = true
 pane_outer_borders = true
 accent = "blue"
 tab_bar_right = [{ type = "zoom" }, { type = "hostname" }]
+
+# herdr-space-index keeps a $shortcut token (the workspace's 1-9 alt+digit
+# position) on each Space row.
+[ui.sidebar.spaces]
+rows = [["state_icon", { token = "$shortcut", dim = true }, "workspace"], ["branch", "git_status"]]
 
 [ui.toast]
 delivery = "herdr"

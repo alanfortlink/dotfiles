@@ -16,6 +16,7 @@ require("default.hypr.omarchy")
 -- Put your personal overrides in these files. They're loaded after Omarchy's
 -- defaults so package updates can improve the defaults without rewriting your
 -- ~/.config/hypr files.
+require("hypr.envs")
 require("hypr.monitors")
 require("hypr.input")
 require("hypr.bindings")
@@ -31,3 +32,8 @@ require("default.hypr.toggles")
 
 -- Add any other personal Hyprland configuration below.
 -- o.window("qemu", { workspace = "5" })
+
+-- [key-visualizer] capture hook (managed by the plugin; safe to remove)
+local kc_path = os.getenv("HOME") .. "/.config/omarchy/plugins/felixzsh.key-visualizer/key-visualizer.lua"
+local kc_file = io.open(kc_path, "r")
+if kc_file then kc_file:close(); dofile(kc_path) end

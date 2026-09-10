@@ -122,7 +122,7 @@ o.bind("ALT + SPACE", "Omarchy menu", "omarchy-menu toggle")
 -- === Vicinae ===
 -- Toggle moved here from ALT+SPACE.
 o.bind("ALT + SHIFT + SPACE", "Vicinae", "vicinae toggle")
-o.bind("ALT + SHIFT + V", "Clipboard manager", "omarchy-shell shell toggle omarchy.clipboard")
+o.bind("ALT + SHIFT + V", "Clipboard manager (clipboard-history)", "omarchy-shell shell toggle alanfortlink.clipboard")
 
 -- Omarchy's default clipboard history (same action as SUPER+CTRL+V).
 o.bind("SUPER + SHIFT + V", "Clipboard manager", "omarchy-shell shell toggle omarchy.clipboard")

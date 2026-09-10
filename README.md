@@ -55,9 +55,10 @@ the live directory also holds state that must stay local to the machine:
   mirrors herdr's keymap and needs a terminal that sends CSI-u; `prefix+<key>`
   works anywhere.
 - **herdr** (`config/herdr/`) — `config.toml`, plugin configs under
-  `plugins/config/<plugin>/`, and plugin sources as `plugins/<plugin>/SOURCE`
-  (upstream url + ref) plus `*.patch` for local commits. `bin/herdr-setup`
-  clones, patches and links them.
+  `plugins/config/<plugin>/`, SOURCE-based plugins as `plugins/<plugin>/SOURCE`
+  (upstream url + ref) plus `*.patch`, and inline local plugins as directories
+  containing `herdr-plugin.toml`. `bin/herdr-setup` clones/patches SOURCE-based
+  plugins and registers both kinds from their repository-owned paths.
 - **hypr-mux-\*** (`omarchy/bin/`) — ALT+hjkl / ALT+Z / ALT+W route into herdr
   or tmux panes (local, or over ssh / `herdr --remote`) and fall through to
   Hyprland. `hypr-mux-lib.sh` works out which mux the focused window is showing.

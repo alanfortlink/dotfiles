@@ -1,22 +1,129 @@
 #!/usr/bin/env bash
-# Install/refresh herdr plugins declared in dotfiles/config/herdr/plugins/.
-# Each plugins/<name>/ dir has a SOURCE file ("<git-url> <ref>") and optional
-# NNNN-*.patch files (local commits on top of <ref>). The plugin is cloned to
-# ~/repos/<name>, checked out at <ref> on branch "local" with patches applied,
-# then `herdr plugin link`ed. Idempotent; re-run after changing SOURCE/patches.
+# Install/refresh Herdr plugins declared in config/herdr/plugins/.
+#
+# A plugin directory is either:
+#   - SOURCE-based: SOURCE contains "<git-url> <ref>" and optional *.patch
+#     files. It is materialized under $HERDR_PLUGIN_REPOS (default: ~/repos).
+#   - inline local: it contains herdr-plugin.toml and no SOURCE. The repository
+#     directory itself is linked and kept enabled.
+#
+# Registrations are checked by plugin id and canonical root, so rerunning this
+# script repairs links that point at stale locations.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 PLUGINS="$REPO/config/herdr/plugins"
 DEST_ROOT="${HERDR_PLUGIN_REPOS:-$HOME/repos}"
 
-for dir in "$PLUGINS"/*/; do
-  name="$(basename "$dir")"
-  [ -f "$dir/SOURCE" ] || continue
-  read -r url ref < "$dir/SOURCE"
+plugin_id_from_manifest() {
+  local manifest=$1 plugin_id
+  plugin_id=$(awk -F'"' '
+    /^[[:space:]]*\[/ { exit }
+    /^[[:space:]]*id[[:space:]]*=/ { print $2; exit }
+  ' "$manifest")
+  if [[ -z $plugin_id ]]; then
+    printf 'No top-level plugin id found in %s\n' "$manifest" >&2
+    return 1
+  fi
+  printf '%s\n' "$plugin_id"
+}
+
+canonical_dir() {
+  (cd "$1" && pwd -P)
+}
+
+ensure_plugin_link() {
+  local root=$1 force_enabled=$2
+  local desired_root manifest plugin_id registry count record
+  local current_root current_canonical current_enabled desired_enabled
+  local -a link_state
+
+  desired_root=$(canonical_dir "$root")
+  manifest="$desired_root/herdr-plugin.toml"
+  [[ -f $manifest ]] || {
+    printf 'Missing plugin manifest: %s\n' "$manifest" >&2
+    return 1
+  }
+  plugin_id=$(plugin_id_from_manifest "$manifest")
+
+  registry=$(herdr plugin list --json)
+  jq -e '.result.plugins | type == "array"' >/dev/null <<<"$registry"
+  count=$(jq --arg id "$plugin_id" \
+    '[.result.plugins[] | select(.plugin_id == $id)] | length' <<<"$registry")
+  if ((count > 1)); then
+    printf 'Plugin registry contains %d entries for %s\n' "$count" "$plugin_id" >&2
+    return 1
+  fi
+
+  record=$(jq -c --arg id "$plugin_id" \
+    '.result.plugins[] | select(.plugin_id == $id)' <<<"$registry")
+  current_enabled=true
+  current_canonical=
+  if [[ -n $record ]]; then
+    current_root=$(jq -er '.plugin_root' <<<"$record")
+    current_enabled=$(jq -er '.enabled' <<<"$record")
+    if [[ -d $current_root ]]; then
+      current_canonical=$(canonical_dir "$current_root")
+    else
+      current_canonical=$current_root
+    fi
+  fi
+
+  if [[ $current_canonical == "$desired_root" ]]; then
+    if [[ $force_enabled == true && $current_enabled != true ]]; then
+      echo "==> enabling $plugin_id"
+      herdr plugin enable "$plugin_id"
+    else
+      echo "==> $plugin_id: link already correct"
+    fi
+  else
+    desired_enabled=$current_enabled
+    [[ -n $record ]] || desired_enabled=true
+    [[ $force_enabled == true ]] && desired_enabled=true
+
+    if [[ -n $record ]]; then
+      echo "==> $plugin_id: relinking $current_root -> $desired_root"
+      herdr plugin unlink "$plugin_id"
+    else
+      echo "==> linking $plugin_id -> $desired_root"
+    fi
+
+    if [[ $desired_enabled == true ]]; then
+      link_state=(--enabled)
+    else
+      link_state=(--disabled)
+    fi
+    herdr plugin link "$desired_root" "${link_state[@]}"
+  fi
+
+  # Verify the registry, rather than assuming link/enable updated the right id.
+  registry=$(herdr plugin list --json)
+  record=$(jq -ce --arg id "$plugin_id" \
+    '.result.plugins[] | select(.plugin_id == $id)' <<<"$registry")
+  current_root=$(jq -er '.plugin_root' <<<"$record")
+  current_canonical=$(canonical_dir "$current_root")
+  if [[ $current_canonical != "$desired_root" ]]; then
+    printf 'Plugin %s is registered at %s, expected %s\n' \
+      "$plugin_id" "$current_canonical" "$desired_root" >&2
+    return 1
+  fi
+  if [[ $force_enabled == true ]] && ! jq -e '.enabled == true' >/dev/null <<<"$record"; then
+    printf 'Inline plugin %s is not enabled\n' "$plugin_id" >&2
+    return 1
+  fi
+}
+
+shopt -s nullglob
+plugin_dirs=("$PLUGINS"/*/)
+
+# Preserve the existing SOURCE-based clone/patch workflow.
+for dir in "${plugin_dirs[@]}"; do
+  [[ -f $dir/SOURCE ]] || continue
+  name=$(basename "$dir")
+  read -r url ref <"$dir/SOURCE"
   dest="$DEST_ROOT/$name"
 
-  if [ ! -d "$dest/.git" ]; then
+  if [[ ! -d $dest/.git ]]; then
     echo "==> cloning $name"
     git clone -q "$url" "$dest"
   else
@@ -25,18 +132,40 @@ for dir in "$PLUGINS"/*/; do
 
   echo "==> $name: checkout $ref -> branch local"
   git -C "$dest" checkout -q -B local "$ref"
-  shopt -s nullglob
   patches=("$dir"/*.patch)
-  shopt -u nullglob
-  if [ ${#patches[@]} -gt 0 ]; then
+  if ((${#patches[@]} > 0)); then
     git -C "$dest" am -q "${patches[@]}"
   fi
 
-  if ! herdr plugin list 2>/dev/null | grep -q "$name"; then
-    echo "==> linking $name"
-    herdr plugin link "$dest"
-  fi
+  ensure_plugin_link "$dest" false
 done
 
-herdr server reload-config 2>/dev/null || true
+# Inline plugins are repository-owned source, not legacy config-directory data.
+inline_reindex=()
+for dir in "${plugin_dirs[@]}"; do
+  [[ ! -f $dir/SOURCE && -f $dir/herdr-plugin.toml ]] || continue
+  ensure_plugin_link "$dir" true
+
+  plugin_id=$(plugin_id_from_manifest "$dir/herdr-plugin.toml")
+  if [[ $plugin_id == herdr-space-index ]]; then
+    [[ -x $dir/reindex.sh ]] || {
+      printf 'Space index entrypoint is not executable: %s\n' "$dir/reindex.sh" >&2
+      exit 1
+    }
+    inline_reindex+=("$dir/reindex.sh")
+  fi
+done
+shopt -u nullglob
+
+server_status=$(herdr status server)
+if grep -q '^status: running$' <<<"$server_status"; then
+  for reindex in "${inline_reindex[@]}"; do
+    echo "==> indexing existing Herdr spaces"
+    "$reindex"
+  done
+  herdr server reload-config
+elif ((${#inline_reindex[@]} > 0)); then
+  echo "==> Herdr server is not running; startup hook will index spaces"
+fi
+
 echo "Done."
