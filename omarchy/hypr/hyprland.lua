@@ -37,9 +37,3 @@ require("default.hypr.toggles")
 local kc_path = os.getenv("HOME") .. "/.config/omarchy/plugins/felixzsh.key-visualizer/key-visualizer.lua"
 local kc_file = io.open(kc_path, "r")
 if kc_file then kc_file:close(); dofile(kc_path) end
-
--- === DMS (DankMaterialShell) switch: compositor fragments ===
--- Loads DMS-managed colors/layout/window rules plus DMS layer rules.
--- Remove this block (together with hypr/dms.lua and hypr/dms/) when going
--- back to the Omarchy shell.
-require("hypr.dms")

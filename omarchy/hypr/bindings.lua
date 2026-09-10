@@ -339,33 +339,3 @@ o.window("^(claude-ask)$", {
   size = "1200 800",
   center = true,
 })
-
--- === DMS (DankMaterialShell) keybinds — part of the DMS switch ===
--- The Omarchy shell (bar/menu/notifications/lock) is not running while DMS is,
--- so bindings that talked to it are rerouted here. Remove this block when
--- going back to the Omarchy shell.
-hl.unbind("SUPER + SPACE")
-o.bind("SUPER + SPACE", "DMS spotlight", "dms ipc call spotlight toggle")
-
-hl.unbind("SUPER + comma")
-o.bind("SUPER + comma", "DMS settings", "dms ipc call settings focusOrToggle")
-
-o.bind("SUPER + N", "DMS notifications", "dms ipc call notifications toggle")
-
--- Media keys: omarchy-shell media IPC is gone; DMS exposes MPRIS as "mpris".
-for _, key in ipairs({ "XF86AudioPlay", "XF86AudioPause" }) do
-  hl.unbind(key)
-  o.bind(key, "Play/pause", "dms ipc call mpris playPause", { locked = true })
-end
-for _, key in ipairs({ "XF86AudioNext", "ALT + XF86AudioPlay" }) do
-  hl.unbind(key)
-  o.bind(key, "Next track", "dms ipc call mpris next", { locked = true })
-end
-for _, key in ipairs({ "XF86AudioPrev", "ALT + SHIFT + XF86AudioPlay" }) do
-  hl.unbind(key)
-  o.bind(key, "Previous track", "dms ipc call mpris previous", { locked = true })
-end
-
--- Lock screen: Omarchy lock plugin is gone; use the DMS lock screen.
-hl.unbind("SUPER + CTRL + L")
-o.bind("SUPER + CTRL + L", "Lock system", "dms ipc call lock lock")
