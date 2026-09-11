@@ -14,6 +14,10 @@ else
 fi
 source "$OMARCHY_PATH/default/bash/rc"
 
+# User-installed binaries override distro packages (for example, Herdr's
+# self-updater installs to ~/.local/bin).
+export PATH="$HOME/.local/bin:$PATH"
+
 # Add your own exports, aliases, and functions here.
 #
 # Make an alias for invoking commands you use constantly
