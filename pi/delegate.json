@@ -1,0 +1,4 @@
+{
+  "providerConcurrency": { "opencode-go": 6, "anthropic": 6, "openai": 6, "google": 6 },
+  "defaultConcurrency": 6
+}

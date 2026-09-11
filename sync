@@ -27,7 +27,9 @@ link() { # src target [aside-dir]
   # (pi loads every entry of ~/.pi/agent/extensions/, parked copies included).
   local src="$1" target="$2" aside="${3:-}"
   [ -e "$src" ] || return 0
-  if [ -L "$target" ] && [ "$(readlink -f "$target")" = "$(readlink -f "$src")" ]; then
+  # Links created here always use an absolute source path. Comparing the raw
+  # target keeps this portable to macOS, whose system readlink lacks -f.
+  if [ -L "$target" ] && [ "$(readlink "$target")" = "$src" ]; then
     return 0
   fi
   if [ -e "$target" ] || [ -L "$target" ]; then

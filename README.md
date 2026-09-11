@@ -10,7 +10,7 @@ The split is by portability, not by machine:
 | --- | --- | --- |
 | `config/` | `~/.config/<name>` | anything that runs anywhere: `nvim`, `tmux`, `herdr`, `ghostty`, `alacritty`, `kitty`, `wezterm`, `btop`, `fastfetch`, `lazygit`, `starship.toml`, `claude` |
 | `bin/` | `~/.local/bin/<name>` | portable scripts: `tmux-navigator`, `tmux-kill-pane-confirm`, `herdr-setup`, `ask-claude`, `gif-captioner` |
-| `pi/` | `~/.pi/agent/` | pi coding agent config + `extensions/<name>/` |
+| `pi/` | `~/.pi/agent/` | pi coding agent config, profiles, delegate settings + `extensions/<name>/` |
 | `.bashrc` etc. | `~/` | shell dotfiles |
 | `omarchy/` | `~/.config/`, `~/.local/bin/` | Hyprland/Wayland/Omarchy only — `hypr`, `waybar`, `walker`, `mako`, `swayosd`, and `bin/` (`hypr-*`, `session-*`, `voxtype-toggle`, the `omarchy-pkg-add` agent wrappers) |
 
@@ -44,8 +44,8 @@ the live directory also holds state that must stay local to the machine:
 
 - `config/herdr/` — herdr keeps its sockets, logs and session history in
   `~/.config/herdr`. The `.link-files` marker triggers per-file linking.
-- `pi/` — `~/.pi/agent/` also holds `auth.json`, `sessions/` and
-  `models-store.json`.
+- `pi/` — `~/.pi/agent/` also holds machine-local credentials and runtime
+  state (`auth.json`, `sessions/`, `models-store.json`, `delegate-state.json`).
 
 ## Notes
 
@@ -62,18 +62,25 @@ the live directory also holds state that must stay local to the machine:
 - **hypr-mux-\*** (`omarchy/bin/`) — ALT+hjkl / ALT+Z / ALT+W route into herdr
   or tmux panes (local, or over ssh / `herdr --remote`) and fall through to
   Hyprland. `hypr-mux-lib.sh` works out which mux the focused window is showing.
-- **pi** — `web-tools` needs `npm install` in its dir; the `tsconfig.json` paths
-  are editor-only.
+- **pi** — `./sync` installs `web-tools` runtime dependencies. Credentials are
+  deliberately not tracked; authenticate each machine with `/login`. The
+  `tsconfig.json` paths are editor-only.
 - `rr` — tmux helper: send a command to every other pane in the current window.
 
 ## New machine
 
-1. Clone somewhere (e.g. `~/repos/dotfiles`) and run `./sync`.
-2. Runtime deps: `tmux`, `nvim` (lazy.nvim), `herdr`, `zoxide`, `fzf`,
+1. Clone somewhere (e.g. `~/repos/dotfiles`).
+2. Install Node/npm, then Pi:
+   `npm install -g --ignore-scripts @earendil-works/pi-coding-agent`.
+3. Run `./sync`; it links the Pi config and installs extension dependencies.
+4. Start `pi` and use `/login` for `opencode-go` and `openai-codex` (the
+   configured worker and supervisor models use both providers).
+5. Runtime deps: `tmux`, `nvim` (lazy.nvim), `herdr`, `zoxide`, `fzf`,
    `starship`. `bin/tmux-navigator` needs bash 4+ (`mapfile`), so on macOS
    install Homebrew's bash and put it ahead of `/bin` on `PATH`.
-3. `herdr-setup` to clone and link the herdr plugins.
-4. tpm for tmux-resurrect: clone `tmux-plugins/tpm` into `~/.tmux/plugins/tpm`,
+6. `herdr-setup` to clone and link the herdr plugins. If Herdr is installed,
+   run `herdr integration install pi` for its machine-local Pi status hook.
+7. tpm for tmux-resurrect: clone `tmux-plugins/tpm` into `~/.tmux/plugins/tpm`,
    then `prefix+I`.
-5. On Arch/Omarchy, `packages.txt` lists the extra packages the `omarchy/`
+8. On Arch/Omarchy, `packages.txt` lists the extra packages the `omarchy/`
    configs expect.

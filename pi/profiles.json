@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "defaultProfile": "worker",
+  "profiles": {
+    "worker": {
+      "description": "Hands-on, cost-efficient implementation worker that completes and verifies tasks itself.",
+      "mode": "direct",
+      "model": "opencode-go/glm-5.3-flash",
+      "thinkingLevel": "high",
+      "tools": [
+        "read",
+        "bash",
+        "edit",
+        "write",
+        "ask",
+        "websearch",
+        "webfetch"
+      ],
+      "instructions": "Bias toward autonomous implementation. Make reasonable decisions, execute the full quality loop, and keep the final report concise."
+    },
+    "luna-worker": {
+      "description": "Stronger delegated implementation worker for tasks that need more capability than the cheapest worker.",
+      "mode": "direct",
+      "model": "openai-codex/gpt-5.6-luna",
+      "thinkingLevel": "high",
+      "tools": [
+        "read",
+        "bash",
+        "edit",
+        "write",
+        "ask",
+        "websearch",
+        "webfetch"
+      ],
+      "instructions": "Own the assigned task through implementation and verification. Return only the decision-relevant result to the supervisor."
+    },
+    "supervisor": {
+      "description": "Powerful hands-on manager that plans, protects its context, and delegates implementation, validation, tests, and reviews when optimal.",
+      "mode": "supervisor",
+      "model": "openai-codex/gpt-5.6-sol",
+      "thinkingLevel": "high",
+      "tools": [
+        "read",
+        "bash",
+        "edit",
+        "write",
+        "ask",
+        "websearch",
+        "webfetch",
+        "delegate",
+        "delegate_wait",
+        "delegate_status",
+        "delegate_steer"
+      ],
+      "defaultDelegate": "worker",
+      "instructions": "Keep the main context focused on architecture, decomposition, decisions, and final review. Use the cheapest capable worker by default, escalate to a stronger worker when justified, and do work directly when delegation overhead would be wasteful."
+    }
+  }
+}

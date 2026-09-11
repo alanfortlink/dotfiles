@@ -1,7 +1,8 @@
 {
-  "lastChangelogVersion": "0.84.4",
+  "lastChangelogVersion": "0.85.1",
   "theme": "dark",
   "defaultProvider": "opencode-go",
   "defaultModel": "glm-5.3-flash",
-  "defaultThinkingLevel": "high"
+  "defaultThinkingLevel": "high",
+  "hideThinkingBlock": true
 }

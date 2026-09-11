@@ -6,14 +6,16 @@
  * bookkeeping. Ordering is the parent agent's job (it spawns, waits, spawns
  * again with the previous output in the prompt).
  *
- * Concurrency is bounded per model provider by a single process-wide gate, so
- * nested delegation (a subagent that itself delegates) is braked by the same
- * counter as everything else.
+ * Concurrency is bounded per model provider by a single process-wide gate.
+ * Subagents cannot delegate further: the delegate extension is filtered out of
+ * their sessions, because a nested instance would share this module's registry
+ * and listener state with the parent.
  */
 
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
 	DefaultResourceLoader,
 	SessionManager,
@@ -24,8 +26,27 @@ import type { Model } from "@earendil-works/pi-ai";
 
 const CONFIG_PATH = path.join(os.homedir(), ".pi", "agent", "delegate.json");
 const STATE_PATH = path.join(os.homedir(), ".pi", "agent", "delegate-state.json");
+/** This extension's own directory, used to keep delegate out of subagent sessions. */
+const EXT_DIR = path.dirname(fileURLToPath(import.meta.url));
+/**
+ * Herdr's Pi integration describes the interactive Pi process occupying a real
+ * Herdr pane. Delegate tasks are headless, in-process sessions, so loading the
+ * integration in them would incorrectly publish those sessions as pane agents.
+ */
+const HERDR_AGENT_STATE_EXT = path.join(getAgentDir(), "extensions", "herdr-agent-state.ts");
 
-/** Activity lines kept per task for the inspector. */
+function includeInSubagent(extension: any): boolean {
+	const extensionPath = path.resolve(String(extension.resolvedPath ?? extension.path ?? ""));
+	// Prefix match with a separator so a sibling like "delegate-tools/" is not
+	// swept up too. The Herdr exclusion is intentionally an exact file match.
+	return (
+		extensionPath !== EXT_DIR &&
+		!extensionPath.startsWith(EXT_DIR + path.sep) &&
+		extensionPath !== HERDR_AGENT_STATE_EXT
+	);
+}
+
+/** Activity lines kept per task for the sidebar transcript. */
 const FEED_LIMIT = 300;
 /** Streaming-text tail kept per task (characters). */
 const STREAM_LIMIT = 4000;
@@ -54,6 +75,8 @@ export interface DelegateConfig {
 	 * Raise it if you would rather collect very short tasks inline.
 	 */
 	interactiveWaitMs: number;
+	/** Open the sidebar (unfocused) automatically when tasks are spawned. Off by default: the widget is the default surface, the sidebar appears only on alt+g / /delegate. */
+	autoShowSidebar: boolean;
 }
 
 const DEFAULT_CONFIG: DelegateConfig = {
@@ -62,6 +85,7 @@ const DEFAULT_CONFIG: DelegateConfig = {
 	defaultConcurrency: 2,
 	localProviders: ["ollama", "llama", "llamacpp", "lmstudio", "kobold", "vllm"],
 	interactiveWaitMs: 0,
+	autoShowSidebar: false,
 };
 
 let configCache: { mtime: number; config: DelegateConfig } | null = null;
@@ -77,6 +101,7 @@ export function loadConfig(): DelegateConfig {
 			defaultConcurrency: parsed.defaultConcurrency ?? DEFAULT_CONFIG.defaultConcurrency,
 			localProviders: [...DEFAULT_CONFIG.localProviders, ...(parsed.localProviders ?? [])],
 			interactiveWaitMs: Math.max(0, Number(parsed.interactiveWaitMs ?? DEFAULT_CONFIG.interactiveWaitMs)) || 0,
+			autoShowSidebar: parsed.autoShowSidebar ?? DEFAULT_CONFIG.autoShowSidebar,
 		};
 		configCache = { mtime: stat.mtimeMs, config };
 		return config;
@@ -127,12 +152,33 @@ class Gate {
 		this.cap = next;
 		this.drain();
 	}
-	async acquire(): Promise<void> {
+	/**
+	 * Returns true with a slot held, or false if the signal aborted while
+	 * queued (no slot is held then - do not release). A kill must not have to
+	 * wait for a running task to finish before it takes effect.
+	 */
+	async acquire(signal?: AbortSignal): Promise<boolean> {
+		if (signal?.aborted) return false;
 		if (this.available > 0) {
 			this.available--;
-			return;
+			return true;
 		}
-		await new Promise<void>((resolve) => this.waiters.push(resolve));
+		return await new Promise<boolean>((resolve) => {
+			const waiter = () => {
+				signal?.removeEventListener("abort", onAbort);
+				resolve(true);
+			};
+			const onAbort = () => {
+				const i = this.waiters.indexOf(waiter);
+				// Not found means drain() already handed us the slot; the waiter
+				// callback resolves true and the caller keeps (and releases) it.
+				if (i < 0) return;
+				this.waiters.splice(i, 1);
+				resolve(false);
+			};
+			this.waiters.push(waiter);
+			signal?.addEventListener("abort", onAbort, { once: true });
+		});
 	}
 	release(): void {
 		this.available++;
@@ -147,6 +193,26 @@ class Gate {
 }
 
 const gates = new Map<string, Gate>();
+
+/**
+ * While anything is queued, poll the config so a raised cap admits waiters
+ * without needing a new spawn ("re-read live" would otherwise only be true of
+ * the file, not of the gates). Stops itself once no gate has waiters.
+ */
+let gateRefreshTimer: ReturnType<typeof setInterval> | null = null;
+
+function ensureGateRefresh(): void {
+	if (gateRefreshTimer) return;
+	gateRefreshTimer = setInterval(() => {
+		const cfg = loadConfig();
+		for (const [provider, gate] of gates) gate.setCap(providerCap(provider, cfg));
+		if (![...gates.values()].some((g) => g.waiting > 0)) {
+			clearInterval(gateRefreshTimer!);
+			gateRefreshTimer = null;
+		}
+	}, 2000);
+	(gateRefreshTimer as any).unref?.();
+}
 
 function gateFor(provider: string): Gate {
 	const cap = providerCap(provider, loadConfig());
@@ -182,7 +248,7 @@ export interface TaskUsage {
 	turns: number;
 }
 
-/** One line of a subagent's visible activity, kept so both the popup and the model can see progress. */
+/** One line of a subagent's visible activity, kept so both the sidebar and the model can see progress. */
 export interface Activity {
 	at: number;
 	kind: "note" | "tool" | "toolResult" | "text";
@@ -213,7 +279,7 @@ export interface Task {
 	/** Non-fatal note (e.g. a model spec that could not be resolved). Never an error. */
 	warning?: string;
 	stopReason?: string;
-	/** Bounded activity log (tool calls, assistant text, lifecycle) for the inspector and delegate_status. */
+	/** Bounded activity log (tool calls, assistant text, lifecycle) for the sidebar and delegate_status. */
 	feed: Activity[];
 	/** Bounded tail of the text currently streaming from the model. */
 	stream: string;
@@ -249,7 +315,7 @@ export interface TaskSpec {
 	noTools?: "all" | "builtin";
 	/** Hard stop after this many LLM turns. No limit when unset. */
 	maxTurns?: number;
-	/** Display name for the inspector. Has no effect on the subagent. */
+	/** Display name for the sidebar. Has no effect on the subagent. */
 	label?: string;
 }
 
@@ -276,6 +342,11 @@ let currentSession = "";
  * sessions never surface here.
  */
 export function setSession(sessionId: string): void {
+	// Reset the shutdown latch even on the early return: /resume into the
+	// CURRENTLY ACTIVE session runs the full shutdown (latching it) and then
+	// re-enters with the identical id - leaving it latched would persist every
+	// still-running task as "killed" for the rest of the session.
+	shutdownMarked = false;
 	if (sessionId === currentSession) return;
 	currentSession = sessionId;
 	tasks.clear();
@@ -305,8 +376,11 @@ function emitChange(): void {
 
 /** Tasks have no names of their own, so fall back to a slice of the prompt. */
 export function displayName(t: Task): string {
-	if (t.label) return t.label;
-	const oneLine = t.prompt.replace(/\s+/g, " ").trim();
+	// Collapse whitespace either way: a caller-supplied label may contain
+	// newlines, and every consumer renders the name into a single frame row.
+	const source = t.label ?? t.prompt;
+	const oneLine = source.replace(/\s+/g, " ").trim();
+	if (t.label) return oneLine || "(empty label)";
 	return oneLine.length > 32 ? `${oneLine.slice(0, 32)}…` : oneLine || "(empty prompt)";
 }
 
@@ -342,7 +416,11 @@ export function currentActivity(t: Task): string {
 
 function resolveModel(spec: string | undefined, env: SpawnEnv): { model: Model<any> | undefined; warning?: string } {
 	if (!spec) return { model: env.model };
-	const [providerId, modelId] = spec.includes("/") ? spec.split("/", 2) : [env.provider ?? env.model?.provider, spec];
+	// Split on the FIRST slash only: model ids may themselves contain slashes
+	// (e.g. "openrouter/deepseek/deepseek-chat").
+	const slash = spec.indexOf("/");
+	const [providerId, modelId] =
+		slash >= 0 ? [spec.slice(0, slash), spec.slice(slash + 1)] : [env.provider ?? env.model?.provider, spec];
 	if (!providerId) {
 		return { model: env.model, warning: `Could not resolve model "${spec}" (no provider); using the session model.` };
 	}
@@ -455,6 +533,11 @@ async function run(task: Task, spec: TaskSpec, env: SpawnEnv): Promise<Task> {
 	const signal = task.controller.signal;
 	const maxTurns = spec.maxTurns;
 
+	// Yield one microtask so a task can never settle synchronously inside
+	// spawn(): a bad model spec on the first task would otherwise fire a
+	// premature "all settled" push before its siblings even exist.
+	await Promise.resolve();
+
 	// Resolve the model before queueing so a bad `model` fails fast.
 	let model: Model<any> | undefined;
 	let modelWarning: string | undefined;
@@ -469,14 +552,20 @@ async function run(task: Task, spec: TaskSpec, env: SpawnEnv): Promise<Task> {
 	task.provider = model?.provider ?? "unknown";
 
 	const gate = gateFor(task.provider);
-	if (gate.inUse >= gate.capValue) pushFeed(task, "note", `queued (${task.provider} at cap ${gate.capValue})`);
+	if (gate.inUse >= gate.capValue) {
+		pushFeed(task, "note", `queued (${task.provider} at cap ${gate.capValue})`);
+		ensureGateRefresh();
+	}
 	emitChange();
-	await gate.acquire();
+	// A kill while queued settles immediately (no slot is held on the abort path).
+	if (!(await gate.acquire(signal))) {
+		return settle(task, "killed", { stopReason: "aborted", errorMessage: "killed while queued" });
+	}
 
-	// A kill may have landed while queued.
+	// A kill may have landed between the slot grant and this resumption.
 	if (signal.aborted) {
 		gate.release();
-		return settle(task, "killed", { errorMessage: "killed before starting" });
+		return settle(task, "killed", { stopReason: "aborted", errorMessage: "killed before starting" });
 	}
 
 	task.status = "running";
@@ -488,8 +577,18 @@ async function run(task: Task, spec: TaskSpec, env: SpawnEnv): Promise<Task> {
 	try {
 		// Straight passthrough: every option comes from the caller. A field the
 		// caller left out is left out here too, so the subagent falls back to
-		// exactly what pi would do on its own.
-		const loaderOpts: any = { cwd: task.cwd, agentDir: getAgentDir() };
+		// exactly what pi would do on its own - with two exceptions: the delegate
+		// extension itself is filtered to prevent nesting, and Herdr's agent-state
+		// integration is filtered because these headless, in-process sessions do
+		// not occupy Herdr panes.
+		const loaderOpts: any = {
+			cwd: task.cwd,
+			agentDir: getAgentDir(),
+			extensionsOverride: (base: any) => ({
+				...base,
+				extensions: (base.extensions ?? []).filter(includeInSubagent),
+			}),
+		};
 		if (spec.systemPrompt !== undefined) loaderOpts.systemPromptOverride = () => spec.systemPrompt;
 		if (spec.appendSystemPrompt !== undefined) {
 			loaderOpts.appendSystemPromptOverride = (base: string[]) => [...base, spec.appendSystemPrompt as string];
@@ -524,11 +623,14 @@ async function run(task: Task, spec: TaskSpec, env: SpawnEnv): Promise<Task> {
 		pushFeed(task, "note", `steered: ${msg}`);
 	}
 
+	// `session.abort()` only cancels an ACTIVE run - it is a no-op during
+	// session startup and prompt preflight. The turn_start re-check below
+	// closes that window: an abort that landed while no run was active is
+	// re-applied as soon as the first run begins.
 	const onAbort = () => {
 		void session.abort();
 	};
-	if (signal.aborted) onAbort();
-	else signal.addEventListener("abort", onAbort, { once: true });
+	signal.addEventListener("abort", onAbort, { once: true });
 
 	// maxTurns is enforced on its own counter - never on UI state, so it cannot
 	// be silently disabled by a display bug. `turn_start` is exact: the run is
@@ -540,6 +642,9 @@ async function run(task: Task, spec: TaskSpec, env: SpawnEnv): Promise<Task> {
 		switch (event.type) {
 			case "turn_start": {
 				startedTurns++;
+				// A kill that arrived before this run was active was a no-op then;
+				// apply it now that there is a run to cancel.
+				if (signal.aborted) void session.abort();
 				if (maxTurns && startedTurns > maxTurns && !hitMaxTurns) {
 					hitMaxTurns = true;
 					pushFeed(task, "note", `maxTurns (${maxTurns}) exceeded - aborting`);
@@ -587,6 +692,11 @@ async function run(task: Task, spec: TaskSpec, env: SpawnEnv): Promise<Task> {
 	});
 
 	try {
+		// A kill that landed while the session was being created never had a run
+		// to cancel; don't start one.
+		if (signal.aborted) {
+			return settle(task, "killed", { stopReason: "aborted", errorMessage: "killed before starting" });
+		}
 		await session.prompt(spec.prompt);
 
 		const messages: any[] = session.messages ?? [];
@@ -611,15 +721,17 @@ async function run(task: Task, spec: TaskSpec, env: SpawnEnv): Promise<Task> {
 			if (msg.usage) addUsage(task.usage, msg.usage);
 		}
 
+		// The user's kill outranks the maxTurns limiter when both raced the same
+		// turn boundary - a deliberate kill must never be reported as max_turns.
+		if (signal.aborted) {
+			return settle(task, "killed", { output, stopReason: "aborted", errorMessage: "killed by user" });
+		}
 		if (hitMaxTurns) {
 			return settle(task, "failed", {
 				output,
 				stopReason: "max_turns",
 				errorMessage: `Exceeded maxTurns (${maxTurns}). Partial output preserved.`,
 			});
-		}
-		if (signal.aborted) {
-			return settle(task, "killed", { output, stopReason: "aborted", errorMessage: "killed by user" });
 		}
 		if (stopReason === "error" || stopReason === "aborted" || errorMessage) {
 			return settle(task, "failed", { output, stopReason, errorMessage: errorMessage ?? output ?? "subagent error" });
@@ -636,9 +748,12 @@ async function run(task: Task, spec: TaskSpec, env: SpawnEnv): Promise<Task> {
 		unsubscribe();
 		signal.removeEventListener("abort", onAbort);
 		try {
+			// Delegate tasks are one-shot unless they are still being steered. Once
+			// prompt() settles, dispose immediately: abort residual work, invalidate
+			// extension contexts, detach listeners, and release session resources.
 			session.dispose();
 		} catch {
-			/* ignore */
+			/* cleanup is best-effort; the provider slot must still be released */
 		}
 		gate.release();
 	}
@@ -689,6 +804,9 @@ export async function waitFor(ids: string[], waitMs: number, signal?: AbortSigna
 	if (targets.length === 0 || waitMs <= 0) return targets;
 	const pending = targets.filter((t) => !isSettled(t));
 	if (pending.length === 0) return targets;
+	// An already-aborted signal never fires its abort event; without this check
+	// the wait would sit out the full waitMs.
+	if (signal?.aborted) return targets;
 
 	await new Promise<void>((resolve) => {
 		let finished = false;
@@ -726,35 +844,75 @@ interface PersistedTask {
 	stopReason?: string;
 }
 
+/**
+ * Ids the extension instance still needs readable (settled but not yet read
+ * by the model). Without the exemption, a >RETENTION-task wave prunes the
+ * oldest results before the completion push's ids can be delegate_wait'ed.
+ */
+let pruneExempt: (id: string) => boolean = () => false;
+
+export function setPruneExempt(fn: (id: string) => boolean): void {
+	pruneExempt = fn;
+}
+
 function pruneTasks(): void {
 	const settled = listTasks().filter(isSettled);
 	if (settled.length <= RETENTION) return;
-	for (const t of settled.slice(0, settled.length - RETENTION)) tasks.delete(t.id);
+	for (const t of settled.slice(0, settled.length - RETENTION)) {
+		if (!pruneExempt(t.id)) tasks.delete(t.id);
+	}
 }
 
-export function persistState(): void {
+/**
+ * Sticky between persistState(true) and the next setSession: a settle landing
+ * in that window calls persistState() again, and without the latch it would
+ * re-serialize still-in-flight siblings as `running`, clobbering the
+ * killed-marking that shutdown just wrote.
+ */
+let shutdownMarked = false;
+
+/**
+ * Persist this session's records. With `markInFlightKilled`, anything still
+ * queued/running is written as killed - used at session shutdown/switch, where
+ * killAll() has fired but the async settles would land only after the session
+ * (and its map) is gone, so the truth has to reach disk now.
+ */
+export function persistState(markInFlightKilled = false): void {
+	if (markInFlightKilled) shutdownMarked = true;
+	const markKilled = markInFlightKilled || shutdownMarked;
 	try {
-		const records: PersistedTask[] = listTasks().map((t) => ({
-			id: t.id,
-			sessionId: t.sessionId,
-			label: t.label,
-			prompt: t.prompt,
-			cwd: t.cwd,
-			status: t.status,
-			provider: t.provider,
-			model: t.model,
-			createdAt: t.createdAt,
-			finishedAt: t.finishedAt,
-			turns: t.turns,
-			usage: t.usage,
-			output: t.output.length > 4096 ? `${t.output.slice(0, 4096)}...` : t.output,
-			errorMessage: t.errorMessage,
-			stopReason: t.stopReason,
-		}));
+		const records: PersistedTask[] = listTasks().map((t) => {
+			const lost = markKilled && !isSettled(t);
+			return {
+				id: t.id,
+				sessionId: t.sessionId,
+				label: t.label,
+				prompt: t.prompt,
+				cwd: t.cwd,
+				status: lost ? ("killed" as TaskStatus) : t.status,
+				provider: t.provider,
+				model: t.model,
+				createdAt: t.createdAt,
+				finishedAt: t.finishedAt ?? (lost ? Date.now() : undefined),
+				turns: t.turns,
+				usage: t.usage,
+				// Bounded for the state file; the annotation keeps the truncation honest
+				// after a restart (the in-memory 16k bound does not survive one).
+				// A restored output is already bounded AND annotated - truncating it
+				// again would slice the note off and replace the count with a lie.
+				output:
+					!t.restored && t.output.length > 4096
+						? `${t.output.slice(0, 4096)}\n\n[output truncated for persistence: ${t.output.length - 4096} more characters were produced but not kept]`
+						: t.output,
+				errorMessage: lost ? "killed: the pi session closed or switched while this task was running" : t.errorMessage,
+				stopReason: lost ? "shutdown" : t.stopReason,
+			};
+		});
 		// Merge with the shared file instead of replacing it: this session owns its
 		// own records, and concurrent or past sessions own the rest. A record with
 		// no sessionId is legacy - preserved untouched so it is never destroyed.
 		let others: PersistedTask[] = [];
+		let diskMine: PersistedTask[] = [];
 		try {
 			const existing = JSON.parse(fs.readFileSync(STATE_PATH, "utf-8")) as {
 				version?: number;
@@ -762,12 +920,28 @@ export function persistState(): void {
 			};
 			if (existing && Array.isArray(existing.tasks)) {
 				others = existing.tasks.filter((r) => r.sessionId !== currentSession);
+				diskMine = existing.tasks.filter((r) => r.sessionId === currentSession);
 			}
 		} catch {
 			/* no prior state */
 		}
-		const merged = [...others, ...records];
-		const tmp = `${STATE_PATH}.tmp`;
+		let mine = records;
+		if (shutdownMarked) {
+			// After shutdown this instance no longer owns the session's disk
+			// records: a /reload has re-imported the module, and the fresh instance
+			// may already have spawned or cleared records under the same session
+			// id. A stale instance's late settles may UPDATE records still on disk
+			// but must never re-add cleared ones or drop the fresh instance's.
+			const onDisk = new Set(diskMine.map((r) => r.id));
+			mine = records.filter((r) => onDisk.has(r.id));
+			const updated = new Set(mine.map((r) => r.id));
+			others = [...others, ...diskMine.filter((r) => !updated.has(r.id))];
+		}
+		const merged = [...others, ...mine];
+		// Per-process tmp name: two pi processes sharing one tmp path can rename
+		// each other's half-written payloads. (The read-merge-write itself is
+		// still last-writer-wins for the narrow window between read and rename.)
+		const tmp = `${STATE_PATH}.${process.pid}.tmp`;
 		// Ids are per session (t1, t2, … restart in every session), so no file-wide counter.
 		fs.writeFileSync(tmp, JSON.stringify({ version: 5, tasks: merged }), { encoding: "utf-8", mode: 0o600 });
 		fs.renameSync(tmp, STATE_PATH);

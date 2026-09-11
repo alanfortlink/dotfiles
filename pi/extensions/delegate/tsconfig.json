@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": [
+      "node"
+    ],
+    "typeRoots": [
+      "/home/tank/.local/share/mise/installs/node/25.9.0/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@types"
+    ],
+    "paths": {
+      "@earendil-works/pi-coding-agent": [
+        "/home/tank/.local/share/mise/installs/node/25.9.0/lib/node_modules/@earendil-works/pi-coding-agent/dist/index.d.ts"
+      ],
+      "@earendil-works/pi-tui": [
+        "/home/tank/.local/share/mise/installs/node/25.9.0/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-tui/dist/index.d.ts"
+      ],
+      "@earendil-works/pi-ai": [
+        "/home/tank/.local/share/mise/installs/node/25.9.0/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/index.d.ts"
+      ],
+      "@earendil-works/*": [
+        "/home/tank/.local/share/mise/installs/node/25.9.0/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/*"
+      ],
+      "typebox": [
+        "/home/tank/.local/share/mise/installs/node/25.9.0/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/typebox/build/index.d.mts"
+      ],
+      "typebox/*": [
+        "/home/tank/.local/share/mise/installs/node/25.9.0/lib/node_modules/@earendil-works/pi-coding-agent/node_modules/typebox/build/*"
+      ]
+    }
+  },
+  "include": [
+    "index.ts",
+    "tasks.ts",
+    "sidebar.ts"
+  ]
+}

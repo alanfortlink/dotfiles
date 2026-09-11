@@ -1,0 +1,11 @@
+{
+  "name": "pi-profiles",
+  "version": "1.0.0",
+  "description": "Native Pi profiles with CRUD, prompt context, and delegation defaults",
+  "private": true,
+  "type": "module",
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  }
+}

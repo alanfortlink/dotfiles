@@ -1,0 +1,6 @@
+{
+  "name": "pi-chat-view",
+  "version": "1.0.0",
+  "description": "Chat-style transcript for pi: right-aligned user bubbles, labeled assistant replies",
+  "private": true
+}

@@ -9,20 +9,23 @@
  * plain pi would use.
  *
  * The model gets four tools: spawn tasks, check on them, read them, steer them.
- * The human gets an inspector (`/delegate`) that shows every subagent
- * live - tool calls, prose, streaming output - and can steer or kill any of them.
+ * The human gets a sidebar (`alt+g` or `/delegate`): a right-docked panel that
+ * lists the main session plus every subagent, shows the selected one's live
+ * transcript, and can steer or kill any of them. It stays visible while the
+ * editor keeps focus, so you can watch subagents and keep typing.
  *
  * Tasks are flat and independent. Sequencing is the parent agent's job: spawn,
  * read the result, spawn the next step. There is no DAG, no batch, and no
  * parent/child bookkeeping - concurrency is bounded by one process-wide
- * per-provider gate, which is also what brakes nested delegation.
+ * per-provider gate. Subagents cannot delegate further (the delegate extension
+ * is kept out of their sessions).
  */
 
 import { getMarkdownTheme, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { StringEnum } from "@earendil-works/pi-ai";
-import { Container, Markdown, Spacer, Text } from "@earendil-works/pi-tui";
+import { Container, Markdown, Spacer, Text, type OverlayHandle } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-import { Inspector } from "./inspector.ts";
+import { MIN_SIDEBAR_COLS, Sidebar } from "./sidebar.ts";
 import {
 	activeTasks,
 	clearHistory,
@@ -36,7 +39,9 @@ import {
 	loadConfig,
 	onChange,
 	onSettle,
+	persistState,
 	restoreState,
+	setPruneExempt,
 	setSession,
 	spawn,
 	steerTask,
@@ -78,10 +83,11 @@ const TaskSpecSchema = Type.Object({
 	maxTurns: Type.Optional(
 		Type.Integer({
 			minimum: 1,
-			description: 'Hard stop after this many LLM turns, with stopReason "max_turns" and partial output kept. No limit when omitted.',
+			description:
+				'Hard stop after this many LLM turns, with stopReason "max_turns" and partial output kept. No limit when omitted. OMIT for implementation, research, review, or multi-step tasks - they routinely need 30-100+ turns and hitting this limit fails the task. Only set it for deliberately cheap, bounded lookups (e.g. 15-30 for a single-file read-and-report).',
 		}),
 	),
-	label: Type.Optional(Type.String({ description: "Short name shown in the inspector. No effect on the subagent." })),
+	label: Type.Optional(Type.String({ description: "Short name shown in the sidebar. No effect on the subagent." })),
 });
 
 const DelegateParams = Type.Object({
@@ -172,7 +178,7 @@ function statusLine(t: Task): string {
 
 /**
  * One short hint per task for the main screen. Never the subagent's prose: what it
- * is *saying* belongs in the inspector, not above the prompt. Tool calls are fine -
+ * is *saying* belongs in the sidebar, not above the prompt. Tool calls are fine -
  * they say where it is without dumping output.
  */
 function widgetHint(t: Task): string {
@@ -183,15 +189,17 @@ function widgetHint(t: Task): string {
 	if (t.stream.trim()) return "writing…";
 	const last = t.feed.at(-1);
 	if (!last) return "";
+	// One widget row per task; a newline in a tool arg would break the layout.
+	const text = last.text.replace(/\s+/g, " ").trim();
 	switch (last.kind) {
 		case "tool":
-			return truncate(`→ ${last.text}`, HINT_WIDTH);
+			return truncate(`→ ${text}`, HINT_WIDTH);
 		case "toolResult":
-			return truncate(`! ${last.text}`, HINT_WIDTH);
+			return truncate(`! ${text}`, HINT_WIDTH);
 		case "text":
 			return "writing…";
 		default:
-			return truncate(last.text, HINT_WIDTH);
+			return truncate(text, HINT_WIDTH);
 	}
 }
 
@@ -231,13 +239,36 @@ export default function (pi: ExtensionAPI) {
 	/** Session-scoped UI handle. Captured here so background tasks never touch a turn-scoped ctx. */
 	let ui: any = null;
 	let hasUI = false;
-	let inspector: Inspector | null = null;
+	let sidebar: Sidebar | null = null;
+	let sidebarHandle: OverlayHandle | null = null;
+	/** Set at session_shutdown so a mid-creation overlay removes itself on arrival. */
+	let sidebarShutdown = false;
+	/** Resize hook (pi-tui exposes no resize event; stdout does). */
+	let onResize: (() => void) | null = null;
+	// The overlay's visible() gate hides the panel on narrow terminals without
+	// flipping isHidden(), so renderability must be checked separately - or the
+	// widget stays suppressed for a panel nobody can see.
+	const sidebarVisible = () => sidebarHandle !== null && !sidebarHandle.isHidden() && (sidebar?.canRender() ?? false);
+	/** The session this extension instance is bound to (set on session_start). */
+	let mySession = "";
 	/** Tasks that settled since the last completion push. */
 	const unreported: Task[] = [];
 	/** Task ids the parent has already read via delegate_wait; they need no push. */
 	const reported = new Set<string>();
-	/** Task ids a delegate_wait call is blocked on right now. That call will report them. */
-	const awaiting = new Set<string>();
+	/** Task ids a completion push has named; kept readable until actually read. */
+	const announced = new Set<string>();
+	/**
+	 * Task ids delegate_wait calls are blocked on right now, counted per id -
+	 * pi executes tools in parallel by default, so two waits can overlap on the
+	 * same id and a Set would forget the second wait when the first returns.
+	 */
+	const awaiting = new Map<string, number>();
+	const awaitingAdd = (id: string) => awaiting.set(id, (awaiting.get(id) ?? 0) + 1);
+	const awaitingRemove = (id: string) => {
+		const n = awaiting.get(id) ?? 0;
+		if (n <= 1) awaiting.delete(id);
+		else awaiting.set(id, n - 1);
+	};
 	/** Consecutive delegate_wait calls that returned nothing new. Caps how long a polling loop can hold the terminal. */
 	let emptyWaits = 0;
 
@@ -245,7 +276,7 @@ export default function (pi: ExtensionAPI) {
 	// chatty subagent can't drive a redraw per token.
 	let widgetTimer: ReturnType<typeof setTimeout> | null = null;
 	const refreshUI = () => {
-		inspector?.refresh();
+		sidebar?.refresh();
 		if (!ui || !hasUI || widgetTimer) return;
 		widgetTimer = setTimeout(() => {
 			widgetTimer = null;
@@ -256,13 +287,15 @@ export default function (pi: ExtensionAPI) {
 	/**
 	 * The single delegate surface in the main UI: one themed block below the
 	 * editor. Deliberately terse - a task gets one line, and a subagent's prose
-	 * never lands here. Open the inspector to read what it is actually saying.
+	 * never lands here. Open the sidebar (alt+g) to read what it is actually saying.
 	 */
 	const drawWidget = () => {
 		if (!ui || !hasUI) return;
 		const active = activeTasks();
 		try {
-			if (active.length === 0) {
+			// The sidebar is the delegate surface while it is up; the widget only
+			// covers for it when it is hidden.
+			if (active.length === 0 || sidebarVisible()) {
 				ui.setWidget("delegate", undefined);
 				return;
 			}
@@ -282,7 +315,7 @@ export default function (pi: ExtensionAPI) {
 					const head =
 						theme.fg("toolTitle", theme.bold("delegate ")) +
 						tally.join(theme.fg("dim", ", ")) +
-						theme.fg("dim", "  ·  /delegate to inspect");
+						theme.fg("dim", "  ·  alt+g for the sidebar");
 
 					const rows = active.slice(0, WIDGET_ROWS).map((t) => {
 						const icon = t.status === "running" ? theme.fg("warning", "▶") : theme.fg("dim", "·");
@@ -304,18 +337,24 @@ export default function (pi: ExtensionAPI) {
 		}
 	};
 
-	onChange(refreshUI);
-
 	// Completion push: when the last in-flight task settles, tell the parent once.
 	// `followUp` is required while the agent is streaming - without it this throws
 	// and the notification is lost exactly when the parent is busy enough to need it.
-	onSettle((task) => {
-		unreported.push(task);
+	//
+	// Tasks a delegate_wait is blocked on right now are NOT announced but are
+	// kept in `unreported`: that wait normally reports them itself, but if its
+	// turn is aborted the results never reach the model, and the next flush
+	// announces them instead of losing them forever.
+	const flushSettled = () => {
 		if (activeTasks().length > 0) return;
-		// Nothing to announce for work the parent already collected, or is collecting
-		// right now - a task settles *before* the delegate_wait blocked on it returns.
-		const settled = unreported.splice(0).filter((t) => !reported.has(t.id) && !awaiting.has(t.id));
+		const held = unreported.filter((t) => awaiting.has(t.id));
+		const settled = unreported.filter((t) => !awaiting.has(t.id) && !reported.has(t.id));
+		unreported.length = 0;
+		unreported.push(...held);
 		if (settled.length === 0) return;
+		// Announced ids stay exempt from retention pruning until read, so the
+		// push never names an id delegate_wait can no longer resolve.
+		for (const t of settled) announced.add(t.id);
 		const ok = settled.filter(succeeded).length;
 		const ids = settled.map((t) => t.id).join(", ");
 		try {
@@ -327,28 +366,81 @@ export default function (pi: ExtensionAPI) {
 		} catch {
 			/* best-effort push */
 		}
-	});
+	};
+
+	// Listener registration is deferred to session_start: this factory ALSO runs
+	// when a subagent session loads extensions (the delegate extension is
+	// filtered out of the subagent's final set only afterwards), and a factory
+	// that registered listeners here would leak one pair per spawn onto the
+	// shared module sets. A filtered-out instance never receives session_start,
+	// so it never touches them at all.
+	let unsubChange: (() => void) | null = null;
+	let unsubSettle: (() => void) | null = null;
+
+	const registerListeners = () => {
+		unsubChange?.();
+		unsubSettle?.();
+		// Keep unread results readable: exempt from retention pruning anything
+		// settled under this instance that the model has not read yet.
+		setPruneExempt(
+			(id) =>
+				!reported.has(id) && (announced.has(id) || awaiting.has(id) || unreported.some((t) => t.id === id)),
+		);
+		unsubChange = onChange(refreshUI);
+		unsubSettle = onSettle((task) => {
+			// Ignore tasks that are not this session's (defense against any shared
+			// module state reaching a foreign instance).
+			if (!mySession || task.sessionId !== mySession) return;
+			unreported.push(task);
+			flushSettled();
+		});
+	};
 
 	pi.on("session_start", async (_event, ctx) => {
 		ui = ctx.ui;
 		hasUI = ctx.hasUI;
-		// Bind the task registry to this session so the inspector, the widget and
+		// Bind the task registry to this session so the sidebar, the widget and
 		// every tool only ever see this session's own runs - never the history of
 		// other sessions that share the machine-wide state file.
-		setSession(
+		mySession =
 			ctx.sessionManager?.getSessionId?.() ??
-				ctx.sessionManager?.getSessionFile?.() ??
-				process.env.PI_SESSION_ID ??
-				"",
-		);
+			ctx.sessionManager?.getSessionFile?.() ??
+			process.env.PI_SESSION_ID ??
+			"";
+		setSession(mySession);
+		registerListeners();
 		restoreState();
 		refreshUI();
 	});
 
-	// Don't leave subagent sessions running behind a closing app.
+	// Don't leave subagent sessions running behind a closing app, a /new, a
+	// /resume, or a /reload: in-memory subagent sessions cannot outlive the
+	// extension instance that owns them.
 	pi.on("session_shutdown", async () => {
 		killAll();
+		// killAll only aborts; the settles land asynchronously, after this
+		// session's registry is gone. Write the truth to disk now so a later
+		// restore reports these as deliberately killed, not mysteriously lost.
+		persistState(true);
+		unsubChange?.();
+		unsubSettle?.();
+		unsubChange = null;
+		unsubSettle = null;
+		if (widgetTimer) {
+			clearTimeout(widgetTimer);
+			widgetTimer = null;
+		}
 		try {
+			// Remove OUR overlay entry specifically - never pop the topmost, which
+			// after a long session may belong to another extension.
+			sidebarShutdown = true;
+			sidebarHandle?.hide();
+			sidebarHandle = null;
+			sidebar = null;
+			if (onResize) {
+				process.stdout.removeListener("resize", onResize);
+				onResize = null;
+			}
 			ui?.setWidget("delegate", undefined);
 		} catch {
 			/* going away anyway */
@@ -365,7 +457,7 @@ export default function (pi: ExtensionAPI) {
 			"Every field is passed straight to the subagent session; anything you omit falls back to whatever this session would use.",
 			"You define each subagent inline (prompt, and optionally systemPrompt, tools, model) - there are no predefined agents to pick from.",
 			"After spawning, END YOUR TURN: you are notified automatically when the tasks settle, and the user stays free to talk to you meanwhile.",
-			"Live progress is shown in the inspector (/delegate), not streamed into your context.",
+			"Live progress is shown in the sidebar (alt+g or /delegate), not streamed into your context.",
 		].join(" "),
 		promptSnippet: "Run prompts in separate subagent sessions (non-blocking; returns task ids)",
 		promptGuidelines: [
@@ -388,6 +480,16 @@ export default function (pi: ExtensionAPI) {
 			emptyWaits = 0; // new work: the next wait gets its grace period back
 			const spawned = params.tasks.map((spec) => spawn({ ...spec, cwd: spec.cwd ?? params.cwd }, env));
 
+			// Surface the work as it starts: open the sidebar (without stealing
+			// the keyboard) so the user watches progress without asking for it.
+			if (ctx.mode === "tui" && ctx.hasUI && loadConfig().autoShowSidebar) {
+				try {
+					showSidebar(false);
+				} catch {
+					/* UI is best-effort */
+				}
+			}
+
 			const caps = gateSnapshot()
 				.filter((g) => g.waiting > 0)
 				.map((g) => `${g.provider} ${g.inUse}/${g.cap} (+${g.waiting} queued)`);
@@ -401,7 +503,7 @@ export default function (pi: ExtensionAPI) {
 							(caps.length ? `Waiting on provider capacity: ${caps.join("; ")}.\n` : "") +
 							`These run in the background. Tell the user what you started, then END YOUR TURN — do not call delegate_wait now. ` +
 							`A [delegate] message will arrive when they settle; read the results with delegate_wait then. ` +
-							`Progress is visible in the inspector (/delegate), not in your context.`,
+							`Progress is visible in the sidebar (alt+g or /delegate), not in your context.`,
 					},
 				],
 				details: toDetails(spawned),
@@ -453,20 +555,23 @@ export default function (pi: ExtensionAPI) {
 			const requestedWait = params.waitMs ?? DEFAULT_WAIT_MS;
 			const grace = emptyWaits === 0 ? loadConfig().interactiveWaitMs : 0;
 			const waitMs = interactive ? Math.min(requestedWait, grace) : requestedWait;
-			const requested = params.ids ?? activeTasks().map((t) => t.id);
+			// An empty ids array carries no information; treat it like an omitted one.
+			const idsProvided = params.ids !== undefined && params.ids.length > 0;
+			let requested = idsProvided ? params.ids! : activeTasks().map((t) => t.id);
 
+			// A bare delegate_wait after everything settled must return the
+			// results, not one-line status summaries: default to the most recent
+			// settled tasks (details never reach the model, only this text does).
+			if (!idsProvided && requested.length === 0) {
+				requested = listTasks()
+					.filter(isSettled)
+					.slice(-5)
+					.map((t) => t.id);
+			}
 			if (requested.length === 0) {
-				const recent = listTasks().filter(isSettled).slice(-5);
 				return {
-					content: [
-						{
-							type: "text",
-							text: recent.length
-								? `No tasks in flight. Most recent:\n${recent.map(statusLine).join("\n")}`
-								: "No delegate tasks have been spawned.",
-						},
-					],
-					details: toDetails(recent),
+					content: [{ type: "text", text: "No delegate tasks have been spawned." }],
+					details: toDetails([]),
 				};
 			}
 
@@ -475,21 +580,37 @@ export default function (pi: ExtensionAPI) {
 
 			// Claim these ids so the completion push stays quiet about work this
 			// call is about to report itself.
-			for (const id of known) awaiting.add(id);
+			for (const id of known) awaitingAdd(id);
 			let tasks: Task[];
 			try {
 				tasks = await waitFor(known, waitMs, signal);
 			} finally {
-				for (const id of known) awaiting.delete(id);
+				for (const id of known) awaitingRemove(id);
 			}
 
 			const done = tasks.filter(isSettled);
 			const pending = tasks.filter((t) => !isSettled(t));
 			const ok = done.filter(succeeded).length;
 
+			// If the turn was aborted while we waited, this result is discarded
+			// and the model never sees these outputs: leave them unreported so
+			// the completion push announces them instead of losing them forever.
+			if (signal?.aborted) {
+				flushSettled();
+				return { content: [{ type: "text", text: "(aborted)" }], details: toDetails(tasks) };
+			}
+
 			// The parent has these results now, so suppress the completion push for them.
-			if (reported.size > 200) reported.clear();
-			for (const t of done) reported.add(t.id);
+			// Prune only ids that are gone from BOTH the task map and `unreported` -
+			// an id still held in `unreported` could be re-announced if forgotten here.
+			if (reported.size > 500) {
+				const held = new Set(unreported.map((t) => t.id));
+				for (const id of reported) if (!getTask(id) && !held.has(id)) reported.delete(id);
+			}
+			for (const t of done) {
+				reported.add(t.id);
+				announced.delete(t.id);
+			}
 			emptyWaits = done.length > 0 ? 0 : emptyWaits + 1;
 
 			const parts: string[] = [];
@@ -640,11 +761,13 @@ export default function (pi: ExtensionAPI) {
 		async execute(_toolCallId, params) {
 			const activityLines = params.activity ?? 5;
 			const all = listTasks();
-			const targets = params.ids
-				? params.ids.map((id) => getTask(id)).filter((t): t is Task => t !== undefined)
+			// An empty ids array carries no information; treat it like an omitted one.
+			const idsProvided = params.ids !== undefined && params.ids.length > 0;
+			const targets = idsProvided
+				? params.ids!.map((id) => getTask(id)).filter((t): t is Task => t !== undefined)
 				: [...activeTasks(), ...all.filter(isSettled).slice(-3)];
 
-			const missing = params.ids?.filter((id) => !getTask(id)) ?? [];
+			const missing = idsProvided ? params.ids!.filter((id) => !getTask(id)) : [];
 			if (missing.length > 0 && targets.length === 0) {
 				throw new Error(`Unknown task id(s): ${missing.join(", ")}. Known ids: ${all.map((t) => t.id).join(", ") || "(none)"}.`);
 			}
@@ -690,58 +813,139 @@ export default function (pi: ExtensionAPI) {
 		},
 	});
 
-	// ---- inspector ----
+	// ---- sidebar ----
 
-	let inspectorOpen = false;
+	/**
+	 * The sidebar overlay is created once per session and toggled with
+	 * setHidden, so its state (selection, scroll position, markdown cache)
+	 * survives hide/show. It is non-capturing: showing it never steals the
+	 * keyboard - focus moves into it only via handle.focus().
+	 */
+	let sidebarOpening = false;
 
-	const openInspector = async (ctx: any): Promise<void> => {
-		if (listTasks().length === 0) {
-			ctx.ui.notify("No delegate tasks yet.", "info");
+	const showSidebar = (focus: boolean): void => {
+		if (!ui || !hasUI) return;
+		if (sidebarHandle && sidebar) {
+			sidebarHandle.setHidden(false);
+			sidebar.selectFirstActive();
+			if (focus) sidebarHandle.focus();
+			drawWidget();
 			return;
 		}
-		if (ctx.mode !== "tui") {
-			ctx.ui.notify(listTasks().map(statusLine).join("\n"), "info");
-			return;
-		}
-		if (inspectorOpen) return;
-		inspectorOpen = true;
-		try {
-			await ctx.ui.custom(
-				(tui: any, theme: any, _kb: any, done: (v: null) => void) => {
-					inspector = new Inspector(tui, (c: string, t: string) => theme.fg(c, t), {
-						steer: async (task: Task) => {
-							const message = await ctx.ui.input(`Steer ${task.id} (${displayName(task)}):`, "instruction");
-							if (!message) return undefined;
-							const outcome = await steerTask(task.id, message);
-							return outcome === "delivered"
-								? `steered ${task.id}`
-								: outcome === "queued"
-									? `queued for ${task.id} (not started)`
-									: `${task.id}: ${outcome}`;
-						},
-						kill: (task: Task) => {
-							killTask(task.id);
-						},
-						clear: () => clearHistory(),
-						close: () => done(null),
-					});
-					return inspector;
+		if (sidebarOpening) return;
+		sidebarOpening = true;
+		// The custom() promise is left pending for the life of the session on
+		// purpose: its done() callback tears down the TOPMOST overlay, which
+		// after a whole session may be someone else's. Shutdown removes the
+		// sidebar via its own handle instead (handle.hide() splices exactly
+		// this entry), and the pending promise dies with the instance.
+		const custom = ui.custom(
+			(tui: any, theme: any, _kb: any, _done: (v: null) => void) => {
+				sidebar = new Sidebar(tui, (c: string, t: string) => theme.fg(c, t), {
+					steer: async (task: Task) => {
+						const message = await ui.input(`Steer ${task.id} (${displayName(task)}):`, "instruction");
+						if (!message) return undefined;
+						const outcome = await steerTask(task.id, message);
+						return outcome === "delivered"
+							? `steered ${task.id}`
+							: outcome === "queued"
+								? `queued for ${task.id} (not started)`
+								: `${task.id}: ${outcome}`;
+					},
+					kill: (task: Task) => {
+						killTask(task.id);
+					},
+					clear: () => clearHistory(),
+					focusEditor: () => sidebarHandle?.unfocus(),
+					hide: () => {
+						sidebarHandle?.unfocus();
+						sidebarHandle?.setHidden(true);
+						drawWidget();
+					},
+				});
+				return sidebar;
+			},
+			{
+				overlay: true,
+				overlayOptions: {
+					anchor: "top-right",
+					width: "36%",
+					minWidth: 34,
+					nonCapturing: true,
+					// Too narrow a terminal and the panel would bury the chat.
+					visible: (termWidth: number) => termWidth >= 80,
 				},
-				{
-					overlay: true,
-					overlayOptions: { anchor: "center", width: "80%", minWidth: 48, maxHeight: "85%" },
+				onHandle: (handle: OverlayHandle) => {
+					sidebarOpening = false;
+					// A shutdown can land in the microtask between custom() and the
+					// overlay actually being pushed; remove it as soon as it exists.
+					if (sidebarShutdown) {
+						handle.hide();
+						return;
+					}
+					sidebarHandle = handle;
+					sidebar?.selectFirstActive();
+					if (focus) handle.focus();
+					drawWidget();
+					// Narrowing under the width gate hides the panel per-frame, but
+					// nothing else re-evaluates the widget handoff or releases the
+					// panel's focus/restore state - without this, typing after a
+					// narrow+widen cycle can silently land back in the sidebar
+					// (where `x` kills tasks), and the widget stays suppressed for a
+					// panel nobody can see.
+					if (!onResize) {
+						onResize = () => {
+							if (sidebar && !sidebar.canRender()) sidebarHandle?.unfocus();
+							drawWidget();
+						};
+						process.stdout.on("resize", onResize);
+					}
 				},
+			},
+		);
+		// Never resolves in normal operation (see above); swallow factory errors.
+		void Promise.resolve(custom).catch(() => {
+			sidebar = null;
+			sidebarHandle = null;
+			sidebarOpening = false;
+		});
+	};
+
+	/** Editor-side toggle: hidden -> show (focused), visible -> hide. */
+	const toggleSidebar = (ctx: any): void => {
+		if (ctx.mode !== "tui" || !ctx.hasUI) {
+			ctx.ui.notify(
+				listTasks().length ? listTasks().map(statusLine).join("\n") : "No delegate tasks have been spawned.",
+				"info",
 			);
-		} finally {
-			inspector = null;
-			inspectorOpen = false;
+			return;
 		}
+		// Checked directly (not via sidebar.canRender) so the FIRST press on a
+		// narrow terminal explains itself instead of creating an invisible panel.
+		if ((process.stdout.columns ?? MIN_SIDEBAR_COLS) < MIN_SIDEBAR_COLS) {
+			ctx.ui.notify(`Terminal too narrow for the delegate sidebar (needs ${MIN_SIDEBAR_COLS} columns).`, "info");
+			return;
+		}
+		if (sidebarVisible()) {
+			sidebarHandle!.unfocus();
+			sidebarHandle!.setHidden(true);
+			drawWidget();
+			return;
+		}
+		showSidebar(true);
 	};
 
 	pi.registerCommand("delegate", {
-		description: "Inspect delegate tasks (live status, steer, kill)",
+		description: "Toggle the delegate sidebar (live subagent transcripts, steer, kill)",
 		handler: async (_args, ctx) => {
-			await openInspector(ctx);
+			toggleSidebar(ctx);
+		},
+	});
+
+	pi.registerShortcut("alt+g", {
+		description: "Toggle the delegate sidebar",
+		handler: (ctx) => {
+			toggleSidebar(ctx);
 		},
 	});
 
