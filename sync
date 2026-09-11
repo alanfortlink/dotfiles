@@ -86,11 +86,21 @@ for entry in "$REPO/pi"/*; do
     for ext in "$entry"/*; do
       [ -e "$ext" ] || continue
       link "$ext" "$HOME/.pi/agent/extensions/$(basename "$ext")" "$HOME/.pi/agent/extensions.pre-link-$TS"
-      # web-tools imports npm packages; pi fails to start if they're missing.
-      if [ -f "$ext/package.json" ] && grep -q '"dependencies"' "$ext/package.json" \
-        && [ ! -d "$ext/node_modules" ] && command -v npm >/dev/null; then
-        echo "  npm install: $ext"
-        (cd "$ext" && npm install --silent --no-fund --no-audit)
+      # Reconcile runtime dependencies after a fresh clone or lockfile update.
+      # npm keeps the installed lock snapshot here, which gives us a cheap,
+      # portable freshness check without running npm on every sync.
+      if [ -f "$ext/package.json" ] && grep -q '"dependencies"' "$ext/package.json"; then
+        installed_lock="$ext/node_modules/.package-lock.json"
+        if [ ! -f "$installed_lock" ] \
+          || [ "$ext/package.json" -nt "$installed_lock" ] \
+          || { [ -f "$ext/package-lock.json" ] && [ "$ext/package-lock.json" -nt "$installed_lock" ]; }; then
+          command -v npm >/dev/null || {
+            echo "npm is required to install Pi extension dependencies: $ext" >&2
+            exit 1
+          }
+          echo "  npm install: $ext"
+          (cd "$ext" && npm install --silent --no-fund --no-audit)
+        fi
       fi
     done
     continue
