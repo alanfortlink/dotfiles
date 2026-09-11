@@ -64,7 +64,9 @@ source ~/.aliases
 # Ollama host is per-machine; keep it out of the repo by putting the URL in ~/.config/ollama_host
 [ -f "$HOME/.config/ollama_host" ] && export OLLAMA_HOST="$(<"$HOME/.config/ollama_host")"
 
-# Starship prompt (hostname etc. via starship.toml); no-op if starship isn't installed.
-if (( $+commands[starship] )) && [[ -z $STARSHIP_SHELL ]]; then
+# Initialize in every interactive shell. Multiplexers inherit STARSHIP_SHELL
+# from their launcher, so using that variable as a guard leaves pane shells on
+# the fallback prompt (and drops the hostname).
+if (( $+commands[starship] )); then
   eval "$(starship init zsh)"
 fi
